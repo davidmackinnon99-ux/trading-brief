@@ -4,3 +4,11 @@ scripts/current.pine
 temp_*
 *.log
 discovery-log.json
+
+# Sensitive / personal config
+rules.json
+safety-check-log.json
+
+# Large generated data files
+*.json.bak
+briefs/

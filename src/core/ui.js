@@ -160,6 +160,55 @@ export async function layoutSwitch({ name }) {
   return { success: true, layout: result.name || name, layout_id: result.id, source: result.source, action: 'switched', unsaved_dialog_dismissed: dismissed };
 }
 
+/**
+ * Poll until a specific indicator name appears in the data window, confirming
+ * that a layout switch has fully completed and the new indicators are loaded.
+ *
+ * @param {object} opts
+ * @param {string} opts.indicator  - Partial or full indicator name to wait for (case-insensitive substring match)
+ * @param {number} [opts.timeout_ms=300000] - Max wait in milliseconds (default 5 min)
+ * @param {number} [opts.poll_ms=10000]     - Poll interval in milliseconds (default 10s)
+ */
+export async function layoutWaitFor({ indicator, timeout_ms = 300000, poll_ms = 10000 }) {
+  if (!indicator) throw new Error('indicator name required');
+  const needle = indicator.toLowerCase();
+  const started = Date.now();
+  let attempts = 0;
+
+  while (true) {
+    attempts++;
+    const elapsed = Date.now() - started;
+
+    // Read study names from chart
+    const names = await evaluate(`
+      (function() {
+        try {
+          var defs = window.TradingViewApi._chartWidgetCollection._chartWidgetsDefs;
+          if (!defs || !defs.length) return [];
+          var sources = defs[0].chartWidget.model().model().dataSources();
+          return sources
+            .filter(function(s) { return s && s.metaInfo; })
+            .map(function(s) {
+              try { var m = s.metaInfo(); return (m.description || m.shortDescription || '').toLowerCase(); } catch(e) { return ''; }
+            })
+            .filter(Boolean);
+        } catch(e) { return []; }
+      })()
+    `);
+
+    const found = Array.isArray(names) && names.some(n => n.includes(needle));
+    if (found) {
+      return { success: true, indicator, found_after_ms: elapsed, attempts };
+    }
+
+    if (elapsed >= timeout_ms) {
+      return { success: false, indicator, error: `Timed out after ${elapsed}ms (${attempts} attempts) — indicator "${indicator}" not found`, attempts };
+    }
+
+    await new Promise(r => setTimeout(r, poll_ms));
+  }
+}
+
 export async function keyboard({ key, modifiers }) {
   const c = await getClient();
   let mod = 0;

@@ -324,31 +324,86 @@ export async function getDepth() {
 export async function getStudyValues() {
   const data = await evaluate(`
     (function() {
-      var chart = window.TradingViewApi._activeChartWidgetWV.value()._chartWidget;
-      var model = chart.model();
-      var sources = model.model().dataSources();
-      var results = [];
-      for (var si = 0; si < sources.length; si++) {
-        var s = sources[si];
-        if (!s.metaInfo) continue;
-        try {
-          var meta = s.metaInfo();
-          var name = meta.description || meta.shortDescription || '';
-          if (!name) continue;
-          var values = {};
+      // Collect chart widgets from all panes in the layout.
+      // After a programmatic layout switch, _activeChartWidgetWV may still point to the
+      // previous layout's chart — so indicators on secondary panes (e.g. SlingShotSystem,
+      // Booker Method on the PULLBACK layout) would be missed if we only read the active chart.
+      // We therefore enumerate ALL chart widgets and merge their data sources, deduplicating
+      // by indicator name (active chart takes priority; other panes supplement unique indicators).
+      function getAllChartWidgets() {
+        var widgets = [];
+        var seen = new Set();
+        function addWidget(cw) {
           try {
-            var dwv = s.dataWindowView();
-            if (dwv) {
-              var items = dwv.items();
-              if (items) {
-                for (var i = 0; i < items.length; i++) {
-                  var item = items[i];
-                  if (item._value && item._value !== '∅' && item._title) values[item._title] = item._value;
-                }
-              }
-            }
+            var c = (cw && cw._chartWidget) ? cw._chartWidget : cw;
+            if (c && typeof c.model === 'function' && !seen.has(c)) { seen.add(c); widgets.push(c); }
           } catch(e) {}
-          if (Object.keys(values).length > 0) results.push({ name: name, values: values });
+        }
+        // 1. Active chart (primary)
+        try { addWidget(window.TradingViewApi._activeChartWidgetWV.value()); } catch(e) {}
+        // 2. All charts in the layout widget (secondary panes)
+        try {
+          var api = window.TradingViewApi;
+          var layoutKeys = ['_chartLayoutWidgetWV', '_layoutWidgetWV', '_multiChartLayoutWidgetWV'];
+          for (var lk = 0; lk < layoutKeys.length; lk++) {
+            try {
+              var lw = api[layoutKeys[lk]];
+              if (!lw) continue;
+              var lwv = (typeof lw.value === 'function') ? lw.value() : lw;
+              var chartListKeys = ['_allChartWidgets', '_charts', '_chartWidgets', '_chartWidgetModels', '_chartWidgetsList'];
+              for (var ck = 0; ck < chartListKeys.length; ck++) {
+                try {
+                  var clist = lwv[chartListKeys[ck]];
+                  if (!clist) continue;
+                  var arr = Array.isArray(clist) ? clist : ((typeof clist.value === 'function') ? clist.value() : null);
+                  if (!arr) continue;
+                  arr.forEach(function(cw) { addWidget(cw); });
+                  break; // found a valid list for this layout widget
+                } catch(e) {}
+              }
+            } catch(e) {}
+          }
+        } catch(e) {}
+        return widgets;
+      }
+
+      var chartWidgets = getAllChartWidgets();
+      var seenStudies = {};
+      var results = [];
+
+      for (var wi = 0; wi < chartWidgets.length; wi++) {
+        try {
+          var chart = chartWidgets[wi];
+          var sources = chart.model().model().dataSources();
+          for (var si = 0; si < sources.length; si++) {
+            var s = sources[si];
+            if (!s.metaInfo) continue;
+            try {
+              var meta = s.metaInfo();
+              var name = meta.description || meta.shortDescription || '';
+              if (!name || seenStudies[name]) continue; // active chart wins on duplicates
+              var values = {};
+              try {
+                var dwv = s.dataWindowView();
+                if (dwv) {
+                  var items = dwv.items();
+                  if (items) {
+                    for (var i = 0; i < items.length; i++) {
+                      var item = items[i];
+                      if (item._value && item._value !== '∅') {
+                        if (item._title) values[item._title] = item._value; // name-based (first wins if duplicates)
+                        values[String(i)] = item._value;                    // index-based (always unique)
+                      }
+                    }
+                  }
+                }
+              } catch(e) {}
+              if (Object.keys(values).length > 0) {
+                seenStudies[name] = true;
+                results.push({ name: name, values: values });
+              }
+            } catch(e) {}
+          }
         } catch(e) {}
       }
       return results;

@@ -71,8 +71,83 @@ export async function connect() {
 async function findChartTarget() {
   const resp = await fetch(`http://${CDP_HOST}:${CDP_PORT}/json/list`);
   const targets = await resp.json();
-  // Prefer targets with tradingview.com/chart in the URL
-  return targets.find(t => t.type === 'page' && /tradingview\.com\/chart/i.test(t.url))
+  const chartTargets = targets.filter(t => t.type === 'page' && /tradingview\.com\/chart/i.test(t.url));
+
+  // Deduplicate by layout ID — prefer Desktop app pages over Chrome tab pages.
+  // When both the Desktop app and a Chrome tab have the same layout open, CDP sees
+  // two pages with the same layout ID. The Desktop app page has a non-empty
+  // 'description' field (typically "Electron"); Chrome tab pages have description="".
+  // We keep only one page per layout ID, preferring the Desktop app instance.
+  const seenLayoutIds = {};
+  const dedupedTargets = [];
+  for (const t of chartTargets) {
+    const m = t.url.match(/\/chart\/([^/]+)\//);
+    const layoutId = m ? m[1] : t.url;
+    if (!seenLayoutIds[layoutId]) {
+      seenLayoutIds[layoutId] = t;
+      dedupedTargets.push(t);
+    } else {
+      // Prefer Desktop app (non-empty description) over Chrome tab (empty description)
+      const existing = seenLayoutIds[layoutId];
+      const existingIsDesktop = !!(existing.description && existing.description.trim());
+      const newIsDesktop = !!(t.description && t.description.trim());
+      if (newIsDesktop && !existingIsDesktop) {
+        // Replace Chrome tab entry with Desktop app entry
+        const idx = dedupedTargets.indexOf(existing);
+        dedupedTargets[idx] = t;
+        seenLayoutIds[layoutId] = t;
+        process.stderr.write(`[connection] INFO: Layout ${layoutId} on both Desktop app and Chrome tab — preferring Desktop app page.\n`);
+      } else {
+        process.stderr.write(`[connection] INFO: Layout ${layoutId} appears on multiple CDP pages — keeping first (Desktop app preferred).\n`);
+      }
+    }
+  }
+  if (dedupedTargets.length < chartTargets.length) {
+    process.stderr.write(`[connection] Deduplicated ${chartTargets.length} → ${dedupedTargets.length} chart pages (Chrome tabs suppressed where Desktop app page exists).\n`);
+  }
+  // Use deduplicated list going forward
+  chartTargets.length = 0;
+  chartTargets.push(...dedupedTargets);
+
+  // If an indicator hint is set, scan all chart pages to find the one that has that indicator.
+  // TradingView Desktop runs each saved chart layout as a separate page — this ensures we
+  // connect to the correct layout page for each scan rather than always defaulting to page 1.
+  const hint = process.env.TRADINGVIEW_INDICATOR_HINT;
+  if (hint && chartTargets.length > 1) {
+    const needle = hint.toLowerCase();
+    for (const target of chartTargets) {
+      try {
+        const tempClient = await CDP({ host: CDP_HOST, port: CDP_PORT, target: target.id });
+        await tempClient.Runtime.enable();
+        const result = await tempClient.Runtime.evaluate({
+          expression: `(function() {
+            try {
+              var defs = window.TradingViewApi._chartWidgetCollection._chartWidgetsDefs;
+              if (!defs || !defs.length) return [];
+              return defs[0].chartWidget.model().model().dataSources()
+                .filter(function(s) { return s && s.metaInfo; })
+                .map(function(s) {
+                  try { var m = s.metaInfo(); return (m.description || '').toLowerCase(); } catch(e) { return ''; }
+                })
+                .filter(Boolean);
+            } catch(e) { return []; }
+          })()`,
+          returnByValue: true,
+        });
+        await tempClient.close();
+        const names = result.result?.value || [];
+        if (names.some(n => n.includes(needle))) {
+          process.stderr.write(`[connection] TRADINGVIEW_INDICATOR_HINT="${hint}" → matched page ${target.url}\n`);
+          return target;
+        }
+      } catch (_) {
+        // Skip unreachable targets
+      }
+    }
+    process.stderr.write(`[connection] WARNING: TRADINGVIEW_INDICATOR_HINT="${hint}" not found on any chart page — using default\n`);
+  }
+
+  return chartTargets[0]
     || targets.find(t => t.type === 'page' && /tradingview/i.test(t.url))
     || null;
 }

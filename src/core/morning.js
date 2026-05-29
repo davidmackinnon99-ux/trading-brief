@@ -9,6 +9,7 @@ import { join, resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import * as chart from "./chart.js";
 import * as data from "./data.js";
+import * as ui from "./ui.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = resolve(__dirname, "../../");
@@ -41,14 +42,45 @@ function loadRules(rulesPath) {
   );
 }
 
-export async function runBrief({ rules_path } = {}) {
+export async function runBrief({ rules_path, sections } = {}) {
   const { rules, path: loadedFrom } = loadRules(rules_path);
-  const { watchlist = [], default_timeframe = "240" } = rules;
+  const {
+    watchlist = [],
+    watchlist_sections = {},
+    default_timeframe = "1D",
+    scan_delay_ms = 1500,
+    symbol_timeout_ms = 30000,
+    lorp_layout = "LORP",
+    pullback_layout = "Pullback",
+  } = rules;
 
   if (!watchlist.length) {
     throw new Error(
       "rules.json watchlist is empty. Add at least one symbol to your watchlist array.",
     );
+  }
+
+  // If --sections specified, filter watchlist to only symbols in those sections.
+  // Uses case-insensitive partial matching against watchlist_sections keys.
+  let filteredWatchlist = watchlist;
+  if (sections) {
+    const requestedSections = sections.split(',').map(s => s.trim()).filter(Boolean);
+    const sectionKeys = Object.keys(watchlist_sections);
+    const symbolSet = new Set();
+
+    for (const requested of requestedSections) {
+      const rl = requested.toLowerCase();
+      const matched = sectionKeys.filter(k => {
+        const kl = k.toLowerCase();
+        return kl === rl || kl.includes(rl) || rl.includes(kl);
+      });
+      for (const key of matched) {
+        for (const sym of (watchlist_sections[key] || [])) symbolSet.add(sym);
+      }
+    }
+
+    filteredWatchlist = watchlist.filter(s => symbolSet.has(s));
+    process.stderr.write(`[brief] sections filter: ${requestedSections.join(', ')} → ${filteredWatchlist.length} symbols (from ${watchlist.length} total)\n`);
   }
 
   // Save current chart state so we can restore after scanning
@@ -60,13 +92,24 @@ export async function runBrief({ rules_path } = {}) {
   } catch (_) {}
 
   const results = [];
+  // Track whether we've already set the timeframe to default_timeframe.
+  // Symbol changes preserve the current timeframe in TradingView, so we only
+  // need to set it once (on the first symbol). Calling setTimeframe() on every
+  // symbol triggers a full chart re-render + waitForChartReady() poll — roughly
+  // 4-5 extra seconds per symbol. Skipping it for symbols 2-N saves ~20 minutes
+  // on a 267-symbol watchlist.
+  let timeframeConfirmed = false;
 
-  for (const symbol of watchlist) {
-    try {
+  for (const symbol of filteredWatchlist) {
+    const scanOne = async () => {
       await chart.setSymbol({ symbol });
-      await new Promise((r) => setTimeout(r, 900));
-      await chart.setTimeframe({ timeframe: default_timeframe });
-      await new Promise((r) => setTimeout(r, 900));
+      await new Promise((r) => setTimeout(r, scan_delay_ms));
+
+      if (!timeframeConfirmed) {
+        await chart.setTimeframe({ timeframe: default_timeframe });
+        await new Promise((r) => setTimeout(r, scan_delay_ms));
+        timeframeConfirmed = true;
+      }
 
       const [state, indicators, quote] = await Promise.all([
         chart.getState(),
@@ -74,19 +117,33 @@ export async function runBrief({ rules_path } = {}) {
         data.getQuote({}),
       ]);
 
-      results.push({
-        symbol,
-        timeframe: default_timeframe,
-        state,
-        indicators,
-        quote,
-      });
+      return { symbol, timeframe: default_timeframe, state, indicators, quote };
+    };
+
+    try {
+      const result = await Promise.race([
+        scanOne(),
+        new Promise((_, reject) =>
+          setTimeout(
+            () => reject(new Error(`symbol scan timeout (${symbol_timeout_ms / 1000}s)`)),
+            symbol_timeout_ms,
+          ),
+        ),
+      ]);
+      results.push(result);
     } catch (err) {
+      process.stderr.write(`[brief] TIMEOUT/ERROR ${symbol}: ${err.message}\n`);
       results.push({ symbol, error: err.message });
     }
   }
 
-  // Restore original chart state
+  // ── Pullback layout pass (disabled — layout switching discards unsaved chart changes) ──
+  // TODO: Re-enable once LORP layout is confirmed saved to cloud and safe to reload.
+  // When re-enabled, this will switch to Pullback layout, scan full watchlist for
+  // SMA50/SMA200 data, then switch back to lorp_layout.
+  const pullbackResults = [];
+  const pullbackError = 'Pullback layout scan disabled — using LORP layout proxy';
+
   if (originalSymbol) {
     try {
       await chart.setSymbol({ symbol: originalSymbol });
@@ -105,6 +162,7 @@ export async function runBrief({ rules_path } = {}) {
       notes: rules.notes || null,
     },
     symbols_scanned: results,
+    pullback_results: pullbackError ? [{ layout_error: pullbackError }] : pullbackResults,
     instruction: [
       "For each symbol in symbols_scanned, apply the bias_criteria from rules to the indicator readings.",
       "Output one line per symbol: SYMBOL | BIAS: [bullish/bearish/neutral] | KEY LEVEL: [price] | WATCH: [what to monitor]",

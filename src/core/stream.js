@@ -134,7 +134,12 @@ async function fetchValues() {
           var vals = {};
           if (typeof data === 'object') {
             for (var k in data) {
-              if (typeof data[k] === 'number' && !isNaN(data[k])) vals[k] = data[k];
+              var v = data[k];
+              var t = typeof v;
+              // Accept numbers directly; also accept non-empty strings (covers formatted
+              // values like "1.03 M", "−481", "75.02%" from RVOL, VD, Aroon, ADX etc.)
+              if (t === 'number' && !isNaN(v)) { vals[k] = v; }
+              else if (t === 'string' && v.trim() !== '' && v !== '∅' && v !== 'n/a') { vals[k] = v; }
             }
           }
           if (Object.keys(vals).length > 0) results.push({ name: studies[i].name, values: vals });

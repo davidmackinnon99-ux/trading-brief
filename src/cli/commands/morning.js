@@ -10,8 +10,13 @@ register("brief", {
       short: "r",
       description: "Path to rules.json (default: ./rules.json)",
     },
+    sections: {
+      type: "string",
+      short: "s",
+      description: "Comma-separated watchlist section names to scan (default: all). Only symbols belonging to these sections will be scanned.",
+    },
   },
-  handler: async ({ rules }) => core.runBrief({ rules_path: rules }),
+  handler: async ({ rules, sections }) => core.runBrief({ rules_path: rules, sections }),
 });
 
 register("session", {
