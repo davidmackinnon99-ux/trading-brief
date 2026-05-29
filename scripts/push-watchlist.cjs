@@ -214,8 +214,23 @@ async function main() {
     const originalSymbols = listData.symbols;
     process.stderr.write(`[push-watchlist] Current watchlist: ${originalSymbols.length} entries\n`);
 
-    // ── Update each BRIEF section ─────────────────────────────────
+    // ── Step 1: Clear all Screener sections ───────────────────────
+    // Wipe screener sections to empty before writing Brief Output so there
+    // are no duplicate tickers across sections. User repopulates screeners manually.
+    const SCREENER_SECTIONS = [
+      'LORP SCREENER',
+      'SID SCREENER',
+      'ADX BREAKOUT SCREENER',
+      'PULLBACK SCREENER',
+    ];
     let updatedSymbols = [...originalSymbols];
+    for (const sectionName of SCREENER_SECTIONS) {
+      const before = updatedSymbols.length;
+      updatedSymbols = replaceSectionInArray(updatedSymbols, sectionName, []);
+      process.stderr.write(`[push-watchlist] Cleared "${sectionName}" (${before} → ${updatedSymbols.length} entries)\n`);
+    }
+
+    // ── Step 2: Write Brief Output section ───────────────────────
     const BRIEF_SECTIONS = ['Brief Output'];
 
     for (const sectionName of BRIEF_SECTIONS) {

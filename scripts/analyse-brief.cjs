@@ -368,10 +368,13 @@ const sidResults = sidBrief ? sidBrief.symbols_scanned.filter(s => !EXCLUDED_TIC
   //   v10.5.4.15: 'Long Entry' / 'Short Entry' (fired this bar, always present as 0/1)
   // For entry detection we prefer the armed-state keys (v8.5) since they persist across bars;
   // fall back to direct entry signal keys (v10.5 or v8.5 "Entry Signal") when not available.
+  // Entry-signal keys take priority — these fire only on the bar the entry triggers.
+  // 'SID Armed Long'/'Short' are persistent state keys (latch until reset) and can stay
+  // set for months without an entry firing — they are fallback only.
   const sidArmedLong  = parseNum(getVal(sidCSt?.values,
-    'SID Armed Long', 'RSI Enters OS', 'Long Entry Signal', 'Long Entry', 'Armed Long'));
+    'Long Entry Signal', 'Long Entry', 'SID Armed Long', 'RSI Enters OS', 'Armed Long'));
   const sidArmedShort = parseNum(getVal(sidCSt?.values,
-    'SID Armed Short', 'RSI Enters OB', 'Short Entry Signal', 'Short Entry', 'Armed Short'));
+    'Short Entry Signal', 'Short Entry', 'SID Armed Short', 'RSI Enters OB', 'Armed Short'));
   // Exit/stop signals
   const sidLongExit   = parseNum(getVal(sidCSt?.values, 'Long Exit Signal',  'Long Exit'));
   const sidShortExit  = parseNum(getVal(sidCSt?.values, 'Short Exit Signal', 'Short Exit'));
