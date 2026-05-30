@@ -208,8 +208,10 @@ async function main() {
     process.stderr.write(`[push-watchlist] Current watchlist: ${originalSymbols.length} entries\n`);
 
     // ── Step 1: Clear all Screener sections ───────────────────────
-    // Wipe screener sections to empty before writing Brief Output so there
-    // are no duplicate tickers across sections. User repopulates screeners manually.
+    // Screener tickers overlap with Brief Output tickers, so screeners must be
+    // cleared first — otherwise replaceSectionInArray cannot write new Brief Output
+    // tickers that already exist in a screener section.
+    // NOTE: screeners will need to be reloaded from the TV Screener before rerunning.
     const SCREENER_SECTIONS = [
       'LORP SCREENER',
       'SID SCREENER',
