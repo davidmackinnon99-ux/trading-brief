@@ -89,12 +89,13 @@ fi
 # correct layout page regardless of CDP list ordering. No layout switching needed.
 
 # ── SCAN 1: LORP layout ───────────────────────────────────────────────────────
-# Hint: "LORP Moving Averages" is unique to the Desktop LORP layout (OWHfyWBq).
+# Hint: "CAP Tools Supplement" is unique to the Desktop LORP layout (OWHfyWBq).
+# "LORP Moving Averages" was renamed to "Moving Averages" by user — no longer unique.
 # Do NOT use "Lorentzian Classification" — that substring also matches the
 # LORP Clean Chrome tab (t2oVV4mI) which has "ML: Lorentzian Classification Premium".
-echo "[$(date)] Scanning LORP layout (hint: LORP Moving Averages)..." >> "$LOGFILE"
-TRADINGVIEW_INDICATOR_HINT="LORP Moving Averages" \
-  "$NODE" "$TV_DIR/src/cli/index.js" brief --sections "LORP SCREENER,LORP BRIEF,PREMARKET CHECKLIST,PRE MARKET CHECKLIST" > "$OUTFILE_LORP" 2>> "$LOGFILE"
+echo "[$(date)] Scanning LORP layout (hint: CAP Tools Supplement)..." >> "$LOGFILE"
+TRADINGVIEW_INDICATOR_HINT="CAP Tools Supplement" \
+  "$NODE" "$TV_DIR/src/cli/index.js" brief --sections "LORP SCREENER" > "$OUTFILE_LORP" 2>> "$LOGFILE"
 BRIEF_EXIT=$?
 if [ $BRIEF_EXIT -eq 0 ] && [ -s "$OUTFILE_LORP" ]; then
     echo "[$(date)] LORP scan complete" >> "$LOGFILE"
