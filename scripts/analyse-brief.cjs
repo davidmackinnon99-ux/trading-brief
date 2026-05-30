@@ -800,6 +800,7 @@ const pbProcessed = pbHasData ? pbRaw.map(s => {
   const rvolSt    = getStudy(studies, 'RVOL + Volume Z-Score', 'RVOL Ratio', 'RVOL');
   const vdSt      = getStudy(studies, 'Volume Delta');
   const wrbSt     = getStudy(studies, 'WRB Confluence');
+  const capStPB   = getStudy(studies, 'CAP Tools Supplement');
 
   // EMA38 (upper/fast band) and EMA62 (lower/slow band) from SlingShotSystem
   // CM_SlingShotSystem plots SLOW MA first, FAST MA second — both labeled 'Slow MA' in the
@@ -848,6 +849,14 @@ const pbProcessed = pbHasData ? pbRaw.map(s => {
   // Band slope check: ema38 > ema62 (upper band above lower band)
   const bandValid = ema38 != null && ema62 != null ? ema38 > ema62 : null;
 
+  // CAP Tools Supplement — visual reference (Climax/Strong Demand+Supply)
+  const pbCapClimaxDemand = parseNum(getVal(capStPB?.values, 'Climax Demand'));
+  const pbCapClimaxSupply = parseNum(getVal(capStPB?.values, 'Climax Supply'));
+  const pbCapStrongDemand = parseNum(getVal(capStPB?.values, 'Strong Demand'));
+  const pbCapStrongSupply = parseNum(getVal(capStPB?.values, 'Strong Supply'));
+  const pbCapDemand = pbCapClimaxDemand > 0 || pbCapStrongDemand > 0;
+  const pbCapSupply = pbCapClimaxSupply > 0 || pbCapStrongSupply > 0;
+
   return {
     sym: s.symbol, price,
     ema38, ema62, ema21,
@@ -856,6 +865,7 @@ const pbProcessed = pbHasData ? pbRaw.map(s => {
     ppFlag, atr,
     rvol, vd, vdPos,
     bandValid,
+    pbCapDemand, pbCapSupply, pbCapClimaxDemand, pbCapClimaxSupply, pbCapStrongDemand, pbCapStrongSupply,
   };
 }) : [];
 
@@ -1526,8 +1536,8 @@ if (!VERBOSE) {
   } else {
     console.log(pbHeader2 + '\n');
 
-    const pbTableHeader  = '| Ticker | Price | Stage | EMA38 | EMA62 | EMA21 | Band↑ | VD | GP Zone | PP | Also |';
-    const pbTableDivider = '|--------|-------|-------|-------|-------|-------|-------|----|---------|-----|------|';
+    const pbTableHeader  = '| Ticker | Price | Stage | EMA38 | EMA62 | EMA21 | Band↑ | VD | GP Zone | PP | CAP | Also |';
+    const pbTableDivider = '|--------|-------|-------|-------|-------|-------|-------|----|---------|-----|-----|------|';
     console.log(pbTableHeader);
     console.log(pbTableDivider);
 
@@ -1540,7 +1550,12 @@ if (!VERBOSE) {
       const vdStr     = r.vdPos === true ? '▲' : r.vdPos === false ? '▼' : '—';
       const gpStr     = pbGpStatus(r.gpFlag, r.gpTop, r.gpBot, r.price, r.atr);
       const ppStr     = r.ppFlag != null && r.ppFlag >= 1 ? '★' : '—';
-      console.log(`| ${r.sym} | $${fmt(r.price)} | ${stageStr} | ${ema38Str} | ${ema62Str} | ${ema21Str} | ${bandStr} | ${vdStr} | ${gpStr} | ${ppStr} | ${alsoTag(r.sym, 'PB')} |`);
+      const capStr = r.pbCapClimaxDemand > 0 ? '🔥 CD'
+                   : r.pbCapStrongDemand > 0 ? '💪 SD'
+                   : r.pbCapClimaxSupply > 0 ? '🔥 CS'
+                   : r.pbCapStrongSupply > 0 ? '💪 SS'
+                   : r.pbCapDemand != null   ? '—' : '';
+      console.log(`| ${r.sym} | $${fmt(r.price)} | ${stageStr} | ${ema38Str} | ${ema62Str} | ${ema21Str} | ${bandStr} | ${vdStr} | ${gpStr} | ${ppStr} | ${capStr} | ${alsoTag(r.sym, 'PB')} |`);
     });
     console.log('');
 
