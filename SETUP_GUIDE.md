@@ -121,6 +121,54 @@ Then `tv status`, `tv quote`, `tv pine compile`, etc. work from anywhere.
 | Tools return stale data | TradingView may still be loading — wait a few seconds |
 | Pine Editor tools fail | Open the Pine Editor panel first (`ui_open_panel pine-editor open`) |
 
+## Daily Brief Commands
+
+### Run the morning brief
+```bash
+nohup bash /Users/davidmackinnon/tradingview-mcp-jackson/scripts/morning-brief.sh > /tmp/morning-brief-run.log 2>&1 &
+```
+Runs in the background. TradingView must be open with all layouts visible.
+
+### Watch progress
+```bash
+tail -f ~/.tradingview-mcp/briefs/brief-$(date +%Y-%m-%d).log
+```
+
+### Check if brief is still running
+```bash
+ps aux | grep "morning-brief\|index.js brief" | grep -v grep
+```
+
+### Push watchlist manually (if auto-push failed)
+```bash
+node /Users/davidmackinnon/tradingview-mcp-jackson/scripts/push-watchlist.cjs
+```
+
+### Re-run analysis only (no rescan — uses today's existing JSON files)
+```bash
+cd /Users/davidmackinnon/tradingview-mcp-jackson && node scripts/analyse-brief.cjs
+```
+
+### View today's brief
+```bash
+cat ~/.tradingview-mcp/briefs/brief-$(date +%Y-%m-%d).md | less
+```
+Or open `~/Downloads/Briefs/brief-YYYY-MM-DD.md` in your editor.
+
+### Brief output files (all in `~/.tradingview-mcp/briefs/`)
+| File | Contents |
+|------|----------|
+| `brief-DATE.md` | Full markdown brief |
+| `brief-DATE-tables.md` | Tables-only version (emailed) |
+| `brief-DATE-data.csv` | Raw indicator data for all tickers |
+| `brief-DATE-watchlist-updates.json` | Sidecar consumed by push-watchlist |
+| `brief-DATE-lorp-brief-import.txt` | LORP Buy VD tickers for manual import |
+| `brief-DATE-lorp.json` | Raw LORP layout scan data |
+| `brief-DATE-sid.json` | Raw SID layout scan data |
+| `brief-DATE-pullback.json` | Raw Pullback layout scan data |
+| `brief-DATE-adx.json` | Raw ADX Breakout layout scan data |
+| `brief-DATE-regime.json` | Raw Regime USA scan data |
+
 ## What to Read Next
 
 - `rules.json` — Your personal trading rules (fill this in before using morning_brief)

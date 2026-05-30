@@ -48,11 +48,14 @@ export async function runBrief({ rules_path, sections } = {}) {
     watchlist = [],
     watchlist_sections = {},
     default_timeframe = "1D",
-    scan_delay_ms = 1500,
+    scan_delay_ms: rules_scan_delay_ms = 1000,
     symbol_timeout_ms = 30000,
     lorp_layout = "LORP",
     pullback_layout = "Pullback",
   } = rules;
+  // Allow per-invocation override via env var — used by morning-brief.sh to give
+  // the SID scan a longer delay (its indicators need more time to recalculate).
+  const scan_delay_ms = parseInt(process.env.SCAN_DELAY_MS || '') || rules_scan_delay_ms;
 
   if (!watchlist.length) {
     throw new Error(

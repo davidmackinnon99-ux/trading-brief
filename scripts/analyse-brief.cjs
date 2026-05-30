@@ -316,8 +316,10 @@ const rules = fs.existsSync(rulesPath) ? JSON.parse(fs.readFileSync(rulesPath, '
 const etfUniverse = new Set(rules.etf_universe || []);
 const watchlistSections = rules.watchlist_sections || {};
 
-// Tickers to permanently exclude from all brief output (e.g. delisted, data unavailable)
-const EXCLUDED_TICKERS = new Set(['TPH']);
+// Tickers to permanently exclude from all brief output (e.g. delisted, wrong exchange, data unavailable)
+// EQR: resolves to ASX_DLY:EQR (EQ Resources Ltd, Australia) instead of NYSE:EQR — exclude until
+// the watchlist entry is updated to use the full NASDAQ:EQR or NYSE:EQR prefix.
+const EXCLUDED_TICKERS = new Set(['TPH', 'EQR', 'ASX_DLY:EQR']);
 // Build reverse map: ticker → section name
 const tickerSection = {};
 for (const [section, tickers] of Object.entries(watchlistSections)) {
@@ -352,8 +354,7 @@ const sidResults = sidBrief ? sidBrief.symbols_scanned.filter(s => !EXCLUDED_TIC
   //   s18 "SID Trading Signals Pro v8.5.10" — full confluence (Aroon, ADX, ATR%, SMA200, Weekly RSI, etc.)
   // Prefer v8.5 for confluence data; fall back to v10.5 for entry signals if v8.5 not yet loaded.
   const sidV85St = getStudy(studies, 'SID Trading Signals Pro', 'SID Trading Signals', 'SID v8.5', 'SID-C', 'SID Confluence');
-  const sidV10St = getStudy(studies, 'SID Strategy');
-  const sidCSt   = sidV85St ?? sidV10St; // primary confluence source
+  const sidCSt   = sidV85St; // v8.5.10 is the sole source — entry signals + all confluence data
   const rvolSt  = getStudy(studies, 'RVOL + Volume Z-Score', 'RVOL Ratio', 'RVOL-Z', 'RVOL Z', 'RVOL');
   const vdSt    = getStudy(studies, 'Volume Delta');
   const atrSt   = getStudy(studies, 'Average True Range Stop Loss', 'ATR Stop Loss', 'ATR%');
@@ -361,24 +362,15 @@ const sidResults = sidBrief ? sidBrief.symbols_scanned.filter(s => !EXCLUDED_TIC
   const adxSt   = getStudy(studies, 'ADX and DI', 'Average Directional Index', 'ADX');
   const gpStSID = getStudy(studies, 'GP Zone', 'Golden Pocket', 'GP_Zone', 'GP Flag');
 
-  // SID signal keys — try all known variants across v8.5 and v10.5:
-  //   v8.5.10:  'SID Armed Long' / 'SID Armed Short'  (state: 1 while armed, 0 when not)
-  //             'Long Entry Signal' / 'Short Entry Signal' (fired this bar)
-  //             'RSI Enters OS' / 'RSI Enters OB' (legacy)
-  //   v10.5.4.15: 'Long Entry' / 'Short Entry' (fired this bar, always present as 0/1)
-  // For entry detection we prefer the armed-state keys (v8.5) since they persist across bars;
-  // fall back to direct entry signal keys (v10.5 or v8.5 "Entry Signal") when not available.
-  // Entry-signal keys take priority — these fire only on the bar the entry triggers.
-  // 'SID Armed Long'/'Short' are persistent state keys (latch until reset) and can stay
-  // set for months without an entry firing — they are fallback only.
-  const sidArmedLong  = parseNum(getVal(sidCSt?.values,
-    'Long Entry Signal', 'Long Entry', 'SID Armed Long', 'RSI Enters OS', 'Armed Long'));
-  const sidArmedShort = parseNum(getVal(sidCSt?.values,
-    'Short Entry Signal', 'Short Entry', 'SID Armed Short', 'RSI Enters OB', 'Armed Short'));
-  // Exit/stop signals
+  // Entry signals from v8.5.10 (SID Trading Signals Pro) — the indicator, not the strategy.
+  // v8.5.10 'Long/Short Entry Signal' is a plotshape on the last closed bar: correct for
+  // a morning brief that reads before the US open. v10.5.4.15 is the strategy variant
+  // (long-term backtesting) and is not used for entry detection.
+  const sidArmedLong  = parseNum(getVal(sidCSt?.values, 'Long Entry Signal',  'SID Armed Long',  'RSI Enters OS',  'Armed Long'));
+  const sidArmedShort = parseNum(getVal(sidCSt?.values, 'Short Entry Signal', 'SID Armed Short', 'RSI Enters OB',  'Armed Short'));
+  // Exit signals
   const sidLongExit   = parseNum(getVal(sidCSt?.values, 'Long Exit Signal',  'Long Exit'));
   const sidShortExit  = parseNum(getVal(sidCSt?.values, 'Short Exit Signal', 'Short Exit'));
-  const sidStopLoss   = parseNum(getVal(sidV10St?.values, 'Stop Loss') ?? getVal(sidCSt?.values, 'Stop Loss'));
   // Confluence factors — from SID Trading Signals Pro v8.5.10 (embedded in indicator)
   const wrsiGate      = parseNum(getVal(sidCSt?.values, 'Weekly RSI Gate', 'Weekly RSI gate', 'WRSI Gate'));
   const wrsi          = parseNum(getVal(sidCSt?.values, 'Weekly RSI'));
@@ -415,9 +407,10 @@ const sidResults = sidBrief ? sidBrief.symbols_scanned.filter(s => !EXCLUDED_TIC
   const aboveSMA200 = (price != null && sma200 != null) ? price > sma200 : null;
   const sma200Pct   = pct(price, sma200);
 
-  // Pass/Fail: Armed + Weekly RSI Gate (gate=null means indicator not loaded — show anyway as candidate)
-  const isLongPass  = sidArmedLong  === 1 && (wrsiGate == null || wrsiGate === 1);
-  const isShortPass = sidArmedShort === 1 && (wrsiGate == null || wrsiGate === 1);
+  // Signal passes on entry firing alone — Weekly RSI Gate shown as context, not a hard filter.
+  // User assesses weekly RSI direction by eye; wrsiGate and wrsi exposed as table columns.
+  const isLongPass  = sidArmedLong  === 1;
+  const isShortPass = sidArmedShort === 1;
   const isArmed     = sidArmedLong  === 1 || sidArmedShort === 1;
 
   // Section source
@@ -427,7 +420,7 @@ const sidResults = sidBrief ? sidBrief.symbols_scanned.filter(s => !EXCLUDED_TIC
 
   return {
     sym: s.symbol, price, isLongPass, isShortPass, isArmed, wrsiGate,
-    sidArmedLong, sidArmedShort, sidLongExit, sidShortExit, sidStopLoss,
+    sidArmedLong, sidArmedShort, sidLongExit, sidShortExit,
     wrsi, sma200, aboveSMA200, sma200Pct,
     aroon, adx, atrPct, gatrRatio, rvol, vd, vdPos,
     inSIDScreener, inSIDBrief, inBTW,
@@ -541,20 +534,24 @@ const results = brief.symbols_scanned.filter(s => !EXCLUDED_TICKERS.has(s.symbol
 
   // Study lookups — multiple name substrings tried in order (first match wins)
   const macdSt  = getStudy(studies, 'MACD_Cross Zero', 'MACD Cross Zero', 'MACD');
-  const lorpMA  = getStudy(studies, 'LORP Moving', 'LORP MA', 'LORP Moving Averages');
+  const lorpMA  = getStudy(studies, 'LORP Moving', 'LORP MA', 'LORP Moving Averages', 'Moving Averages');
   // SID indicator is on the SID chart layout only — not available here
   // "RVOL + Volume Z-Score v2.1" — confirmed name from debug
-  const rvolSt  = getStudy(studies, 'RVOL + Volume Z-Score', 'RVOL Ratio', 'RVOL-Z', 'RVOL Z', 'RVOL');
-  const aroonSt = getStudy(studies, 'Aroon Oscillator', 'Aroon');
+  const rvolSt  = getStudy(studies, 'RVOL + Volume Z-Score v2.1', 'RVOL + Volume Z-Score', 'RVOL Ratio', 'RVOL-Z', 'RVOL Z', 'RVOL');
+  const aroonSt = getStudy(studies, 'Aroon Oscillator [BigBeluga]', 'Aroon Oscillator', 'Aroon');
   const vdSt    = getStudy(studies, 'Volume Delta');
   const atrSt   = getStudy(studies, 'Average True Range Stop Loss', 'ATR Stop Loss', 'ATR%');
-  const adxSt   = getStudy(studies, 'ADX and DI', 'Average Directional Index', 'ADX');
+  const adxSt   = getStudy(studies, 'ADX and DI', 'Average Directional Index', 'ADX');  // matches "ADX and DI for v4"
   // Newly confirmed available on LORP chart (from --debug)
   const bbSt    = getStudy(studies, 'Bollinger Bands');
   const wrbSt   = getStudy(studies, 'WRB Confluence');
   const ppSt    = getStudy(studies, 'Pocket Pivot');
   // LORP Confluence v1.2 indicator — reads pass/fail flags directly from chart
   const lorpCSt = getStudy(studies, 'LORP Confluence v1.4', 'LORP Confluence');
+  // New indicators on LORP layout (added May 2026)
+  const capSt   = getStudy(studies, 'CAP Tools Supplement');           // Climax/Strong Demand+Supply flags
+  const chandSt = getStudy(studies, 'Chandelier Exit');                // Long Stop level
+  const vidyaSt = getStudy(studies, 'Volumatic Variable Index Dynamic Average', 'Volumatic VIDYA', 'VIDYA');
 
   // Value key lookups — multiple key names tried in order (first non-null wins)
   const macd    = parseNum(getVal(macdSt?.values, 'MACD', 'MACD Line', 'MACD line'));
@@ -602,6 +599,18 @@ const results = brief.symbols_scanned.filter(s => !EXCLUDED_TICKERS.has(s.symbol
   // Pocket Pivot v1.3
   const ppVal      = parseNum(getVal(ppSt?.values, 'Pocket Pivot'));
   const pocketPivot = ppVal != null ? ppVal > 0 : null;
+  // CAP Tools Supplement v1.3 — volume climax/strong demand+supply signals
+  const capClimaxDemand  = parseNum(getVal(capSt?.values, 'Climax Demand'));
+  const capClimaxSupply  = parseNum(getVal(capSt?.values, 'Climax Supply'));
+  const capStrongDemand  = parseNum(getVal(capSt?.values, 'Strong Demand'));
+  const capStrongSupply  = parseNum(getVal(capSt?.values, 'Strong Supply'));
+  const capDemandFired   = capClimaxDemand > 0 || capStrongDemand > 0;   // any bullish volume signal
+  const capSupplyFired   = capClimaxSupply > 0 || capStrongSupply > 0;   // any bearish volume signal
+  // Chandelier Exit — dynamic trailing stop
+  const chandStop  = parseNum(getVal(chandSt?.values, 'Long Stop', 'Short Stop', 'Stop'));
+  // Volumatic VIDYA — trend-adaptive moving average (acts as dynamic support/resistance)
+  const vidyaVal   = parseNum(getVal(vidyaSt?.values, 'Plot'));
+  const aboveVIDYA = vidyaVal != null && price != null ? price > vidyaVal : null;
   // GP Zone flag (requires GP Zone Exporter indicator on LORP chart — empty if not added)
   const gpStLORP = getStudy(studies, 'GP Zone Exporter', 'GP Zone', 'Golden Pocket', 'GP_Zone', 'GP Flag');
   const gpFlag   = parseNum(getVal(gpStLORP?.values, 'GP_Flag', 'GP Flag', 'GP flag'));
@@ -758,6 +767,9 @@ const results = brief.symbols_scanned.filter(s => !EXCLUDED_TICKERS.has(s.symbol
     aroonLong, aroonShort, aroonLongChart, aroonShortChart,
     // GP Zone flag (null if indicator not on LORP chart)
     gpFlag, gpTop, gpBot,
+    // New indicators (May 2026 LORP layout)
+    capDemandFired, capSupplyFired, capClimaxDemand, capClimaxSupply, capStrongDemand, capStrongSupply,
+    chandStop, vidyaVal, aboveVIDYA,
     // Raw numeric values
     macd, macdSig, aroon, aroonSignal, ema50pct, sma200pct,
     adx, diPlus, diMinus, vd, atrPct,
@@ -1145,6 +1157,11 @@ if (!VERBOSE) {
     if (r.aroonShort !== null)                               sigParts.push('🔴 A');
     if (r.aroonLongChart  != null && r.aroonLongChart  > 0)  sigParts.push('🟢 AC');
     if (r.aroonShortChart != null && r.aroonShortChart > 0)  sigParts.push('🔴 AC');
+    // CAP Tools signals (new May 2026)
+    if (r.capClimaxDemand > 0)  sigParts.push('🔥 CD');   // Climax Demand
+    if (r.capStrongDemand > 0)  sigParts.push('💪 SD');   // Strong Demand
+    if (r.capClimaxSupply > 0)  sigParts.push('🔥 CS');   // Climax Supply
+    if (r.capStrongSupply > 0)  sigParts.push('💪 SS');   // Strong Supply
     const sigStr = sigParts.length ? sigParts.join(' ') : '—';
     const distStr  = r.distFromKernel != null ? r.distFromKernel.toFixed(2) : '—';
     const rangePct = (r.high != null && r.low != null && r.low > 0)
@@ -1152,8 +1169,10 @@ if (!VERBOSE) {
     // PB% = change from open (intraday move) — prev_close not available from TV MCP
     const pbDepth  = (r.price != null && r.open != null && r.open > 0)
       ? ((r.price - r.open) / r.open * 100).toFixed(1) + '%' : '—';
-    const ma1Str   = r.ma1 != null ? r.ma1.toFixed(2) : '—';
-    const ma2Str   = r.ma2 != null ? r.ma2.toFixed(2) : '—';
+    const ma1Str    = r.ma1      != null ? r.ma1.toFixed(2)      : '—';
+    const ma2Str    = r.ma2      != null ? r.ma2.toFixed(2)      : '—';
+    const vidyaStr  = r.vidyaVal != null ? r.vidyaVal.toFixed(2) : '—';
+    const chandStr  = r.chandStop!= null ? r.chandStop.toFixed(2): '—';
     // ADX + DI+ / DI- with direction vs prior brief
     const prevAdx  = prevAdxMap[r.sym];
     const adxDelta = prevAdx != null ? r.adx - prevAdx : null;
@@ -1176,11 +1195,11 @@ if (!VERBOSE) {
       : r.bbPct >= 0.0 ? `${r.bbPct.toFixed(2)} ⚠️`
       : `${r.bbPct.toFixed(2)} ↓BB`
       : '—';
-    console.log(`| ${r.sym} | $${fmt(r.price)} | ${r.entryType ?? '—'} | ${distStr} | ${atrStr} | ${rvolStr} | ${vdStr} | ${aroonStr} | ${adxStr} | ${diPStr} | ${diMStr} | ${bbStr} | ${wrbStr} | ${rangePct} | ${pbDepth} | ${ma1Str} | ${ma2Str} | ${sigStr} | ${alsoTag(r.sym, 'LORP')} |`);
+    console.log(`| ${r.sym} | $${fmt(r.price)} | ${r.entryType ?? '—'} | ${distStr} | ${atrStr} | ${rvolStr} | ${vdStr} | ${aroonStr} | ${adxStr} | ${diPStr} | ${diMStr} | ${bbStr} | ${wrbStr} | ${rangePct} | ${pbDepth} | ${ma1Str} | ${ma2Str} | ${vidyaStr} | ${chandStr} | ${sigStr} | ${alsoTag(r.sym, 'LORP')} |`);
   }
 
-  const lorpHeader  = '| Ticker | Price | Type | Dist | ATR% | RVOL | VD | Aroon | ADX | DI+ | DI- | %B | WRB | Range% | vs Open | EMA50 | SMA200 | Sig | Also |';
-  const lorpDivider = '|--------|-------|------|------|------|------|----|-------|-----|-----|-----|----|----|--------|---------|-------|--------|-----|----|';
+  const lorpHeader  = '| Ticker | Price | Type | Dist | ATR% | RVOL | VD | Aroon | ADX | DI+ | DI- | %B | WRB | Range% | vs Open | EMA50 | SMA200 | VIDYA | Chand | Sig | Also |';
+  const lorpDivider = '|--------|-------|------|------|------|------|----|-------|-----|-----|-----|----|----|--------|---------|-------|--------|-------|-------|-----|----|';
 
   const sortLorp = arr => [...arr].sort((a, b) => {
     const typeOrder = t => t?.startsWith('Pullback') ? 0 : t?.startsWith('Trend') ? 1 : 2;
@@ -1370,10 +1389,12 @@ if (!VERBOSE) {
     // Extract base ticker (strip exchange prefix if present e.g. NASDAQ:AAPL → AAPL)
     function baseTicker(sym) { return sym.includes(':') ? sym.split(':')[1] : sym; }
 
-    const etfOB    = allSidScanned.filter(r => r.sidArmedShort === 1 && etfUniverse.has(baseTicker(r.sym)));
-    const etfOS    = allSidScanned.filter(r => r.sidArmedLong  === 1 && etfUniverse.has(baseTicker(r.sym)));
-    const stockOB  = allSidScanned.filter(r => r.sidArmedShort === 1 && !etfUniverse.has(baseTicker(r.sym)));
-    const stockOS  = allSidScanned.filter(r => r.sidArmedLong  === 1 && !etfUniverse.has(baseTicker(r.sym)));
+    // Use isLongPass/isShortPass so breadth counts match the signals table exactly
+    // (both require the Weekly RSI Gate to pass, not just a raw entry signal)
+    const etfOB    = allSidScanned.filter(r => r.isShortPass && etfUniverse.has(baseTicker(r.sym)));
+    const etfOS    = allSidScanned.filter(r => r.isLongPass  && etfUniverse.has(baseTicker(r.sym)));
+    const stockOB  = allSidScanned.filter(r => r.isShortPass && !etfUniverse.has(baseTicker(r.sym)));
+    const stockOS  = allSidScanned.filter(r => r.isLongPass  && !etfUniverse.has(baseTicker(r.sym)));
 
     const etfTotal   = etfOB.length   + etfOS.length;
     const stockTotal = stockOB.length + stockOS.length;
@@ -1425,12 +1446,13 @@ if (!VERBOSE) {
     console.log(`**⚡ SID — ${sidPass.length} signals** *(${sidLongs.length} Long · ${sidShorts.length} Short)*`);
     console.log('*SID entry signal fired — verify Weekly RSI gate + Gap/ATR Ratio manually before acting*\n');
 
-    const sidHeader  = '| Ticker | Price | Dir | Stop | SMA200 | Aroon | ADX | ATR% | RVOL | VD | GP | Source | Also |';
-    const sidDivider = '|--------|-------|-----|------|--------|-------|-----|------|------|----|-----|--------|------|';
+    const sidHeader  = '| Ticker | Price | Dir | W.RSI | Gate | SMA200 | Aroon | ADX | ATR% | RVOL | VD | GP | Source | Also |';
+    const sidDivider = '|--------|-------|-----|-------|------|--------|-------|-----|------|------|----|-----|--------|------|';
 
     function printSIDRow(r) {
       const dirStr    = r.isLongPass ? 'Long 📈' : 'Short 📉';
-      const stopStr   = r.sidStopLoss != null ? `$${fmt(r.sidStopLoss)}` : '—';
+      const wrsiStr   = r.wrsi    != null ? r.wrsi.toFixed(1)    : '—';
+      const gateStr   = r.wrsiGate === 1  ? '✅' : r.wrsiGate === 0 ? '⚠️' : '—';
       const sma200Str = r.aboveSMA200 === true  ? `Above (${r.sma200Pct != null ? '+'+r.sma200Pct.toFixed(1)+'%' : '✓'})` :
                         r.aboveSMA200 === false ? `Below ⚠️ (${r.sma200Pct != null ? r.sma200Pct.toFixed(1)+'%' : ''})` : '—';
       const aroonStr  = r.aroon  != null ? r.aroon.toFixed(0)  : '—';
@@ -1443,7 +1465,7 @@ if (!VERBOSE) {
                         r.inSIDScreener || r.inSIDBrief ? 'SID Scr' :
                         tickerSection[baseTicker(r.sym)] || 'Other';
       const sidExclude = r.isLongPass ? 'SID_LONG' : 'SID_SHORT';
-      console.log(`| ${r.sym} | $${fmt(r.price)} | ${dirStr} | ${stopStr} | ${sma200Str} | ${aroonStr} | ${adxStr} | ${atrStr} | ${rvolStr} | ${vdStr} | ${gp} | ${srcStr} | ${alsoTag(r.sym, sidExclude)} |`);
+      console.log(`| ${r.sym} | $${fmt(r.price)} | ${dirStr} | ${wrsiStr} | ${gateStr} | ${sma200Str} | ${aroonStr} | ${adxStr} | ${atrStr} | ${rvolStr} | ${vdStr} | ${gp} | ${srcStr} | ${alsoTag(r.sym, sidExclude)} |`);
     }
 
     if (sidLongs.length > 0) {
@@ -1753,8 +1775,8 @@ if (!VERBOSE) {
     .filter(r => !r.error && (r.isLongPass || r.isShortPass))
     .map(r => r.sym);
 
-  // Only coiling tickers pushed to Brief Output — extended are near/at breakout, not pre-breakout setups
-  const adxBriefTickers = adxCoiling.map(r => r.sym);
+  // Both coiling (BBWP ≤5) and extended (BBWP ≥98) pushed to Brief Output
+  const adxBriefTickers = adxCoilingAll.map(r => r.sym);
 
   const pullbackBriefTickers = pullbackAll
     .filter(r => r.stageInfo && r.stageInfo.stage >= 1)
@@ -1786,7 +1808,7 @@ if (!VERBOSE) {
 
   // Also append to tables output
   if (lorpBriefImport.length > 0) {
-    const importNote = `\n---\n\n**📋 Today's Screener Buy VD — ${lorpBriefImport.length} tickers** *(import to LORP BRIEF for ongoing review)*\n\n${lorpBriefImport.join(' · ')}\n`;
+    const importNote = `\n---\n\n**📋 Brief Output — ${briefOutputTickers.length} tickers** *(LORP Buy VD · SID · ADX · Pullback — pushed to watchlist)*\n\n${briefOutputTickers.join(' · ')}\n`;
     process.stdout.write(importNote);
   }
 

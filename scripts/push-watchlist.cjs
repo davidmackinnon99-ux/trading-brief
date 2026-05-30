@@ -39,20 +39,29 @@ function resolveSidecar() {
   process.exit(1);
 }
 
+// ── Normalise a section header string for comparison ─────────────
+// TradingView inserts U+2064 (INVISIBLE PLUS) after ### in every header.
+// Comparison strips it and is case-insensitive so our section names match
+// regardless of the hidden character or capitalisation used in the watchlist.
+function normHeader(s) {
+  return s.replace(/⁤/g, '').toLowerCase();
+}
+
 // ── Replace section contents in the flat symbols array ───────────
 function replaceSectionInArray(symbols, sectionName, newTickers) {
-  const header = `###${sectionName}`;
-  const startIdx = symbols.findIndex(s => s === header);
+  const targetNorm = normHeader(`###${sectionName}`);
+  const startIdx = symbols.findIndex(s => normHeader(s) === targetNorm);
   if (startIdx === -1) {
-    // Section not found — append it
-    process.stderr.write(`[push-watchlist] Section "${sectionName}" not found — appending\n`);
+    // Section not found — append using TV format: ###⁤SECTION NAME (uppercase)
+    const header = `###⁤${sectionName.toUpperCase()}`;
+    process.stderr.write(`[push-watchlist] Section "${sectionName}" not found — appending as "${header}"\n`);
     symbols.push(header, ...newTickers);
     return symbols;
   }
   // Find end of section (next ### entry or end of array)
   let endIdx = symbols.findIndex((s, i) => i > startIdx && s.startsWith('###'));
   if (endIdx === -1) endIdx = symbols.length;
-  // Replace section contents (keep the ###SECTION NAME header)
+  // Replace section contents (keep the original header as-is)
   symbols.splice(startIdx + 1, endIdx - startIdx - 1, ...newTickers);
   return symbols;
 }
@@ -108,33 +117,17 @@ async function main() {
     });
   }
 
+  // ── Resolve list ID via REST API ─────────────────────────────────
+  // Use /api/v1/symbols_list/custom/ to list all user watchlists and take the first one.
+  // Previous approach (walking React fiber from [data-symbol-full]) broke when all
+  // watchlist sections are collapsed — no items render in the DOM so the selector finds nothing.
   const LIST_ID_EXPR = `
-    (() => {
-      // Strategy 1: walk React fiber from a watchlist item
-      const el = document.querySelector('[data-symbol-full]') || document.querySelector('[data-name="watchlist-item"]');
-      if (el) {
-        const fiberKey = Object.keys(el).find(k => k.startsWith('__reactFiber') || k.startsWith('__reactInternalInstance'));
-        if (fiberKey) {
-          let node = el[fiberKey];
-          for (let i = 0; i < 50; i++) {
-            try {
-              const store = node?.stateNode?.store;
-              if (store) {
-                const state = store.getState();
-                if (state?.activeSymbolList?.id) return String(state.activeSymbolList.id);
-                if (state?.watchlist?.activeListId) return String(state.watchlist.activeListId);
-              }
-            } catch (_) {}
-            node = node?.return;
-            if (!node) break;
-          }
-        }
-      }
-      // Strategy 2: check URL for list ID
-      const m = location.href.match(/[?&]list=([^&]+)/);
-      if (m) return m[1];
-      return null;
-    })()
+    fetch('/api/v1/symbols_list/custom/', { credentials: 'include' })
+      .then(r => r.json())
+      .then(lists => {
+        if (!Array.isArray(lists) || lists.length === 0) return null;
+        return String(lists[0].id);
+      })
   `;
 
   let client;
@@ -151,7 +144,7 @@ async function main() {
         c = await CDP({ target: target.webSocketDebuggerUrl });
         const { Runtime: R } = c;
         await R.enable();
-        const res = await R.evaluate({ expression: LIST_ID_EXPR, returnByValue: true });
+        const res = await R.evaluate({ expression: LIST_ID_EXPR, returnByValue: true, awaitPromise: true });
         const id = res?.result?.value;
         if (id) {
           process.stderr.write(`[push-watchlist] List ID ${id} found on ${target.url.split('/chart/')[1]?.split('/')[0] ?? target.url}\n`);
@@ -171,7 +164,7 @@ async function main() {
 
   if (!client || !listId) {
     process.stderr.write(`[push-watchlist] ERROR: could not resolve list ID from any chart page\n`);
-    process.stderr.write(`[push-watchlist] Make sure TradingView is open with a watchlist panel visible\n`);
+    process.stderr.write(`[push-watchlist] Make sure TradingView is open and logged in\n`);
     process.exit(1);
   }
 
