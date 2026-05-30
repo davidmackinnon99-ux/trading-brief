@@ -10,6 +10,11 @@ nohup bash /Users/davidmackinnon/tradingview-mcp-jackson/scripts/morning-brief.s
 ```
 Runs in the background. TradingView must be open with all layouts visible.
 
+### Stop the brief
+```bash
+kill -9 $(ps aux | grep "morning-brief\|index.js brief" | grep -v grep | awk '{print $2}') 2>/dev/null && echo "Stopped"
+```
+
 ### Watch progress
 ```bash
 tail -f ~/.tradingview-mcp/briefs/brief-$(date +%Y-%m-%d).log
