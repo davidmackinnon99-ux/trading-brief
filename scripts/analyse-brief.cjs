@@ -1142,8 +1142,8 @@ if (!VERBOSE) {
   }
   const lorpScreenerFiltered = applyBriefFilters(lorpScreener);
   const lorpBriefFiltered    = applyBriefFilters(lorpBriefTickers);
-  const filteredBuyVD  = [...lorpScreenerFiltered, ...lorpBriefFiltered].filter(r => r.vd != null && r.vd > 0.5).length;
-  const filteredSellVD = [...lorpScreenerFiltered, ...lorpBriefFiltered].filter(r => r.vd == null || r.vd <= 0.5).length;
+  const filteredBuyVD  = [...lorpScreenerFiltered, ...lorpBriefFiltered].filter(r => r.entryType?.startsWith('Pullback') || (r.vd != null && r.vd > 0.5)).length;
+  const filteredSellVD = [...lorpScreenerFiltered, ...lorpBriefFiltered].filter(r => !r.entryType?.startsWith('Pullback') && (r.vd == null || r.vd <= 0.5)).length;
   const totalFiltered  = filteredBuyVD + filteredSellVD;
 
   if (totalFiltered === 0) {
@@ -1154,7 +1154,13 @@ if (!VERBOSE) {
   }
 
   function printLorpRow(r) {
-    const vdStr    = r.vdPos === true ? 'Buy ✓' : r.vdPos === false ? 'Sell ⚠️' : '—';
+    // Pullback entries: negative VD is expected (pullback IS the selling pressure) — show as note not warning
+    const isPullback = r.entryType?.startsWith('Pullback');
+    const vdStr = r.vdPos === true  ? 'Buy ✓'
+                : r.vdPos === false && isPullback
+                  ? `↓ (PB ${r.vd != null ? r.vd.toFixed(0) : ''})`
+                : r.vdPos === false ? 'Sell ⚠️'
+                : '—';
     const atrStr   = r.atrPct != null ? r.atrPct.toFixed(1) + '%' : '—';
     const rvolStr  = r.rvol   != null ? r.rvol.toFixed(1) : '—';
     const aroonStr = r.aroon != null ? r.aroon.toFixed(0) : '—';
@@ -1242,9 +1248,10 @@ if (!VERBOSE) {
       return true;
     });
 
-    // For Buy VD, also apply VD > 0.5 check (item 7)
-    const buyTickers  = filtered.filter(r => r.vd != null && r.vd > 0.5);
-    const sellTickers = filtered.filter(r => r.vd == null || r.vd <= 0.5);
+    // Pullback entries: negative VD is expected — always shown in Buy section with ↓ (PB) note
+    // Trend/Breakout entries: VD > 0.5 required for Buy section
+    const buyTickers  = filtered.filter(r => r.entryType?.startsWith('Pullback') || (r.vd != null && r.vd > 0.5));
+    const sellTickers = filtered.filter(r => !r.entryType?.startsWith('Pullback') && (r.vd == null || r.vd <= 0.5));
 
     if (buyTickers.length > 0) {
       console.log(`*${label} — Buy VD (${buyTickers.length}):*\n`);
@@ -1288,7 +1295,8 @@ if (!VERBOSE) {
       if (r.rvol != null && r.rvol >= 4)  return false;
       if (r.aroon != null && r.aroon <= 0) return false;
       if (r.aroon != null && r.aroonSignal != null && r.aroon <= r.aroonSignal) return false;
-      return r.vd != null && r.vd > 0.5;
+      // Pullback entries qualify regardless of VD direction
+      return r.entryType?.startsWith('Pullback') || (r.vd != null && r.vd > 0.5);
     });
     const todayBuyVDSyms = new Set(todayBuyVD.map(r => bareSym(r.sym)));
 
