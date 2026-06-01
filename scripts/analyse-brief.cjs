@@ -1134,9 +1134,7 @@ if (!VERBOSE) {
       if (r.entryType === 'No LC data') return false;
       if (r.rvol != null && r.rvol < 1.0) return false;
       if (r.rvol != null && r.rvol >= 4) return false;
-      // Aroon filter: > 0 AND rising (Aroon Oscillator > Signal Line)
-      if (r.aroon != null && r.aroon <= 0) return false;
-      if (r.aroon != null && r.aroonSignal != null && r.aroon <= r.aroonSignal) return false;
+      // Aroon demoted to context only — not a hard filter (redundant with MA stack for LORP)
       return true;
     });
   }
@@ -1242,8 +1240,7 @@ if (!VERBOSE) {
       if (r.entryType === 'No LC data')                                               { process.stderr.write(`[LORP rejected] ${r.sym}: No LC data  Buy=${buy} Sell=${sell} RVOL=${rvol} Aroon=${aroon} VD=${vd}\n`); return false; }
       if (r.rvol != null && r.rvol < 1.0)                                             { process.stderr.write(`[LORP rejected] ${r.sym}: RVOL too low  Buy=${buy} Sell=${sell} RVOL=${rvol} Aroon=${aroon} VD=${vd}\n`); return false; }
       if (r.rvol != null && r.rvol >= 4)                                              { process.stderr.write(`[LORP rejected] ${r.sym}: RVOL too high  Buy=${buy} Sell=${sell} RVOL=${rvol} Aroon=${aroon} VD=${vd}\n`); return false; }
-      if (r.aroon != null && r.aroon <= 0)                                            { process.stderr.write(`[LORP rejected] ${r.sym}: Aroon ≤0  Buy=${buy} Sell=${sell} RVOL=${rvol} Aroon=${aroon} VD=${vd}\n`); return false; }
-      if (r.aroon != null && r.aroonSignal != null && r.aroon <= r.aroonSignal)       { process.stderr.write(`[LORP rejected] ${r.sym}: Aroon falling (${aroon} ≤ signal ${r.aroonSignal.toFixed(1)})  Buy=${buy} Sell=${sell} RVOL=${rvol} VD=${vd}\n`); return false; }
+      // Aroon demoted to context only — not a hard filter for LORP
       // WRB requirement removed — WRB shown as context column only
       return true;
     });
@@ -1293,8 +1290,7 @@ if (!VERBOSE) {
       if (r.entryType === 'No LC data') return false;
       if (r.rvol != null && r.rvol < 1.0) return false;
       if (r.rvol != null && r.rvol >= 4)  return false;
-      if (r.aroon != null && r.aroon <= 0) return false;
-      if (r.aroon != null && r.aroonSignal != null && r.aroon <= r.aroonSignal) return false;
+      // Aroon demoted to context only — not a hard filter for LORP watchlist
       // Pullback entries qualify regardless of VD direction
       return r.entryType?.startsWith('Pullback') || (r.vd != null && r.vd > 0.5);
     });
