@@ -25,7 +25,7 @@
  *   ❌ EMA8/EMA20 stack — not in data window
  *   ❌ %B above 0.5 — BB not in data window
  *   ❌ WRB prior 5 bars — not in data window
- *   ❌ Pocket Pivot on/near signal — not in data window
+ *   ✅ Pocket Pivot — available (added to LORP layout May 2026)
  *   ❌ Weekly RSI/MACD direction — needs OHLCV calc
  *   ❌ Daily RSI Divergence — needs OHLCV calc
  *   ❌ HTF Weekly Pattern — needs OHLCV calc
@@ -767,6 +767,8 @@ const results = brief.symbols_scanned.filter(s => !EXCLUDED_TICKERS.has(s.symbol
     aroonLong, aroonShort, aroonLongChart, aroonShortChart,
     // GP Zone flag (null if indicator not on LORP chart)
     gpFlag, gpTop, gpBot,
+    // Pocket Pivot
+    pocketPivot,
     // New indicators (May 2026 LORP layout)
     capDemandFired, capSupplyFired, capClimaxDemand, capClimaxSupply, capStrongDemand, capStrongSupply,
     chandStop, vidyaVal, aboveVIDYA,
@@ -1171,6 +1173,8 @@ if (!VERBOSE) {
     if (r.aroonShort !== null)                               sigParts.push('🔴 A');
     if (r.aroonLongChart  != null && r.aroonLongChart  > 0)  sigParts.push('🟢 AC');
     if (r.aroonShortChart != null && r.aroonShortChart > 0)  sigParts.push('🔴 AC');
+    // Pocket Pivot
+    if (r.pocketPivot === true)             sigParts.push('★ PP');
     // CAP Tools signals (new May 2026)
     if (r.capClimaxDemand > 0)  sigParts.push('🔥 CD');   // Climax Demand
     if (r.capStrongDemand > 0)  sigParts.push('💪 SD');   // Strong Demand

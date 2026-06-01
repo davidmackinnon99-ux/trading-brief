@@ -30,7 +30,10 @@ ATR <5%, MACD>0, EMA21>EMA34, Vol>500K, RelVol>1.0, Price>EMA34, Aroon Down<30%,
 - Breakout 🚀 — Dist > 1.5
 
 ### Context columns (shown, not filtered)
-ATR%, RVOL, VD, Aroon, ADX, DI+/DI-, %B, WRB, Range%, vs Open, EMA50, SMA200, VIDYA, Chandelier Stop, LC/Aroon/CAP signals
+ATR%, RVOL, VD, Aroon, ADX, DI+/DI-, %B, WRB, Range%, vs Open, EMA50, SMA200, VIDYA, Chandelier Stop
+
+### Sig column flags
+`🟢 LC` / `🔴 LC` — LC Premium Buy/Sell · `🟢 A` / `🔴 A` — Aroon signal · `★ PP` — Pocket Pivot · `🔥 CD` — Climax Demand · `💪 SD` — Strong Demand · `🔥 CS` — Climax Supply · `💪 SS` — Strong Supply
 
 ---
 
