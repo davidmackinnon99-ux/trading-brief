@@ -22,13 +22,22 @@ function resolveSidecar() {
     }
     return arg;
   }
-  // Auto-find today's sidecar
-  const today = new Date().toISOString().split('T')[0];
+  // Auto-find today's sidecar. Use LOCAL date (not UTC) to match the brief filenames,
+  // which morning-brief.sh generates with `date +%Y-%m-%d` (local time). Using
+  // toISOString() here would return the UTC date — at ~7-8am AEST that is still the
+  // previous day, so it would grab yesterday's sidecar.
+  const localDate = (dt) => {
+    const y = dt.getFullYear();
+    const m = String(dt.getMonth() + 1).padStart(2, '0');
+    const d = String(dt.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  };
+  const today = localDate(new Date());
   const todayFile = path.join(BRIEFS_DIR, `brief-${today}-watchlist-updates.json`);
   if (fs.existsSync(todayFile)) return todayFile;
   // Fallback: most recent sidecar in last 7 days
   for (let i = 1; i <= 7; i++) {
-    const d = new Date(Date.now() - i * 86400000).toISOString().split('T')[0];
+    const d = localDate(new Date(Date.now() - i * 86400000));
     const f = path.join(BRIEFS_DIR, `brief-${d}-watchlist-updates.json`);
     if (fs.existsSync(f)) {
       process.stderr.write(`[push-watchlist] No today sidecar — using ${d}\n`);
