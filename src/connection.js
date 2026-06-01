@@ -109,6 +109,22 @@ async function findChartTarget() {
   chartTargets.length = 0;
   chartTargets.push(...dedupedTargets);
 
+  // If a layout ID is set, target that exact saved-chart layout by its URL slug
+  // (e.g. /chart/OWHfyWBq/). This is immune to indicator renames or the same indicator
+  // appearing on multiple layouts — the most reliable way to pin a scan to one layout.
+  const layoutTarget = process.env.TRADINGVIEW_LAYOUT_ID;
+  if (layoutTarget) {
+    const match = chartTargets.find(t => {
+      const m = t.url.match(/\/chart\/([^/]+)\//);
+      return m && m[1] === layoutTarget;
+    });
+    if (match) {
+      process.stderr.write(`[connection] TRADINGVIEW_LAYOUT_ID="${layoutTarget}" → matched page ${match.url}\n`);
+      return match;
+    }
+    process.stderr.write(`[connection] WARNING: TRADINGVIEW_LAYOUT_ID="${layoutTarget}" not found among open layouts — falling back to hint/default\n`);
+  }
+
   // If an indicator hint is set, scan all chart pages to find the one that has that indicator.
   // TradingView Desktop runs each saved chart layout as a separate page — this ensures we
   // connect to the correct layout page for each scan rather than always defaulting to page 1.

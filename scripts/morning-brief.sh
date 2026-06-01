@@ -84,17 +84,16 @@ if [ $? -ne 0 ]; then
 fi
 
 # Each TradingView layout runs as a separate page in the Electron app.
-# TRADINGVIEW_INDICATOR_HINT tells connection.js to scan all CDP pages and connect
-# to the one that contains the named indicator — ensuring each scan reads from the
-# correct layout page regardless of CDP list ordering. No layout switching needed.
+# TRADINGVIEW_LAYOUT_ID pins each scan to an exact saved-chart layout by its URL slug
+# (/chart/<ID>/). This is immune to indicator renames or the same indicator appearing
+# on multiple layouts — far more reliable than matching by indicator name.
+# Known layout IDs:
+#   OWHfyWBq = LORP        XN1LuowU = SID         78yhKuUS = REGIME USA
+#   6Qpm8oT7 = PULLBACK    6hvBVx9e = ADX BREAKOUT
 
 # ── SCAN 1: LORP layout ───────────────────────────────────────────────────────
-# Hint: "CAP Tools Supplement" is unique to the Desktop LORP layout (OWHfyWBq).
-# "LORP Moving Averages" was renamed to "Moving Averages" by user — no longer unique.
-# Do NOT use "Lorentzian Classification" — that substring also matches the
-# LORP Clean Chrome tab (t2oVV4mI) which has "ML: Lorentzian Classification Premium".
-echo "[$(date)] Scanning LORP layout (hint: CAP Tools Supplement)..." >> "$LOGFILE"
-TRADINGVIEW_INDICATOR_HINT="CAP Tools Supplement" \
+echo "[$(date)] Scanning LORP layout (OWHfyWBq)..." >> "$LOGFILE"
+TRADINGVIEW_LAYOUT_ID="OWHfyWBq" \
   "$NODE" "$TV_DIR/src/cli/index.js" brief --sections "LORP SCREENER" > "$OUTFILE_LORP" 2>> "$LOGFILE"
 BRIEF_EXIT=$?
 if [ $BRIEF_EXIT -eq 0 ] && [ -s "$OUTFILE_LORP" ]; then
@@ -109,8 +108,8 @@ fi
 # data, not by section membership.
 # NOTE: the SID scan can hang indefinitely on some symbols — the root cause is
 # a per-symbol hang in the CDP scan (needs per-symbol timeout in the scan code).
-echo "[$(date)] Scanning SID layout (hint: SID Trading Signals Pro)..." >> "$LOGFILE"
-TRADINGVIEW_INDICATOR_HINT="SID Trading Signals Pro" \
+echo "[$(date)] Scanning SID layout (XN1LuowU)..." >> "$LOGFILE"
+TRADINGVIEW_LAYOUT_ID="XN1LuowU" \
   "$NODE" "$TV_DIR/src/cli/index.js" brief --sections "LORP SCREENER,LORP BRIEF,SID SCREENER,SID BRIEF,BTW,PULLBACK SCREENER,PULLBACK BRIEF,ADX BREAKOUT SCREENER,ADX BREAKOUT BRIEF" > "$OUTFILE_SID" 2>> "$LOGFILE"
 SID_SCAN_EXIT=$?
 if [ $SID_SCAN_EXIT -eq 0 ] && [ -s "$OUTFILE_SID" ]; then
@@ -120,12 +119,8 @@ else
 fi
 
 # ── SCAN 3: REGIME USA layout (SPY EMA21 regime gate) ────────────────────────
-# REGIME USA layout (78yhKuUS) — use "TCT - VIX Live Display" as hint.
-# This layout is open as a Chrome tab (no Desktop app duplicate) so it remains
-# in the deduplicated target list and is reachable. "TCT - VIX Live Display"
-# is unique to this layout — not present on LORP/SID/PULLBACK/ADX pages.
-echo "[$(date)] Scanning REGIME USA layout (hint: TCT - VIX Live Display)..." >> "$LOGFILE"
-TRADINGVIEW_INDICATOR_HINT="TCT - VIX Live Display" \
+echo "[$(date)] Scanning REGIME USA layout (78yhKuUS)..." >> "$LOGFILE"
+TRADINGVIEW_LAYOUT_ID="78yhKuUS" \
   "$NODE" "$TV_DIR/src/cli/index.js" brief --sections "PRE MARKET CHECKLIST,PREMARKET CHECKLIST" > "$OUTFILE_REGIME" 2>> "$LOGFILE"
 REGIME_EXIT=$?
 if [ $REGIME_EXIT -eq 0 ] && [ -s "$OUTFILE_REGIME" ]; then
@@ -135,8 +130,8 @@ else
 fi
 
 # ── SCAN 4: PULLBACK layout ───────────────────────────────────────────────────
-echo "[$(date)] Scanning PULLBACK layout (hint: ADX + EMA21 Trend Setup)..." >> "$LOGFILE"
-TRADINGVIEW_INDICATOR_HINT="ADX + EMA21 Trend Setup" \
+echo "[$(date)] Scanning PULLBACK layout (6Qpm8oT7)..." >> "$LOGFILE"
+TRADINGVIEW_LAYOUT_ID="6Qpm8oT7" \
   "$NODE" "$TV_DIR/src/cli/index.js" brief --sections "PULLBACK SCREENER,PULLBACK BRIEF" > "$OUTFILE_PULLBACK" 2>> "$LOGFILE"
 PULLBACK_EXIT=$?
 if [ $PULLBACK_EXIT -eq 0 ] && [ -s "$OUTFILE_PULLBACK" ]; then
@@ -146,8 +141,8 @@ else
 fi
 
 # ── SCAN 5: ADX BREAKOUT layout ───────────────────────────────────────────────
-echo "[$(date)] Scanning ADX BREAKOUT layout (hint: Rob Booker - ADX Breakout DM Final)..." >> "$LOGFILE"
-TRADINGVIEW_INDICATOR_HINT="Rob Booker - ADX Breakout DM Final" \
+echo "[$(date)] Scanning ADX BREAKOUT layout (6hvBVx9e)..." >> "$LOGFILE"
+TRADINGVIEW_LAYOUT_ID="6hvBVx9e" \
   "$NODE" "$TV_DIR/src/cli/index.js" brief --sections "ADX BREAKOUT SCREENER,ADX BREAKOUT BRIEF" > "$OUTFILE_ADX" 2>> "$LOGFILE"
 ADX_EXIT=$?
 if [ $ADX_EXIT -eq 0 ] && [ -s "$OUTFILE_ADX" ]; then
