@@ -77,7 +77,7 @@ ATR%, RVOL, VD, Aroon, ADX, DI+/DI-, %B, WRB, Range%, vs Open, EMA50, SMA200, VI
 | Factor | Rule |
 |--------|------|
 | Band validity | EMA38 < EMA62 (band inverted) → ticker suppressed entirely |
-| GP Zone | GP_Flag ≥ 1 (inside zone) → ticker suppressed entirely |
+| GP Zone | GP_Flag ≥ 1 (inside zone) at close → ticker suppressed entirely |
 | Stage | Stage 0 WATCH → hidden from output (not suppressed — still in data) |
 | Section gate | Only tickers from PULLBACK SCREENER or PULLBACK BRIEF sections shown |
 
@@ -85,7 +85,7 @@ ATR%, RVOL, VD, Aroon, ADX, DI+/DI-, %B, WRB, Range%, vs Open, EMA50, SMA200, VI
 
 | Stage | Condition |
 |-------|-----------|
-| 🟢 Stage 3 ENTRY | `Breakout = 1` (up arrow) OR price inside EMA38/EMA62 band |
+| 🟢 Stage 3 ENTRY | `Breakout = 1` (up arrow) OR price inside EMA38/EMA62 band, at close |
 | 🟠 Stage 2 EMA21 | `Pullback = 1` AND price within 3% above EMA21 |
 | 🟡 Stage 1 PB | `Pullback = 1` (further from EMA21) |
 | ⬜ Stage 0 WATCH | Neither condition met — hidden |
