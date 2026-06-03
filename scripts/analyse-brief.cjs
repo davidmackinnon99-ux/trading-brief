@@ -320,6 +320,14 @@ const watchlistSections = rules.watchlist_sections || {};
 // EQR: resolves to ASX_DLY:EQR (EQ Resources Ltd, Australia) instead of NYSE:EQR — exclude until
 // the watchlist entry is updated to use the full NASDAQ:EQR or NYSE:EQR prefix.
 const EXCLUDED_TICKERS = new Set(['TPH', 'EQR', 'ASX_DLY:EQR']);
+// SID-ONLY exclusion: leveraged & inverse ETFs are net-negative for SID's
+// mean-reversion entry (daily-rebalanced products fight a dip-buy; bootstrapped
+// June 2026 — leveraged bucket PF 0.96, net neg). Scoped to SID only; these may
+// still be valid for LORP/trend strategies, so NOT added to EXCLUDED_TICKERS.
+const SID_LEVERAGED_EXCLUDE = new Set([
+  'SOXL', 'SQQQ', 'TNA', 'SH', 'CRSH',                                  // BTW leveraged/inverse
+  'TQQQ', 'UPRO', 'SSO', 'QLD', 'BULZ', 'AAPU', 'AMZU', 'AVGX', 'ORCX'  // SID SCREENER leveraged
+]);
 // Build reverse map: ticker → section name
 const tickerSection = {};
 for (const [section, tickers] of Object.entries(watchlistSections)) {
@@ -344,7 +352,7 @@ const sidUniverseSet   = new Set([...sidScreenerSet, ...sidBriefSet, ...btwSet])
 const adxUniverseSet   = new Set([...adxScreenerSet]);
 
 // ── Process SID brief (from SID layout scan) ─────────────────────
-const sidResults = sidBrief ? sidBrief.symbols_scanned.filter(s => !EXCLUDED_TICKERS.has(s.symbol)).map(s => {
+const sidResults = sidBrief ? sidBrief.symbols_scanned.filter(s => !EXCLUDED_TICKERS.has(s.symbol) && !SID_LEVERAGED_EXCLUDE.has(s.symbol.includes(':') ? s.symbol.split(':')[1] : s.symbol)).map(s => {
   if (s.error) return { sym: s.symbol, error: s.error };
   const studies = s.indicators?.studies || [];
   const price   = s.quote?.last;
