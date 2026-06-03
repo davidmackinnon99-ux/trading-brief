@@ -1470,10 +1470,11 @@ if (!VERBOSE) {
     console.log('**⚡ SID — 0 signals** *(no entry signals fired today)*\n');
   } else {
     console.log(`**⚡ SID — ${sidPass.length} signals** *(${sidLongs.length} Long · ${sidShorts.length} Short)*`);
-    console.log('*SID entry signal fired — verify Weekly RSI gate + Gap/ATR Ratio manually before acting*\n');
+    console.log('*SID entry signal fired — verify Weekly RSI gate + Gap/ATR Ratio manually before acting.*');
+    console.log('*ATR% note: low standalone predictive value — it is the denominator for Gap/ATR Ratio. Gap/ATR ≥ 2.0 = ideal (swing-low stop ≥ 2 ATR below entry).*\n');
 
-    const sidHeader  = '| Ticker | Price | Dir | W.RSI | Gate | SMA200 | Aroon | ADX | ATR% | RVOL | VD | GP | Source | Also |';
-    const sidDivider = '|--------|-------|-----|-------|------|--------|-------|-----|------|------|----|-----|--------|------|';
+    const sidHeader  = '| Ticker | Price | Dir | W.RSI | Gate | SMA200 | Aroon | ADX | ATR% | Gap/ATR | RVOL | VD | GP | Source | Also |';
+    const sidDivider = '|--------|-------|-----|-------|------|--------|-------|-----|------|---------|------|----|-----|--------|------|';
 
     function printSIDRow(r) {
       const dirStr    = r.isLongPass ? 'Long 📈' : 'Short 📉';
@@ -1484,14 +1485,17 @@ if (!VERBOSE) {
       const aroonStr  = r.aroon  != null ? r.aroon.toFixed(0)  : '—';
       const adxStr    = r.adx    != null ? r.adx.toFixed(1)    : '—';
       const atrStr    = r.atrPct != null ? r.atrPct.toFixed(1) + '%' : '—';
+      const gatrStr   = r.gatrRatio != null ? r.gatrRatio.toFixed(2) + (r.gatrRatio >= 2.0 ? ' ✓' : ' ⚠️') : '—';
       const rvolStr   = r.rvol   != null ? r.rvol.toFixed(1)   : '—';
-      const vdStr     = r.vdPos === true ? 'Buy ✓' : r.vdPos === false ? 'Sell ⚠️' : '—';
+      const vdDir     = r.vdPos === true ? 'Buy' : r.vdPos === false ? 'Sell' : null;
+      const vdAligned = r.isLongPass ? (r.vdPos === true) : (r.vdPos === false);
+      const vdStr     = vdDir == null ? '—' : `${vdDir} ${vdAligned ? '✓' : '⚠️'}`;
       const gp        = gpLabel(r.gpFlag);
       const srcStr    = r.inBTW ? 'BTW ★' :
                         r.inSIDScreener || r.inSIDBrief ? 'SID Scr' :
                         tickerSection[baseTicker(r.sym)] || 'Other';
       const sidExclude = r.isLongPass ? 'SID_LONG' : 'SID_SHORT';
-      console.log(`| ${r.sym} | $${fmt(r.price)} | ${dirStr} | ${wrsiStr} | ${gateStr} | ${sma200Str} | ${aroonStr} | ${adxStr} | ${atrStr} | ${rvolStr} | ${vdStr} | ${gp} | ${srcStr} | ${alsoTag(r.sym, sidExclude)} |`);
+      console.log(`| ${r.sym} | $${fmt(r.price)} | ${dirStr} | ${wrsiStr} | ${gateStr} | ${sma200Str} | ${aroonStr} | ${adxStr} | ${atrStr} | ${gatrStr} | ${rvolStr} | ${vdStr} | ${gp} | ${srcStr} | ${alsoTag(r.sym, sidExclude)} |`);
     }
 
     if (sidLongs.length > 0) {
