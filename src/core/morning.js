@@ -52,6 +52,8 @@ export async function runBrief({ rules_path, sections } = {}) {
     symbol_timeout_ms = 30000,
     lorp_layout = "LORP",
     pullback_layout = "Pullback",
+    warmup_retries = 5,
+    max_consecutive_timeouts = 6,
   } = rules;
   // Allow per-invocation override via env var — used by morning-brief.sh to give
   // the SID scan a longer delay (its indicators need more time to recalculate).
@@ -103,6 +105,50 @@ export async function runBrief({ rules_path, sections } = {}) {
   // on a 267-symbol watchlist.
   let timeframeConfirmed = false;
 
+  // ── Warm-up phase ────────────────────────────────────────────────
+  // Heavy layouts (e.g. LORP with 30+ indicators incl. ML Lorentzian) can be
+  // unresponsive immediately after the app wakes from idle — every setSymbol then
+  // hangs and each symbol burns the full timeout. Before the real scan, load the
+  // first symbol and confirm the chart actually responds, retrying with backoff.
+  if (filteredWatchlist.length > 0) {
+    const warmSymbol = filteredWatchlist[0];
+    let warm = false;
+    for (let attempt = 1; attempt <= warmup_retries; attempt++) {
+      try {
+        await Promise.race([
+          (async () => {
+            await chart.setSymbol({ symbol: warmSymbol });
+            await new Promise((r) => setTimeout(r, scan_delay_ms));
+            await chart.setTimeframe({ timeframe: default_timeframe });
+            await new Promise((r) => setTimeout(r, scan_delay_ms));
+            await chart.getState(); // confirms chart model is responsive
+          })(),
+          new Promise((_, reject) =>
+            setTimeout(() => reject(new Error("warm-up timeout")), symbol_timeout_ms),
+          ),
+        ]);
+        warm = true;
+        timeframeConfirmed = true; // timeframe already set during warm-up
+        process.stderr.write(`[brief] warm-up OK on attempt ${attempt} (${warmSymbol})\n`);
+        break;
+      } catch (err) {
+        const backoff = attempt * 5000;
+        process.stderr.write(
+          `[brief] warm-up attempt ${attempt}/${warmup_retries} failed (${err.message}) — waiting ${backoff / 1000}s\n`,
+        );
+        await new Promise((r) => setTimeout(r, backoff));
+      }
+    }
+    if (!warm) {
+      throw new Error(
+        `Chart layout unresponsive after ${warmup_retries} warm-up attempts — ` +
+          `aborting scan (page likely still loading/throttled). No symbols burned on timeouts.`,
+      );
+    }
+  }
+
+  let consecutiveTimeouts = 0;
+
   for (const symbol of filteredWatchlist) {
     const scanOne = async () => {
       await chart.setSymbol({ symbol });
@@ -134,9 +180,22 @@ export async function runBrief({ rules_path, sections } = {}) {
         ),
       ]);
       results.push(result);
+      consecutiveTimeouts = 0; // a success resets the run
     } catch (err) {
       process.stderr.write(`[brief] TIMEOUT/ERROR ${symbol}: ${err.message}\n`);
       results.push({ symbol, error: err.message });
+      if (/timeout/i.test(err.message)) {
+        consecutiveTimeouts++;
+        if (consecutiveTimeouts >= max_consecutive_timeouts) {
+          throw new Error(
+            `${consecutiveTimeouts} consecutive symbol timeouts — chart layout has stalled. ` +
+              `Aborting scan early (${results.length}/${filteredWatchlist.length} attempted) ` +
+              `rather than burning the full timeout on every remaining symbol.`,
+          );
+        }
+      } else {
+        consecutiveTimeouts = 0; // non-timeout error (e.g. bad symbol) doesn't count
+      }
     }
   }
 
