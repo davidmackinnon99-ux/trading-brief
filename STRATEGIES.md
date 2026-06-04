@@ -94,7 +94,7 @@ ATR%, RVOL, VD, Aroon, ADX, DI+/DI-, %B, WRB, Range%, vs Open, EMA50, SMA200, VI
 ADX 20–40, MA alignment
 
 ### Context columns (shown, not filtered)
-EMA38, EMA62, EMA21, Band↑, VD (▲/▼), GP Zone distance (xR), PP (Pocket Pivot), CAP (Climax/Strong Demand+Supply)
+EMA38, EMA62, EMA21, % EMA21 (signed distance of price from EMA21), Band↑, VD (▲/▼), GP Zone distance (xR), PP (Pocket Pivot), CAP (Climax/Strong Demand+Supply)
 
 ### Indicators on layout NOT currently used in brief
 - HH LL HL LH Marker — on layout, captured in scan, not read by code

@@ -1001,6 +1001,7 @@ function classifyStage(r) {
       stage: 3,
       label: '🟢 ENTRY',
       detail: buy_entry != null && buy_entry > 0 ? `Entry $${buy_entry.toFixed(2)}` : 'In band',
+      pctAboveEma21,
     };
   }
   if (pb_flag === 1 && pctAboveEma21 != null && pctAboveEma21 <= 3.0) {
@@ -1008,6 +1009,7 @@ function classifyStage(r) {
       stage: 2,
       label: '🟠 EMA21',
       detail: `${pctAboveEma21.toFixed(1)}% above EMA21`,
+      pctAboveEma21,
     };
   }
   if (pb_flag === 1) {
@@ -1015,12 +1017,14 @@ function classifyStage(r) {
       stage: 1,
       label: '🟡 PB',
       detail: pctAboveEma21 != null ? `${pctAboveEma21.toFixed(1)}% above EMA21` : '',
+      pctAboveEma21,
     };
   }
   return {
     stage: 0,
     label: '⬜ WATCH',
     detail: pctAboveEma21 != null ? `${pctAboveEma21.toFixed(1)}% above EMA21` : '',
+    pctAboveEma21,
   };
 }
 
@@ -1556,8 +1560,8 @@ if (!VERBOSE) {
   } else {
     console.log(pbHeader2 + '\n');
 
-    const pbTableHeader  = '| Ticker | Price | Stage | EMA38 | EMA62 | EMA21 | Band↑ | VD | GP Zone | PP | CAP | Also |';
-    const pbTableDivider = '|--------|-------|-------|-------|-------|-------|-------|----|---------|-----|-----|------|';
+    const pbTableHeader  = '| Ticker | Price | Stage | EMA38 | EMA62 | EMA21 | % EMA21 | Band↑ | VD | GP Zone | PP | CAP | Also |';
+    const pbTableDivider = '|--------|-------|-------|-------|-------|-------|---------|-------|----|---------|-----|-----|------|';
     console.log(pbTableHeader);
     console.log(pbTableDivider);
 
@@ -1566,6 +1570,8 @@ if (!VERBOSE) {
       const ema38Str  = r.ema38 != null ? `$${r.ema38.toFixed(2)}` : '—';
       const ema62Str  = r.ema62 != null ? `$${r.ema62.toFixed(2)}` : '—';
       const ema21Str  = r.ema21 != null ? `$${r.ema21.toFixed(2)}` : '—';
+      const pctE21     = r.stageInfo?.pctAboveEma21;
+      const pctE21Str  = pctE21 != null ? `${pctE21 >= 0 ? '+' : ''}${pctE21.toFixed(1)}%` : '—';
       const bandStr   = r.bandValid === true ? '✓' : r.bandValid === false ? '✗' : '—';
       const vdStr     = r.vdPos === true ? '▲' : r.vdPos === false ? '▼' : '—';
       const gpStr     = pbGpStatus(r.gpFlag, r.gpTop, r.gpBot, r.price, r.atr);
@@ -1575,7 +1581,7 @@ if (!VERBOSE) {
                    : r.pbCapClimaxSupply > 0 ? '🔥 CS'
                    : r.pbCapStrongSupply > 0 ? '💪 SS'
                    : r.pbCapDemand != null   ? '—' : '';
-      console.log(`| ${r.sym} | $${fmt(r.price)} | ${stageStr} | ${ema38Str} | ${ema62Str} | ${ema21Str} | ${bandStr} | ${vdStr} | ${gpStr} | ${ppStr} | ${capStr} | ${alsoTag(r.sym, 'PB')} |`);
+      console.log(`| ${r.sym} | $${fmt(r.price)} | ${stageStr} | ${ema38Str} | ${ema62Str} | ${ema21Str} | ${pctE21Str} | ${bandStr} | ${vdStr} | ${gpStr} | ${ppStr} | ${capStr} | ${alsoTag(r.sym, 'PB')} |`);
     });
     console.log('');
 
