@@ -85,16 +85,25 @@ ATR%, RVOL, VD, Aroon, ADX, DI+/DI-, %B, WRB, Range%, vs Open, EMA50, SMA200, VI
 
 | Stage | Condition |
 |-------|-----------|
-| 🟢 Stage 3 ENTRY | `Breakout = 1` (up arrow) OR price inside EMA38/EMA62 band, at close |
-| 🟠 Stage 2 EMA21 | `Pullback = 1` AND price within 3% above EMA21 |
+| 🟢 Stage 3 BREAKOUT | `Breakout = 1` (up arrow) at close AND price ≥ EMA21 |
+| 🔵 Stage 3 IN-BAND | price inside EMA38/EMA62 band at close AND price ≥ EMA21 |
+| 🟠 Stage 2 EMA21 | `Pullback = 1` AND price 0–3% above EMA21 |
 | 🟡 Stage 1 PB | `Pullback = 1` (further from EMA21) |
 | ⬜ Stage 0 WATCH | Neither condition met — hidden |
+
+**Entry gate — price must be at or above EMA21 (non-negative % EMA21).** A negative
+% EMA21 means price has pushed back down *through* EMA21 — a broken pullback, not a
+valid long entry — so it is never classified as Stage 3.
+
+**Note:** the EMA38/EMA62 band sits below EMA21 in a normal uptrend, so an IN-BAND
+candidate is usually below EMA21 (negative %) and therefore filtered out. IN-BAND only
+appears when the band is tight/near EMA21 and price holds at/above EMA21.
 
 ### Pre-filtered upstream by TV Screener
 ADX 20–40, MA alignment
 
 ### Context columns (shown, not filtered)
-EMA38, EMA62, EMA21, % EMA21 (signed distance of price from EMA21), Band↑, VD (▲/▼), GP Zone distance (xR), PP (Pocket Pivot), CAP (Climax/Strong Demand+Supply)
+EMA38, EMA62, EMA21, % EMA21 (signed distance of price from EMA21), Band↑, VD (▲/▼), GP Zone distance (xR), PP (Pocket Pivot), CAP (Climax/Strong Demand+Supply — all firing signals shown: 🔥 CD, 💪 SD, 🔥 CS, 💪 SS)
 
 ### Indicators on layout NOT currently used in brief
 - HH LL HL LH Marker — on layout, captured in scan, not read by code

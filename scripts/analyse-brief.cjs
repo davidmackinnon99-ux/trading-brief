@@ -114,15 +114,25 @@ const nonFlagArgs = process.argv.slice(2).filter(a => !a.startsWith('--'));
 let briefFile    = nonFlagArgs[0];
 let sidBriefFile = nonFlagArgs[1];
 
+// Local-date string (YYYY-MM-DD) — brief files are named with local date by
+// morning-brief.sh (date +%Y-%m-%d). Using toISOString() here would give the UTC
+// date, which in the morning (AEST) is still the previous day → reads stale files.
+function localDateStr(dt = new Date()) {
+  const y = dt.getFullYear();
+  const m = String(dt.getMonth() + 1).padStart(2, '0');
+  const d = String(dt.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
 if (!briefFile) {
-  const today = new Date().toISOString().split('T')[0];
+  const today = localDateStr();
   briefFile = path.join(briefsDir, `brief-${today}-lorp.json`);
   if (!fs.existsSync(briefFile)) {
     // Fallback to legacy single-file format
     briefFile = path.join(briefsDir, `brief-${today}.json`);
   }
   if (!fs.existsSync(briefFile)) {
-    const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+    const yesterday = localDateStr(new Date(Date.now() - 86400000));
     const yFile = path.join(briefsDir, `brief-${yesterday}-lorp.json`);
     if (fs.existsSync(yFile)) {
       briefFile = yFile;
@@ -996,15 +1006,32 @@ function classifyStage(r) {
     ? (price - ema21) / ema21 * 100
     : null;
 
-  if (up_arrow === 1 || inBand) {
+  // Entry gate: price must be at or above EMA21 (non-negative %). A negative %
+  // means price has pushed back DOWN through EMA21 — a broken pullback, not a
+  // valid long entry, so it is not classified as Stage 3.
+  const aboveEma21 = pctAboveEma21 != null && pctAboveEma21 >= 0;
+
+  // Stage 3 split (point #2): Breakout (up_arrow signal) vs In-Band (price in
+  // EMA38/EMA62 band). Both require price at/above EMA21.
+  if (up_arrow === 1 && aboveEma21) {
     return {
       stage: 3,
-      label: '🟢 ENTRY',
-      detail: buy_entry != null && buy_entry > 0 ? `Entry $${buy_entry.toFixed(2)}` : 'In band',
+      kind: 'breakout',
+      label: '🟢 BREAKOUT',
+      detail: buy_entry != null && buy_entry > 0 ? `Entry $${buy_entry.toFixed(2)}` : 'Breakout',
       pctAboveEma21,
     };
   }
-  if (pb_flag === 1 && pctAboveEma21 != null && pctAboveEma21 <= 3.0) {
+  if (inBand && aboveEma21) {
+    return {
+      stage: 3,
+      kind: 'inband',
+      label: '🔵 IN-BAND',
+      detail: 'In EMA38/62 band',
+      pctAboveEma21,
+    };
+  }
+  if (pb_flag === 1 && pctAboveEma21 != null && pctAboveEma21 >= 0 && pctAboveEma21 <= 3.0) {
     return {
       stage: 2,
       label: '🟠 EMA21',
@@ -1535,6 +1562,9 @@ if (!VERBOSE) {
   const stage2 = pullbackUnique.filter(r => r.stageInfo.stage === 2);
   const stage1 = pullbackUnique.filter(r => r.stageInfo.stage === 1);
   const stage0 = pullbackUnique.filter(r => r.stageInfo.stage === 0);
+  // Stage 3 split: breakout vs in-band
+  const stage3Breakout = stage3.filter(r => r.stageInfo.kind === 'breakout');
+  const stage3InBand   = stage3.filter(r => r.stageInfo.kind === 'inband');
 
   // Sort: stage desc then RVOL desc — Stage 0 WATCH hidden from output
   const pbSorted = [...stage3, ...stage2, ...stage1]
@@ -1552,7 +1582,7 @@ if (!VERBOSE) {
       (!pbSlingshotFound ? '       · CM_SlingShotSystem (EMA38/EMA62 bands)\n' : '')
     : '';
 
-  const pbHeader2 = `${'═'.repeat(44)}\n📈 PULLBACK SCREENER  —  ${pbSorted.length} tickers shown (${stage0.length} WATCH hidden)\n    Stage 3 🟢 ENTRY: ${stage3.length}  |  Stage 2 🟠 EMA21: ${stage2.length}  |  Stage 1 🟡 PB: ${stage1.length}\n    ADX 20–40 filter applied by TV Screener upstream.\n    ⚑ LuxAlgo HTF Divergence: manual chart check required.${pbIndicatorWarn}\n${'═'.repeat(44)}`;
+  const pbHeader2 = `${'═'.repeat(44)}\n📈 PULLBACK SCREENER  —  ${pbSorted.length} tickers shown (${stage0.length} WATCH hidden)\n    Stage 3 🟢 BREAKOUT: ${stage3Breakout.length}  |  🔵 IN-BAND: ${stage3InBand.length}  |  Stage 2 🟠 EMA21: ${stage2.length}  |  Stage 1 🟡 PB: ${stage1.length}\n    Entries require price ≥ EMA21 (no negative %). ADX 20–40 filter applied upstream.\n    ⚑ LuxAlgo HTF Divergence: manual chart check required.${pbIndicatorWarn}\n${'═'.repeat(44)}`;
 
   if (pbSorted.length === 0) {
     const watchNote = stage0.length > 0 ? ` *(${stage0.length} WATCH-only hidden)*` : '';
@@ -1576,11 +1606,14 @@ if (!VERBOSE) {
       const vdStr     = r.vdPos === true ? '▲' : r.vdPos === false ? '▼' : '—';
       const gpStr     = pbGpStatus(r.gpFlag, r.gpTop, r.gpBot, r.price, r.atr);
       const ppStr     = r.ppFlag != null && r.ppFlag >= 1 ? '★' : '—';
-      const capStr = r.pbCapClimaxDemand > 0 ? '🔥 CD'
-                   : r.pbCapStrongDemand > 0 ? '💪 SD'
-                   : r.pbCapClimaxSupply > 0 ? '🔥 CS'
-                   : r.pbCapStrongSupply > 0 ? '💪 SS'
-                   : r.pbCapDemand != null   ? '—' : '';
+      // Show ALL firing CAP signals (demand AND supply), not just the highest priority.
+      // Supply (SS/CS) matters as much as demand (SD/CD) and must not be masked.
+      const capParts = [];
+      if (r.pbCapClimaxDemand > 0) capParts.push('🔥 CD');
+      if (r.pbCapStrongDemand > 0) capParts.push('💪 SD');
+      if (r.pbCapClimaxSupply > 0) capParts.push('🔥 CS');
+      if (r.pbCapStrongSupply > 0) capParts.push('💪 SS');
+      const capStr = capParts.length ? capParts.join(' ') : (r.pbCapDemand != null ? '—' : '');
       console.log(`| ${r.sym} | $${fmt(r.price)} | ${stageStr} | ${ema38Str} | ${ema62Str} | ${ema21Str} | ${pctE21Str} | ${bandStr} | ${vdStr} | ${gpStr} | ${ppStr} | ${capStr} | ${alsoTag(r.sym, 'PB')} |`);
     });
     console.log('');
@@ -1810,7 +1843,7 @@ if (!VERBOSE) {
   // ── Watchlist Updates Sidecar ──
   // Generates a JSON sidecar consumed by push-watchlist.cjs to update TV BRIEF sections
   const briefDateMatch = briefFile.match(/brief-(\d{4}-\d{2}-\d{2})/);
-  const briefDate = briefDateMatch ? briefDateMatch[1] : new Date().toISOString().split('T')[0];
+  const briefDate = briefDateMatch ? briefDateMatch[1] : localDateStr();
 
   const sidBriefTickers = sidResults
     .filter(r => !r.error && (r.isLongPass || r.isShortPass))
