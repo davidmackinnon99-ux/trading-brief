@@ -103,7 +103,30 @@ appears when the band is tight/near EMA21 and price holds at/above EMA21.
 ADX 20–40, MA alignment
 
 ### Context columns (shown, not filtered)
-EMA38, EMA62, EMA21, % EMA21 (signed distance of price from EMA21), Band↑, VD (▲/▼), GP Zone distance (xR), PP (Pocket Pivot), CAP (Climax/Strong Demand+Supply — all firing signals shown: 🔥 CD, 💪 SD, 🔥 CS, 💪 SS)
+EMA38, EMA62, EMA21, % EMA21 (signed distance of price from EMA21), Band↑, VD (▲/▼), GP Zone distance (xR), PP (Pocket Pivot), CAP (see below)
+
+### CAP Tools Supplement — Demand/Supply flags (CD · SD · CS · SS)
+**These are single-bar candle + volume signals on the last closed bar. They are
+NOT related to the supply/demand zones drawn on the chart** — a ticker can fire SD
+while sitting far above any supply zone. The flag only describes the most recent
+candle's shape and volume.
+
+Candle classification (last closed bar):
+- **demand candle** = bullish body (close > open), or a strong lower-wick rejection — without a strong upper wick
+- **supply candle** = bearish body, or a strong upper-wick rejection — without a strong lower wick
+
+Volume vs 20-bar volume average:
+- **> Volume Confirm Multiplier × avg** = "above average" (multiplier set to **1.5** in CAP Tools settings)
+- **> 2.0 × avg** = "climax"
+
+| Flag | Condition |
+|------|-----------|
+| 💪 SD (Strong Demand) | demand candle + volume > 1.5× avg + NOT climax |
+| 🔥 CD (Climax Demand) | demand candle + volume > 2.0× avg |
+| 💪 SS (Strong Supply) | supply candle + volume > 1.5× avg + NOT climax |
+| 🔥 CS (Climax Supply) | supply candle + volume > 2.0× avg |
+
+All firing signals are shown (demand and supply both appear if both fire).
 
 ### Indicators on layout NOT currently used in brief
 - HH LL HL LH Marker — on layout, captured in scan, not read by code
