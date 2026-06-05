@@ -564,12 +564,11 @@ const results = brief.symbols_scanned.filter(s => !EXCLUDED_TICKERS.has(s.symbol
   const bbSt    = getStudy(studies, 'Bollinger Bands');
   const wrbSt   = getStudy(studies, 'WRB Confluence');
   const ppSt    = getStudy(studies, 'Pocket Pivot');
-  // LORP Confluence v1.2 indicator — reads pass/fail flags directly from chart
-  const lorpCSt = getStudy(studies, 'LORP Confluence v1.4', 'LORP Confluence');
   // New indicators on LORP layout (added May 2026)
   const capSt   = getStudy(studies, 'CAP Tools Supplement');           // Climax/Strong Demand+Supply flags
   const chandSt = getStudy(studies, 'Chandelier Exit');                // Long Stop level
-  const vidyaSt = getStudy(studies, 'Volumatic Variable Index Dynamic Average', 'Volumatic VIDYA', 'VIDYA');
+  // (LORP Confluence v1.4 + Volumatic VIDYA retired from brief 2026-06-05 — LORP-C
+  //  duplicated factors the brief reads individually; VIDYA is visual-only on chart.)
 
   // Value key lookups — multiple key names tried in order (first non-null wins)
   const macd    = parseNum(getVal(macdSt?.values, 'MACD', 'MACD Line', 'MACD line'));
@@ -626,20 +625,11 @@ const results = brief.symbols_scanned.filter(s => !EXCLUDED_TICKERS.has(s.symbol
   const capSupplyFired   = capClimaxSupply > 0 || capStrongSupply > 0;   // any bearish volume signal
   // Chandelier Exit — dynamic trailing stop
   const chandStop  = parseNum(getVal(chandSt?.values, 'Long Stop', 'Short Stop', 'Stop'));
-  // Volumatic VIDYA — trend-adaptive moving average (acts as dynamic support/resistance)
-  const vidyaVal   = parseNum(getVal(vidyaSt?.values, 'Plot'));
-  const aboveVIDYA = vidyaVal != null && price != null ? price > vidyaVal : null;
   // GP Zone flag (requires GP Zone Exporter indicator on LORP chart — empty if not added)
   const gpStLORP = getStudy(studies, 'GP Zone Exporter', 'GP Zone', 'Golden Pocket', 'GP_Zone', 'GP Flag');
   const gpFlag   = parseNum(getVal(gpStLORP?.values, 'GP_Flag', 'GP Flag', 'GP flag'));
   const gpTop    = parseNum(getVal(gpStLORP?.values, 'GP_Top',  'GP Top'));
   const gpBot    = parseNum(getVal(gpStLORP?.values, 'GP_Bot',  'GP Bot'));
-  // LORP Confluence v1.4 — EMA21, EMA34 and Kernel values from indicator
-  const lorpFullPass = parseNum(getVal(lorpCSt?.values, 'Full Confluence Pass'));
-  const lorpT1Watch  = parseNum(getVal(lorpCSt?.values, 'Tier 1 Pass / Tier 2 Marginal'));
-  const lorpT1Fail   = parseNum(getVal(lorpCSt?.values, 'Tier 1 Fail'));
-  const lorpEMA21    = parseNum(getVal(lorpCSt?.values, 'EMA21'));
-  const lorpEMA34    = parseNum(getVal(lorpCSt?.values, 'EMA34'));
 
   // LC Premium — Kernel values from data window
   const lcSt           = getStudy(studies, 'Lorentzian Classification', 'LC Premium', 'ML: Lorentzian');
@@ -768,8 +758,6 @@ const results = brief.symbols_scanned.filter(s => !EXCLUDED_TICKERS.has(s.symbol
     vdPos, vdCtxLORP, rvol, rvolCtx, atrCtxLORP,
     bbPct, bbPctCtx, wrbInPrior, wrbPrior, wrbCtx,
     ma1, ma2,
-    // LORP Confluence v1.4 indicator values
-    lorpEMA21, lorpEMA34,
     // LC Premium kernel values
     kernelVal, distFromKernel, distAboveKernel, entryType,
     // LC Premium signal keys (null = key absent / no signal on this bar)
@@ -789,7 +777,7 @@ const results = brief.symbols_scanned.filter(s => !EXCLUDED_TICKERS.has(s.symbol
     pocketPivot,
     // New indicators (May 2026 LORP layout)
     capDemandFired, capSupplyFired, capClimaxDemand, capClimaxSupply, capStrongDemand, capStrongSupply,
-    chandStop, vidyaVal, aboveVIDYA,
+    chandStop,
     // Raw numeric values
     macd, macdSig, aroon, aroonSignal, ema50pct, sma200pct,
     adx, diPlus, diMinus, vd, atrPct,
@@ -1228,7 +1216,6 @@ if (!VERBOSE) {
       ? ((r.price - r.open) / r.open * 100).toFixed(1) + '%' : '—';
     const ma1Str    = r.ma1      != null ? r.ma1.toFixed(2)      : '—';
     const ma2Str    = r.ma2      != null ? r.ma2.toFixed(2)      : '—';
-    const vidyaStr  = r.vidyaVal != null ? r.vidyaVal.toFixed(2) : '—';
     const chandStr  = r.chandStop!= null ? r.chandStop.toFixed(2): '—';
     // ADX + DI+ / DI- with direction vs prior brief
     const prevAdx  = prevAdxMap[r.sym];
@@ -1252,11 +1239,11 @@ if (!VERBOSE) {
       : r.bbPct >= 0.0 ? `${r.bbPct.toFixed(2)} ⚠️`
       : `${r.bbPct.toFixed(2)} ↓BB`
       : '—';
-    console.log(`| ${r.sym} | $${fmt(r.price)} | ${r.entryType ?? '—'} | ${distStr} | ${atrStr} | ${rvolStr} | ${vdStr} | ${aroonStr} | ${adxStr} | ${diPStr} | ${diMStr} | ${bbStr} | ${wrbStr} | ${rangePct} | ${pbDepth} | ${ma1Str} | ${ma2Str} | ${vidyaStr} | ${chandStr} | ${sigStr} | ${alsoTag(r.sym, 'LORP')} |`);
+    console.log(`| ${r.sym} | $${fmt(r.price)} | ${r.entryType ?? '—'} | ${distStr} | ${atrStr} | ${rvolStr} | ${vdStr} | ${aroonStr} | ${adxStr} | ${diPStr} | ${diMStr} | ${bbStr} | ${wrbStr} | ${rangePct} | ${pbDepth} | ${ma1Str} | ${ma2Str} | ${chandStr} | ${sigStr} | ${alsoTag(r.sym, 'LORP')} |`);
   }
 
-  const lorpHeader  = '| Ticker | Price | Type | Dist | ATR% | RVOL | VD | Aroon | ADX | DI+ | DI- | %B | WRB | Range% | vs Open | EMA50 | SMA200 | VIDYA | Chand | Sig | Also |';
-  const lorpDivider = '|--------|-------|------|------|------|------|----|-------|-----|-----|-----|----|----|--------|---------|-------|--------|-------|-------|-----|----|';
+  const lorpHeader  = '| Ticker | Price | Type | Dist | ATR% | RVOL | VD | Aroon | ADX | DI+ | DI- | %B | WRB | Range% | vs Open | EMA50 | SMA200 | Chand | Sig | Also |';
+  const lorpDivider = '|--------|-------|------|------|------|------|----|-------|-----|-----|-----|----|----|--------|---------|-------|--------|-------|-----|----|';
 
   const sortLorp = arr => [...arr].sort((a, b) => {
     const typeOrder = t => t?.startsWith('Pullback') ? 0 : t?.startsWith('Trend') ? 1 : 2;
@@ -1948,16 +1935,15 @@ if (!VERBOSE) {
     console.log('═'.repeat(60));
     console.log(`\n✅ LORP PASS — ${lorp.length} signals (Tier 1 + Tier 2 confirmed)\n`);
     console.log('  Check chart for LORP entry signal before acting.\n');
-    console.log('  Ticker  Price       EMA21       ADX    ATR%   RVOL   VD          Aroon');
+    console.log('  Ticker  Price       ADX    ATR%   RVOL   VD          Aroon');
     console.log('  ' + '─'.repeat(75));
     lorp.forEach(r => {
       const vdStr    = r.vdPos === true ? 'Buy ✓' : r.vdPos === false ? 'Sell ⚠️' : '—';
-      const ema21Str = r.lorpEMA21 != null ? `$${r.lorpEMA21.toFixed(2)}` : '—';
       const adxStr   = r.adx     != null ? r.adx.toFixed(1)     : '—';
       const atrStr   = r.atrPct  != null ? r.atrPct.toFixed(1) + '%' : '—';
       const rvolStr  = r.rvol    != null ? r.rvol.toFixed(1)    : '—';
       const aroonStr = r.aroon   != null ? r.aroon.toFixed(0)   : '—';
-      console.log(`  ${r.sym.padEnd(6)}  $${String(r.price?.toFixed(2)).padEnd(10)} ${ema21Str.padEnd(10)}  ${adxStr.padEnd(5)}  ${atrStr.padEnd(6)} ${rvolStr.padEnd(6)} ${vdStr.padEnd(10)}  ${aroonStr}`);
+      console.log(`  ${r.sym.padEnd(6)}  $${String(r.price?.toFixed(2)).padEnd(10)}  ${adxStr.padEnd(5)}  ${atrStr.padEnd(6)} ${rvolStr.padEnd(6)} ${vdStr.padEnd(10)}  ${aroonStr}`);
     });
     console.log('');
   }
@@ -1968,10 +1954,9 @@ if (!VERBOSE) {
     console.log(`\n⚠️ LORP WATCH — ${lorpWatch.length} signals (Tier 1 pass, Tier 2 marginal)\n`);
     console.log('  Review Tier 2 breakdown before acting.\n');
     lorpWatch.forEach(r => {
-      const ema21Str = r.lorpEMA21 != null ? `EMA21 $${r.lorpEMA21.toFixed(2)}` : 'EMA21 n/a';
       const adxStr   = r.adx     != null ? `ADX ${r.adx.toFixed(1)}` : 'ADX n/a';
       const atrStr   = r.atrPct  != null ? `ATR% ${r.atrPct.toFixed(1)}%` : 'ATR% n/a';
-      console.log(`  ${r.sym.padEnd(6)}  $${String(r.price?.toFixed(2)).padEnd(10)} ${ema21Str}  ${adxStr}  ${atrStr}`);
+      console.log(`  ${r.sym.padEnd(6)}  $${String(r.price?.toFixed(2)).padEnd(10)}  ${adxStr}  ${atrStr}`);
       console.log(`         Tier 2: ${lorpT2Breakdown(r)}`);
       console.log('');
     });
