@@ -1489,46 +1489,62 @@ if (!VERBOSE) {
   } else {
     console.log(`**⚡ SID — ${sidPass.length} signals** *(${sidLongs.length} Long · ${sidShorts.length} Short)*`);
     console.log('*SID entry signal fired — verify Weekly RSI gate + Gap/ATR Ratio manually before acting.*');
-    console.log('*ATR% note: low standalone predictive value — it is the denominator for Gap/ATR Ratio. Gap/ATR ≥ 2.0 = ideal (swing-low stop ≥ 2 ATR below entry).*\n');
+    console.log('*Gap/ATR = how many ATRs the entry sits from the recent swing (direction-aware: low for longs, high for shorts). On the 300-trade log, HIGHER = more extended entry = LOWER expectancy — ≥2.0 underperformed <2.0 (P=0.000, both directions). Treat 🚩 EXTENDED as caution, NOT ideal. ATR% alone has low predictive value.*\n');
 
-    const sidHeader  = '| Ticker | Price | Dir | W.RSI | Gate | SMA200 | Aroon | ADX | ATR% | Gap/ATR | RVOL | VD | GP | Source | Also |';
-    const sidDivider = '|--------|-------|-----|-------|------|--------|-------|-----|------|---------|------|----|-----|--------|------|';
+    const sidHeaders = ['Ticker','Price','Dir','W.RSI','Gate','SMA200','Aroon','ADX','ATR%','Gap/ATR','RVOL','VD','GP','Src','Also'];
+    const sidRightAlign = new Set([1, 3, 6, 7, 8, 10]);  // Price, W.RSI, Aroon, ADX, ATR%, RVOL
 
-    function printSIDRow(r) {
-      const dirStr    = r.isLongPass ? 'Long 📈' : 'Short 📉';
-      const wrsiStr   = r.wrsi    != null ? r.wrsi.toFixed(1)    : '—';
-      const gateStr   = r.wrsiGate === 1  ? '✅' : r.wrsiGate === 0 ? '⚠️' : '—';
-      const sma200Str = r.aboveSMA200 === true  ? `Above (${r.sma200Pct != null ? '+'+r.sma200Pct.toFixed(1)+'%' : '✓'})` :
-                        r.aboveSMA200 === false ? `Below ⚠️ (${r.sma200Pct != null ? r.sma200Pct.toFixed(1)+'%' : ''})` : '—';
-      const aroonStr  = r.aroon  != null ? r.aroon.toFixed(0)  : '—';
-      const adxStr    = r.adx    != null ? r.adx.toFixed(1)    : '—';
-      const atrStr    = r.atrPct != null ? r.atrPct.toFixed(1) + '%' : '—';
-      const gatrStr   = r.gatrRatio != null ? r.gatrRatio.toFixed(2) + (r.gatrRatio >= 2.0 ? ' ✓' : ' ⚠️') : '—';
-      const rvolStr   = r.rvol   != null ? r.rvol.toFixed(1)   : '—';
+    function sidRowCells(r) {
+      const D = '-';
+      const dir    = r.isLongPass ? 'Long' : 'Short';
+      const wrsi   = r.wrsi    != null ? r.wrsi.toFixed(1) : D;
+      const gate   = r.wrsiGate === 1 ? 'ok' : r.wrsiGate === 0 ? 'warn' : D;
+      const sma200 = r.aboveSMA200 === true  ? ('Abv ' + (r.sma200Pct != null ? '+' + r.sma200Pct.toFixed(1) + '%' : '')).trim()
+                   : r.aboveSMA200 === false ? ('Blw ' + (r.sma200Pct != null ? r.sma200Pct.toFixed(1) + '%' : '')).trim()
+                   : D;
+      const aroon  = r.aroon  != null ? r.aroon.toFixed(0) : D;
+      const adx    = r.adx    != null ? r.adx.toFixed(1) : D;
+      const atr    = r.atrPct != null ? r.atrPct.toFixed(1) + '%' : D;
+      const gatr   = r.gatrRatio == null ? D
+                   : r.gatrRatio >= 2.0 ? r.gatrRatio.toFixed(2) + ' EXT'
+                   : r.gatrRatio.toFixed(2);
+      const rvol   = r.rvol   != null ? r.rvol.toFixed(1) : D;
       const vdDir     = r.vdPos === true ? 'Buy' : r.vdPos === false ? 'Sell' : null;
       const vdAligned = r.isLongPass ? (r.vdPos === true) : (r.vdPos === false);
-      const vdStr     = vdDir == null ? '—' : `${vdDir} ${vdAligned ? '✓' : '⚠️'}`;
-      const gp        = gpLabel(r.gpFlag);
-      const srcStr    = r.inBTW ? 'BTW ★' :
-                        r.inSIDScreener || r.inSIDBrief ? 'SID Scr' :
-                        tickerSection[baseTicker(r.sym)] || 'Other';
-      const sidExclude = r.isLongPass ? 'SID_LONG' : 'SID_SHORT';
-      console.log(`| ${r.sym} | $${fmt(r.price)} | ${dirStr} | ${wrsiStr} | ${gateStr} | ${sma200Str} | ${aroonStr} | ${adxStr} | ${atrStr} | ${gatrStr} | ${rvolStr} | ${vdStr} | ${gp} | ${srcStr} | ${alsoTag(r.sym, sidExclude)} |`);
+      const vd     = vdDir == null ? D : (vdDir + ' ' + (vdAligned ? 'ok' : 'x'));
+      const gp     = gpLabel(r.gpFlag) || D;
+      const src    = r.inBTW ? 'BTW' : (r.inSIDScreener || r.inSIDBrief ? 'SID Scr' : (tickerSection[baseTicker(r.sym)] || 'Other'));
+      const also   = alsoTag(r.sym, r.isLongPass ? 'SID_LONG' : 'SID_SHORT') || D;
+      return [r.sym, '$' + fmt(r.price), dir, wrsi, gate, sma200, aroon, adx, atr, gatr, rvol, vd, gp, src, also];
+    }
+
+    function printSIDTable(rows) {
+      const cells = rows.map(sidRowCells);
+      const widths = sidHeaders.map((h, i) => Math.max(h.length, ...cells.map(c => String(c[i]).length)));
+      const pad = (x, i) => { const sx = String(x); const g = Math.max(0, widths[i] - sx.length); return sidRightAlign.has(i) ? ' '.repeat(g) + sx : sx + ' '.repeat(g); };
+      console.log('| ' + sidHeaders.map((h, i) => pad(h, i)).join(' | ') + ' |');
+      console.log('|-' + widths.map(w => '-'.repeat(w)).join('-|-') + '-|');
+      cells.forEach(c => console.log('| ' + c.map((x, i) => pad(x, i)).join(' | ') + ' |'));
+    }
+
+    function extendedCaution(rows, swingWord) {
+      const ext = rows.filter(r => r.gatrRatio != null && r.gatrRatio >= 2.0).sort((a, b) => b.gatrRatio - a.gatrRatio);
+      if (!ext.length) return;
+      console.log('');
+      console.log(`> \ud83d\udea9 EXTENDED entries \u2014 Gap/ATR >= 2.0; entry sits far from the recent ${swingWord}, historically LOWER expectancy (verify before acting): ${ext.map(r => `${r.sym} (${r.gatrRatio.toFixed(2)})`).join(', ')}`);
     }
 
     if (sidLongs.length > 0) {
       console.log(`*Long candidates (${sidLongs.length}):*\n`);
-      console.log(sidHeader);
-      console.log(sidDivider);
-      sidLongs.forEach(printSIDRow);
+      printSIDTable(sidLongs);
+      extendedCaution(sidLongs, 'swing low');
       console.log('');
     }
 
     if (sidShorts.length > 0) {
       console.log(`*Short candidates (${sidShorts.length}):*\n`);
-      console.log(sidHeader);
-      console.log(sidDivider);
-      sidShorts.forEach(printSIDRow);
+      printSIDTable(sidShorts);
+      extendedCaution(sidShorts, 'swing high');
       console.log('');
     }
   }
@@ -1687,7 +1703,7 @@ if (!VERBOSE) {
   console.log('**SID:**  Long: RSI crossed below 30 (OS touch) · RSI rising · MACD ↑ 1 bar · ⚠️ Weekly RSI gate (manual check)  ');
   console.log('          Short: RSI crossed above 70 (OB touch) · RSI falling · MACD ↓ 1 bar · ⚠️ Weekly RSI gate (manual check)  ');
   console.log('          SMA200 tier (HIGH CONVICTION ≥5% away) · ADX context (<20 choppy ✓ · 20-25 ⚠️ danger zone)  ');
-  console.log('          ATR% risk · Gap/ATR Ratio at entry (≥2.0 ideal · <1.5 avoid) · VD (ref)  ');
+  console.log('          ATR% risk · Gap/ATR = entry extension (🚩 ≥2.0 EXTENDED = historically LOWER expectancy) · VD (ref)  ');
   console.log('          🟡 GP: NEAR / 🟢 GP: IN — zone proximity reference only\n');
   console.log('**PULLBACK v2.0:** Entry trigger: Stage 3 🟢 ENTRY · Stage 2 🟠 EMA21 · Stage 1 🟡 PB  ');
   console.log('                   ADX + EMA21 Trend Setup (Booker Method) · SlingShotSystem bands  ');
