@@ -58,6 +58,24 @@ export async function connect() {
       await client.Page.enable();
       await client.DOM.enable();
 
+      // Un-throttle the target layout's page. TradingView Desktop (Electron) throttles
+      // hidden/background pages — timers and chart recalculation slow to a crawl, so on a
+      // heavy layout (e.g. LORP with 31 indicators) setSymbol hangs and the scan times out.
+      // Only one page can be truly foreground, so bringToFront doesn't help the others.
+      // Instead emulate focus + force the page's lifecycle to "active", which makes the
+      // page report visible and stops the background throttle for the duration of the scan.
+      // Verified: flips document.visibilityState from "hidden" to "visible".
+      try {
+        await client.Emulation.setFocusEmulationEnabled({ enabled: true });
+      } catch (e) {
+        process.stderr.write(`[connection] WARNING: setFocusEmulationEnabled failed: ${e.message}\n`);
+      }
+      try {
+        await client.Page.setWebLifecycleState({ state: 'active' });
+      } catch (e) {
+        process.stderr.write(`[connection] WARNING: setWebLifecycleState failed: ${e.message}\n`);
+      }
+
       return client;
     } catch (err) {
       lastError = err;
