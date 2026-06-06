@@ -397,6 +397,7 @@ const sidResults = sidBrief ? sidBrief.symbols_scanned.filter(s => !EXCLUDED_TIC
   const adxVal        = parseNum(getVal(sidCSt?.values, 'ADX'));
   const atrPctSid     = parseNum(getVal(sidCSt?.values, 'ATR%'));
   const gatrRatio     = parseNum(getVal(sidCSt?.values, 'Gap/ATR Ratio'));
+  const wmacdAlign    = parseNum(getVal(sidCSt?.values, 'Weekly MACD Align', 'Weekly MACD Aligned', 'WMACD Align'));
 
   // Fallback to standalone indicators if SID-C not found
   const aroon  = aroonOsc ?? parseNum(getVal(aroonSt?.values, 'Aroon Oscillator', 'Aroon', 'aroon'));
@@ -440,7 +441,7 @@ const sidResults = sidBrief ? sidBrief.symbols_scanned.filter(s => !EXCLUDED_TIC
     sym: s.symbol, price, isLongPass, isShortPass, isArmed, wrsiGate,
     sidArmedLong, sidArmedShort, sidLongExit, sidShortExit,
     wrsi, sma200, aboveSMA200, sma200Pct,
-    aroon, adx, atrPct, gatrRatio, rvol, vd, vdPos,
+    aroon, adx, atrPct, gatrRatio, rvol, vd, vdPos, wmacdAlign,
     inSIDScreener, inSIDBrief, inBTW,
     gpFlag, gpTop, gpBot,
     high: s.quote?.high, low: s.quote?.low,
@@ -1503,7 +1504,9 @@ if (!VERBOSE) {
                    : r.aboveSMA200 === false ? ('Blw ' + (r.sma200Pct != null ? r.sma200Pct.toFixed(1) + '%' : '')).trim()
                    : D;
       const aroon  = r.aroon  != null ? r.aroon.toFixed(0) : D;
-      const adx    = r.adx    != null ? r.adx.toFixed(1) : D;
+      const adx    = r.adx == null ? D
+                   : (r.adx >= 20 && r.adx <= 25) ? r.adx.toFixed(1) + ' NML'
+                   : r.adx.toFixed(1);
       const atr    = r.atrPct != null ? r.atrPct.toFixed(1) + '%' : D;
       const gatr   = r.gatrRatio == null ? D
                    : r.gatrRatio >= 2.0 ? r.gatrRatio.toFixed(2) + ' EXT'
@@ -1534,10 +1537,26 @@ if (!VERBOSE) {
       console.log(`> \ud83d\udea9 EXTENDED entries \u2014 Gap/ATR >= 2.0; entry sits far from the recent ${swingWord}, historically LOWER expectancy (verify before acting): ${ext.map(r => `${r.sym} (${r.gatrRatio.toFixed(2)})`).join(', ')}`);
     }
 
+    function adxCaution(rows) {
+      const nml = rows.filter(r => r.adx != null && r.adx >= 20 && r.adx <= 25);
+      if (!nml.length) return;
+      console.log('');
+      console.log(`> ⚠️ ADX no-man's-land (20–25) — neither coiling (<20) nor trending (≥25); directional read unreliable: ${nml.map(r => `${r.sym} (${r.adx.toFixed(1)})`).join(', ')}`);
+    }
+
+    function wmacdCaution(rows) {
+      const mis = rows.filter(r => r.wmacdAlign === 0);
+      if (!mis.length) return;
+      console.log('');
+      console.log(`> ⚠️ Weekly MACD not aligned — higher-timeframe momentum disagrees with trade direction (independent 300-trade book: weekly-MACD-aligned entries materially outperformed; advisory): ${mis.map(r => r.sym).join(', ')}`);
+    }
+
     if (sidLongs.length > 0) {
       console.log(`*Long candidates (${sidLongs.length}):*\n`);
       printSIDTable(sidLongs);
       extendedCaution(sidLongs, 'swing low');
+      adxCaution(sidLongs);
+      wmacdCaution(sidLongs);
       console.log('');
     }
 
@@ -1545,6 +1564,8 @@ if (!VERBOSE) {
       console.log(`*Short candidates (${sidShorts.length}):*\n`);
       printSIDTable(sidShorts);
       extendedCaution(sidShorts, 'swing high');
+      adxCaution(sidShorts);
+      wmacdCaution(sidShorts);
       console.log('');
     }
   }
@@ -1702,7 +1723,7 @@ if (!VERBOSE) {
   console.log('         Sell VD ⚠️ shown for context only — not entry signals\n');
   console.log('**SID:**  Long: RSI crossed below 30 (OS touch) · RSI rising · MACD ↑ 1 bar · ⚠️ Weekly RSI gate (manual check)  ');
   console.log('          Short: RSI crossed above 70 (OB touch) · RSI falling · MACD ↓ 1 bar · ⚠️ Weekly RSI gate (manual check)  ');
-  console.log('          SMA200 tier (HIGH CONVICTION ≥5% away) · ADX context (<20 choppy ✓ · 20-25 ⚠️ danger zone)  ');
+  console.log('          SMA200 tier (HIGH CONVICTION ≥5% away) · ADX (<20 coiling ✓ · 20-25 NML ⚠️ · 25-40 trending) · Weekly MACD align ⚠️ if HTF momentum disagrees  ');
   console.log('          ATR% risk · Gap/ATR = entry extension (🚩 ≥2.0 EXTENDED = historically LOWER expectancy) · VD (ref)  ');
   console.log('          🟡 GP: NEAR / 🟢 GP: IN — zone proximity reference only\n');
   console.log('**PULLBACK v2.0:** Entry trigger: Stage 3 🟢 ENTRY · Stage 2 🟠 EMA21 · Stage 1 🟡 PB  ');
