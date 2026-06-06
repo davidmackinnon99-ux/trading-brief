@@ -69,6 +69,15 @@ async function evaluate(client, expr) {
   return r.result?.value;
 }
 
+// Evaluate an expression that resolves a Promise (e.g. fetch) and return its value.
+async function evaluateAsync(client, expr) {
+  const r = await client.Runtime.evaluate({ expression: expr, returnByValue: true, awaitPromise: true });
+  if (r.exceptionDetails) {
+    throw new Error(r.exceptionDetails.exception?.description || r.exceptionDetails.text);
+  }
+  return r.result?.value;
+}
+
 // ─── Ensure watchlist panel is open ───────────────────────────────────────────
 
 async function ensureWatchlistOpen(client) {
@@ -115,42 +124,52 @@ async function ensureWatchlistOpen(client) {
 // Format: ["###SECTION NAME", "EXCHANGE:TICKER", "EXCHANGE:TICKER", "###NEXT SECTION", ...]
 
 async function readAllSections(client) {
-  await ensureWatchlistOpen(client);
-
-  const raw = await evaluate(client, `
-    (function() {
-      // Find any rendered watchlist symbol element to get a fiber entry point
-      var els = document.querySelectorAll('[data-symbol-full]');
-      if (!els.length) return { error: 'No watchlist symbols visible — ensure the watchlist panel is open' };
-
-      var el = els[0];
-      var fiberKey = Object.keys(el).find(k => k.startsWith('__reactFiber'));
-      if (!fiberKey) return { error: 'React fiber not accessible on watchlist element' };
-
-      // Walk UP the fiber tree to find the component holding the full symbols array
-      var node = el[fiberKey];
-      for (var depth = 0; depth < 80; depth++) {
-        try {
-          var props = node.memoizedProps || {};
-          if (Array.isArray(props.symbols) && props.symbols.length > 10) {
-            var first = String(props.symbols[0] || '');
-            if (first.startsWith('###') || first.includes(':')) {
-              return { symbols: props.symbols, depth: depth };
-            }
-          }
-        } catch(e) {}
-        node = node.return;
-        if (!node) break;
+  // Read the watchlist via TradingView's REST API rather than scraping the DOM.
+  // The REST endpoint returns the full symbols array regardless of whether the
+  // watchlist panel is open, collapsed, or scrolled — immune to the previous
+  // "No watchlist symbols visible" failure when the panel wasn't rendered.
+  // Retries a few times so a transient failure (page mid-load, auth cookie not yet
+  // ready) doesn't abort the sync and fall back to a stale rules.json.
+  const READ_EXPR = `
+    (async function() {
+      try {
+        var lists = await fetch('/api/v1/symbols_list/custom/', { credentials: 'include' }).then(r => r.json());
+        if (!Array.isArray(lists) || lists.length === 0) return JSON.stringify({ error: 'No custom watchlists returned by REST API' });
+        var id = lists[0].id;
+        var data = await fetch('/api/v1/symbols_list/custom/' + id + '/', { credentials: 'include' }).then(r => r.json());
+        if (!data || !Array.isArray(data.symbols)) return JSON.stringify({ error: 'symbols_list response missing .symbols array' });
+        return JSON.stringify({ symbols: data.symbols, listId: id });
+      } catch (e) {
+        return JSON.stringify({ error: 'REST read failed: ' + e.message });
       }
-      return { error: 'symbols prop not found in React fiber tree (walked 80 levels)' };
     })()
-  `);
+  `;
 
-  if (!raw || raw.error) {
-    throw new Error(raw?.error || 'Unknown error reading watchlist from React fiber');
+  let raw = null;
+  let lastErr = '';
+  for (let attempt = 1; attempt <= 4; attempt++) {
+    try {
+      const rawJson = await evaluateAsync(client, READ_EXPR);
+      const parsed = JSON.parse(rawJson);
+      if (parsed && !parsed.error && Array.isArray(parsed.symbols) && parsed.symbols.length > 0) {
+        raw = parsed;
+        break;
+      }
+      lastErr = parsed?.error || 'empty symbols array';
+    } catch (e) {
+      lastErr = e.message;
+    }
+    if (attempt < 4) {
+      log(`watchlist REST read attempt ${attempt}/4 failed (${lastErr}) — retrying in ${attempt * 2}s`);
+      await new Promise(r => setTimeout(r, attempt * 2000));
+    }
   }
 
+  if (!raw) throw new Error(`Could not read watchlist via REST API after 4 attempts: ${lastErr}`);
+
   // Parse flat array into sections map: { 'SECTION NAME': ['TICKER', ...] }
+  // Section headers are "###<U+2064?>SECTION NAME" — strip ### and the hidden
+  // U+2064 (INVISIBLE PLUS) char TradingView inserts, then trim.
   const sections = {};
   let current = null;
 
@@ -158,7 +177,7 @@ async function readAllSections(client) {
     if (typeof entry !== 'string') continue;
 
     if (entry.startsWith('###')) {
-      current = entry.replace('###', '').trim();
+      current = entry.replace('###', '').replace(/⁤/g, '').trim();
       sections[current] = [];
     } else if (current) {
       sections[current].push(entry); // keep full "EXCHANGE:TICKER" for filtering
