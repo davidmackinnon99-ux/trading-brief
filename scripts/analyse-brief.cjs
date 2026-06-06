@@ -1086,15 +1086,31 @@ const _adxCoilSyms  = new Set(adxCoilingAll.map(r => r.sym));
 function alsoTag(sym, excludeStrategy) {
   const tags = [];
   if (excludeStrategy !== 'LORP'     && lorpSymSet.has(sym))   tags.push('LORP');
-  if (excludeStrategy !== 'SID_LONG' && _sidLongSyms.has(sym)) tags.push('SID📈');
-  if (excludeStrategy !== 'SID_SHORT'&& _sidShortSyms.has(sym))tags.push('SID📉');
-  if (excludeStrategy !== 'PB'       && _pbStage123.has(sym)) {
-    const pb = pullbackAll.find(r => r.sym === sym);
-    const emoji = pb?.stageInfo?.stage === 3 ? '🟢' : pb?.stageInfo?.stage === 2 ? '🟠' : '🟡';
-    tags.push(`PB${emoji}`);
-  }
-  if (excludeStrategy !== 'ADX'      && _adxCoilSyms.has(sym)) tags.push('ADX📦');
+  if (excludeStrategy !== 'SID_LONG' && _sidLongSyms.has(sym)) tags.push('SID↑');
+  if (excludeStrategy !== 'SID_SHORT'&& _sidShortSyms.has(sym))tags.push('SID↓');
+  if (excludeStrategy !== 'PB'       && _pbStage123.has(sym))  tags.push('PB');
+  if (excludeStrategy !== 'ADX'      && _adxCoilSyms.has(sym)) tags.push('BO');
   return tags.length ? tags.join(' ') : '—';
+}
+
+function normalizeSrc(r) {
+  if (r.inBTW) return 'BTW';
+  if (r.inSIDScreener || r.inSIDBrief) return 'SID';
+  const sec = (tickerSection[baseTicker(r.sym)] || '').toUpperCase();
+  if (sec.includes('LORP')) return 'LORP';
+  if (sec.includes('PULLBACK') || sec === 'PB') return 'PB';
+  if (sec.includes('BREAKOUT') || sec.includes('ADX') || sec === 'BO') return 'BO';
+  if (sec.includes('CAP')) return 'CAP';
+  if (sec.includes('SID')) return 'SID';
+  if (sec.includes('BTW')) return 'BTW';
+  return sec ? sec.split(' ')[0] : 'OTHER';
+}
+
+function gpCaution(rows) {
+  const near = (rows || []).filter(r => r.gpFlag === 1 || r.gpFlag === 2);
+  if (!near.length) return;
+  console.log('');
+  console.log(`> GP zone proximity (invalidation reference): ${near.map(r => `${r.sym} (${r.gpFlag === 2 ? 'IN' : 'NEAR'})`).join(', ')}`);
 }
 
 // ── Helpers for table formatting ─────────────────────────────────
@@ -1492,8 +1508,8 @@ if (!VERBOSE) {
     console.log('*SID entry signal fired — verify Weekly RSI gate + Gap/ATR Ratio manually before acting.*');
     console.log('*Gap/ATR = how many ATRs the entry sits from the recent swing (direction-aware: low for longs, high for shorts). On the 300-trade log, HIGHER = more extended entry = LOWER expectancy — ≥2.0 underperformed <2.0 (P=0.000, both directions). Treat 🚩 EXTENDED as caution, NOT ideal. ATR% alone has low predictive value.*\n');
 
-    const sidHeaders = ['Ticker','Dir','Price','Gap/ATR','ADX','W.RSI','Gate','SMA200','ATR%','RVOL','VD','GP','Src','Also'];
-    const sidRightAlign = new Set([2, 5, 8, 9]);  // Price, W.RSI, ATR%, RVOL (Gap/ATR & ADX left-aligned — carry EXT/NML tags)
+    const sidHeaders = ['Ticker','Dir','Price','Gap/ATR','ADX','W.RSI','SMA200','RVOL','Src'];
+    const sidRightAlign = new Set([2, 7]);  // Price, RVOL (others carry tags/marks -> left-aligned)
 
     function sidRowCells(r) {
       const D = '-';
@@ -1515,10 +1531,10 @@ if (!VERBOSE) {
       const vdDir     = r.vdPos === true ? 'Buy' : r.vdPos === false ? 'Sell' : null;
       const vdAligned = r.isLongPass ? (r.vdPos === true) : (r.vdPos === false);
       const vd     = vdDir == null ? D : (vdDir + ' ' + (vdAligned ? 'ok' : 'x'));
-      const gp     = gpLabel(r.gpFlag) || D;
-      const src    = r.inBTW ? 'BTW' : (r.inSIDScreener || r.inSIDBrief ? 'SID Scr' : (tickerSection[baseTicker(r.sym)] || 'Other'));
-      const also   = alsoTag(r.sym, r.isLongPass ? 'SID_LONG' : 'SID_SHORT') || D;
-      return [r.sym, dir, '$' + fmt(r.price), gatr, adx, wrsi, gate, sma200, atr, rvol, vd, gp, src, also];
+      const align  = r.wrsiGate === 1 ? '✓' : r.wrsiGate === 0 ? '✗' : '';
+      const wrsiCell = wrsi === D ? D : (align ? wrsi + ' ' + align : wrsi);
+      const src    = normalizeSrc(r);
+      return [r.sym, dir, '$' + fmt(r.price), gatr, adx, wrsiCell, sma200, rvol, src];
     }
 
     function printSIDTable(rows) {
@@ -1557,6 +1573,7 @@ if (!VERBOSE) {
       extendedCaution(sidLongs, 'swing low');
       adxCaution(sidLongs);
       wmacdCaution(sidLongs);
+      gpCaution(sidLongs);
       console.log('');
     }
 
@@ -1566,6 +1583,7 @@ if (!VERBOSE) {
       extendedCaution(sidShorts, 'swing high');
       adxCaution(sidShorts);
       wmacdCaution(sidShorts);
+      gpCaution(sidShorts);
       console.log('');
     }
   }
@@ -1724,6 +1742,7 @@ if (!VERBOSE) {
   console.log('**SID:**  Long: RSI crossed below 30 (OS touch) · RSI rising · MACD ↑ 1 bar · ⚠️ Weekly RSI gate (manual check)  ');
   console.log('          Short: RSI crossed above 70 (OB touch) · RSI falling · MACD ↓ 1 bar · ⚠️ Weekly RSI gate (manual check)  ');
   console.log('          SMA200 tier (HIGH CONVICTION ≥5% away) · ADX (<20 coiling ✓ · 20-25 NML ⚠️ · 25-40 trending) · Weekly MACD align ⚠️ if HTF momentum disagrees  ');
+  console.log('          W.RSI ✓/✗ = weekly RSI direction agrees/disagrees with trade · Gap/ATR EXT = ≥2 extended (caution) · Src: SID·LORP·BTW·PB·BO·CAP  ');
   console.log('          ATR% risk · Gap/ATR = entry extension (🚩 ≥2.0 EXTENDED = historically LOWER expectancy) · VD (ref)  ');
   console.log('          🟡 GP: NEAR / 🟢 GP: IN — zone proximity reference only\n');
   console.log('**PULLBACK v2.0:** Entry trigger: Stage 3 🟢 ENTRY · Stage 2 🟠 EMA21 · Stage 1 🟡 PB  ');
