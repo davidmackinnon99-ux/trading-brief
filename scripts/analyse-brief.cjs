@@ -1492,8 +1492,8 @@ if (!VERBOSE) {
     console.log('*SID entry signal fired — verify Weekly RSI gate + Gap/ATR Ratio manually before acting.*');
     console.log('*Gap/ATR = how many ATRs the entry sits from the recent swing (direction-aware: low for longs, high for shorts). On the 300-trade log, HIGHER = more extended entry = LOWER expectancy — ≥2.0 underperformed <2.0 (P=0.000, both directions). Treat 🚩 EXTENDED as caution, NOT ideal. ATR% alone has low predictive value.*\n');
 
-    const sidHeaders = ['Ticker','Price','Dir','W.RSI','Gate','SMA200','Aroon','ADX','ATR%','Gap/ATR','RVOL','VD','GP','Src','Also'];
-    const sidRightAlign = new Set([1, 3, 6, 7, 8, 10]);  // Price, W.RSI, Aroon, ADX, ATR%, RVOL
+    const sidHeaders = ['Ticker','Dir','Price','Gap/ATR','ADX','W.RSI','Gate','SMA200','ATR%','RVOL','VD','GP','Src','Also'];
+    const sidRightAlign = new Set([2, 5, 8, 9]);  // Price, W.RSI, ATR%, RVOL (Gap/ATR & ADX left-aligned — carry EXT/NML tags)
 
     function sidRowCells(r) {
       const D = '-';
@@ -1518,7 +1518,7 @@ if (!VERBOSE) {
       const gp     = gpLabel(r.gpFlag) || D;
       const src    = r.inBTW ? 'BTW' : (r.inSIDScreener || r.inSIDBrief ? 'SID Scr' : (tickerSection[baseTicker(r.sym)] || 'Other'));
       const also   = alsoTag(r.sym, r.isLongPass ? 'SID_LONG' : 'SID_SHORT') || D;
-      return [r.sym, '$' + fmt(r.price), dir, wrsi, gate, sma200, aroon, adx, atr, gatr, rvol, vd, gp, src, also];
+      return [r.sym, dir, '$' + fmt(r.price), gatr, adx, wrsi, gate, sma200, atr, rvol, vd, gp, src, also];
     }
 
     function printSIDTable(rows) {
