@@ -1362,6 +1362,9 @@ if (!VERBOSE) {
       }
     }
 
+    // Bare-symbol set of current LORP SCREENER membership (for evict-on-drop check)
+    const screenerBareSet = new Set([...lorpScreenerSet].map(t => bareSym(t)));
+
     // Step 2: Check active entries for exit / expiry
     for (const [sym, entry] of Object.entries(lorpWatchlist)) {
       if (entry.status !== 'active') continue;
@@ -1376,9 +1379,19 @@ if (!VERBOSE) {
           continue;
         }
       }
-      // Expire: 15 trading bars since first_seen with no Buy VD signal today
+      // Evict: name has dropped out of LORP SCREENER entirely — the watch can't track
+      // an untrackable name (no scan data), so drop it rather than show a dead "not in
+      // scan" row. Keyed off screener membership (not scan presence) so a transient scan
+      // timeout on a still-curated name does NOT wrongly evict it.
+      if (!screenerBareSet.has(sym)) {
+        entry.status = 'dropped';
+        process.stderr.write(`[watchlist] Dropped: ${sym} — no longer in LORP SCREENER on ${briefDateStr}\n`);
+        continue;
+      }
+      // Expire: 5 trading bars since first_seen with no Buy VD signal today
+      // (if it hasn't re-fired within a week it won't, or it'll resurface via another section)
       const bars = countTradingDays(entry.first_seen, briefDateStr);
-      if (bars > 15 && !todayBuyVDSyms.has(sym)) {
+      if (bars > 5 && !todayBuyVDSyms.has(sym)) {
         entry.status = 'expired';
         process.stderr.write(`[watchlist] Expired: ${sym} — ${bars} bars since ${entry.first_seen}\n`);
       }
