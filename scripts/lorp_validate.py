@@ -32,6 +32,9 @@ def fnum(row,i):
     except:return None
 def val(row,idx,name):return fnum(row,idx.get(name))
 def tk_from(fn):
+    # handles 'BATS_AAP, 1D_x.csv', 'BVL_DLY_IFS, 1D_x.csv', 'ACHV.csv'
+    stem=os.path.basename(fn).split(',')[0].split('_')[-1].upper()
+    if stem in TRADES:return stem
     base=os.path.basename(fn).upper()
     for t in TRADES:
         if base.split('.')[0]==t or f"_{t}_" in base or base.startswith(t+"_") or base.startswith(t+"."):return t
