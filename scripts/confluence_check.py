@@ -14,7 +14,6 @@ import sys, csv
 
 FACTORS_LORP = {
  "LC SIGNAL": ["Buy","Sell","StopBuy","StopSell","Distance from Kernel","Kernel Regression Estimate"],
- "EXTENSION": ["Upper Envelope: Far","Lower Envelope: Far","Mean reversion Up","Mean reversion Down"],
  "TREND":     ["Fast MA","Slow MA","MA #1","MA #2","ADX","DI+","DI-"],
  "MOMENTUM":  ["MACD","Signal Line","Cross","Aroon Oscillator","CCI Stochastic"],
  "ZONE/STOP": ["GP_Flag","GP_Top","GP_Bot","Long Stop","Short Stop","ATR Long Stop Loss"],
@@ -61,6 +60,21 @@ def aroon_bb(row,idx,hdr):
     i=cols[-1]  # last occurrence = BigBeluga when DM also present
     try: return float(row[i].strip())
     except: return None
+def mean_rev_down(row,idx,hdr):
+    """LC Mean Reversion DOWN flags. They export nameless as 'Chars'; the two Chars columns
+    immediately after 'Lower Envelope: Far' are Regular (BM) then Strong (BN). Returns
+    (regular_fired, strong_fired) booleans, or (None,None) if the anchor isn't found.
+    Anchored on a named column so it survives other indicators shifting absolute positions."""
+    anchor=None
+    for nm in ("Lower Envelope: Far","Lower Envelope: Average","Lower Envelope: Near"):
+        if nm in idx: anchor=idx[nm]; break
+    if anchor is None: return (None,None)
+    def flag(i):
+        if i>=len(hdr) or hdr[i]!="Chars": return None   # guard: must be a Chars column
+        if i>=len(row): return None
+        v=row[i].strip()
+        return v not in ("","0","0.0","NaN","nan")
+    return (flag(anchor+1), flag(anchor+2))
 def detect(idx):
     if any(m in idx for m in ["SID Armed Long","RSI (0-100)","Gap/ATR Ratio","Long Entry Signal"]): return "SID"
     if any(m in idx for m in ["Kernel Regression Estimate","StopBuy","GP_Flag"]): return "LORP"
@@ -75,25 +89,20 @@ def verdict_lorp(row,idx,hdr):
     else:
         h=macd-sig; conv=" - but CONVERGING (near cross)" if h>-0.05 else ""
         out.append(f"VERDICT: FLAG - MACD0 down (MACD {macd:.3f} < Signal {sig:.3f}, hist {h:.3f}){conv}")
-    # Extension / mean-reversion risk. LORP is long-only, so being stretched ABOVE the kernel
-    # (upper-envelope breach or a Mean-reversion-DOWN mark) is a caution AGAINST a fresh long.
-    # The envelope is the indicator's own "too far" band — more robust than the discrete reversion
-    # mark, which is in the LC kernel layer and REPAINTS on history. This is a live read, not a gate,
-    # and was NOT part of the 26-trade validation — it surfaces the risk for a discretionary call.
-    close = num(row,idx,"close")
-    dist  = num(row,idx,"Distance from Kernel")
-    upFar = num(row,idx,"Upper Envelope: Far")
-    loFar = num(row,idx,"Lower Envelope: Far")
-    revDn = val(row,idx,"Mean reversion Down")   # non-empty only on the bar it fires
-    revUp = val(row,idx,"Mean reversion Up")
+    # Mean Reversion DOWN — the critical pass signal for a long (LORP is long-only). Two LC
+    # plotchar flags exported nameless as 'Chars': Regular (BM) and Strong (BN), found by position
+    # right after the Lower Envelope column. Kernel layer: live read, repaints on history; not a gate
+    # and not in the 26-trade validation — surfaces the risk for a discretionary call. Extension /
+    # envelope position is incidental — the reversion flag itself is the signal.
+    reg, strong = mean_rev_down(row,idx,hdr)
+    dist = num(row,idx,"Distance from Kernel")
     distStr = f"; Dist from Kernel {dist:.2f}" if dist is not None else ""
-    if revDn is not None or (close is not None and upFar is not None and close > upFar):
-        why = "Mean-reversion-DOWN mark firing" if revDn is not None \
-              else f"close {close:.2f} above Upper Envelope Far {upFar:.2f}"
-        out.append(f"  ⚠️ EXTENDED — reversion-DOWN risk for a long: {why}{distStr}")
-        out.append("     (LC kernel layer: live read only, repaints on history; not in the 26-trade validation)")
-    elif revUp is not None or (close is not None and loFar is not None and close < loFar):
-        out.append(f"  ↓ stretched BELOW kernel — possible reversion-UP bounce setup{distStr}")
+    if strong:
+        out.append(f"  🛑 STRONG Mean Reversion DOWN firing — argues against a fresh long{distStr}")
+        out.append("     (LC kernel layer: live read, repaints on history; not in the 26-trade validation)")
+    elif reg:
+        out.append(f"  ⚠️ Mean Reversion DOWN (regular) firing — caution on a fresh long{distStr}")
+        out.append("     (LC kernel layer: live read, repaints on history; not in the 26-trade validation)")
     checks=[]
     adx=num(row,idx,"ADX"); dip=num(row,idx,"DI+"); din=num(row,idx,"DI-")
     if None not in (adx,dip,din): checks.append(("ADX>=25&DI+>DI-", adx>=25 and dip>din))
