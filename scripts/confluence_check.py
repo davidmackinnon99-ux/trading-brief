@@ -14,6 +14,7 @@ import sys, csv
 
 FACTORS_LORP = {
  "LC SIGNAL": ["Buy","Sell","StopBuy","StopSell","Distance from Kernel","Kernel Regression Estimate"],
+ "EXTENSION": ["Upper Envelope: Far","Lower Envelope: Far","Mean reversion Up","Mean reversion Down"],
  "TREND":     ["Fast MA","Slow MA","MA #1","MA #2","ADX","DI+","DI-"],
  "MOMENTUM":  ["MACD","Signal Line","Cross","Aroon Oscillator","CCI Stochastic"],
  "ZONE/STOP": ["GP_Flag","GP_Top","GP_Bot","Long Stop","Short Stop","ATR Long Stop Loss"],
@@ -74,6 +75,25 @@ def verdict_lorp(row,idx,hdr):
     else:
         h=macd-sig; conv=" - but CONVERGING (near cross)" if h>-0.05 else ""
         out.append(f"VERDICT: FLAG - MACD0 down (MACD {macd:.3f} < Signal {sig:.3f}, hist {h:.3f}){conv}")
+    # Extension / mean-reversion risk. LORP is long-only, so being stretched ABOVE the kernel
+    # (upper-envelope breach or a Mean-reversion-DOWN mark) is a caution AGAINST a fresh long.
+    # The envelope is the indicator's own "too far" band — more robust than the discrete reversion
+    # mark, which is in the LC kernel layer and REPAINTS on history. This is a live read, not a gate,
+    # and was NOT part of the 26-trade validation — it surfaces the risk for a discretionary call.
+    close = num(row,idx,"close")
+    dist  = num(row,idx,"Distance from Kernel")
+    upFar = num(row,idx,"Upper Envelope: Far")
+    loFar = num(row,idx,"Lower Envelope: Far")
+    revDn = val(row,idx,"Mean reversion Down")   # non-empty only on the bar it fires
+    revUp = val(row,idx,"Mean reversion Up")
+    distStr = f"; Dist from Kernel {dist:.2f}" if dist is not None else ""
+    if revDn is not None or (close is not None and upFar is not None and close > upFar):
+        why = "Mean-reversion-DOWN mark firing" if revDn is not None \
+              else f"close {close:.2f} above Upper Envelope Far {upFar:.2f}"
+        out.append(f"  ⚠️ EXTENDED — reversion-DOWN risk for a long: {why}{distStr}")
+        out.append("     (LC kernel layer: live read only, repaints on history; not in the 26-trade validation)")
+    elif revUp is not None or (close is not None and loFar is not None and close < loFar):
+        out.append(f"  ↓ stretched BELOW kernel — possible reversion-UP bounce setup{distStr}")
     checks=[]
     adx=num(row,idx,"ADX"); dip=num(row,idx,"DI+"); din=num(row,idx,"DI-")
     if None not in (adx,dip,din): checks.append(("ADX>=25&DI+>DI-", adx>=25 and dip>din))
