@@ -637,6 +637,11 @@ const results = brief.symbols_scanned.filter(s => !EXCLUDED_TICKERS.has(s.symbol
   const kernelVal      = parseNum(getVal(lcSt?.values, 'Kernel Regression Estimate', 'Kernel'));
   const distFromKernel = parseNum(getVal(lcSt?.values, 'Distance from Kernel'));
   const distAboveKernel = parseNum(getVal(lcSt?.values, 'Distance Above Kernel'));
+  // LC envelope (indicator's own "too far" band) — used to flag extended longs / reversion-down risk.
+  // Kernel-layer value: repaints on history, but a valid live read for the latest bar.
+  const upperEnvFar    = parseNum(getVal(lcSt?.values, 'Upper Envelope: Far'));
+  const lowerEnvFar    = parseNum(getVal(lcSt?.values, 'Lower Envelope: Far'));
+  const extendedAbove  = (price != null && upperEnvFar != null) ? price > upperEnvFar : null;
   // LC Premium signal keys — exact match only (key absent or 0 when no signal).
   // Buy/Sell/StopBuy/StopSell contain the signal price when active, empty otherwise.
   // Must use hasOwnProperty — fuzzy getVal('Buy') would match 'StopBuy' as a fallback.
@@ -761,6 +766,7 @@ const results = brief.symbols_scanned.filter(s => !EXCLUDED_TICKERS.has(s.symbol
     ma1, ma2,
     // LC Premium kernel values
     kernelVal, distFromKernel, distAboveKernel, entryType,
+    upperEnvFar, lowerEnvFar, extendedAbove,
     // LC Premium signal keys (null = key absent / no signal on this bar)
     lcBuy, lcSell, lcStopBuy, lcStopSell, lorpBuySignal, lorpSellSignal,
     // CE signals (Buy Label / Sell Label from LC Premium)
@@ -1195,6 +1201,7 @@ if (!VERBOSE) {
   } else {
     console.log(`**✅ LORP — ${totalFiltered} candidates** *(${filteredBuyVD} Buy VD · ${filteredSellVD} Sell VD)*`);
     console.log('*Pre-filtered by TV Screener + brief filters — check chart before acting*\n');
+    console.log('*MACD0 = validated entry gate (✓ above / ⚠️ below Signal). Cf = context-alignment tally (ADX/DI · Aroon · RVOL · ATR%), NOT validated — colour only. ⚠️EXT = price above LC Upper Envelope Far = stretched, mean-reversion-down risk for a long (live read, repaints on history).*\n');
   }
 
   function printLorpRow(r) {
@@ -1271,7 +1278,8 @@ if (!VERBOSE) {
       : r.bbPct >= 0.0 ? `${r.bbPct.toFixed(2)} ⚠️`
       : `${r.bbPct.toFixed(2)} ↓BB`
       : '—';
-    console.log(`| ${r.sym} | $${fmt(r.price)} | ${r.entryType ?? '—'} | ${macd0Str} | ${cfStr} | ${distStr} | ${atrStr} | ${rvolStr} | ${vdStr} | ${aroonStr} | ${adxStr} | ${diPStr} | ${diMStr} | ${bbStr} | ${wrbStr} | ${rangePct} | ${pbDepth} | ${ma1Str} | ${ma2Str} | ${chandStr} | ${sigStr} | ${alsoTag(r.sym, 'LORP')} |`);
+    const entryStr = (r.entryType ?? '—') + (r.extendedAbove === true ? ' ⚠️EXT' : '');
+    console.log(`| ${r.sym} | $${fmt(r.price)} | ${entryStr} | ${macd0Str} | ${cfStr} | ${distStr} | ${atrStr} | ${rvolStr} | ${vdStr} | ${aroonStr} | ${adxStr} | ${diPStr} | ${diMStr} | ${bbStr} | ${wrbStr} | ${rangePct} | ${pbDepth} | ${ma1Str} | ${ma2Str} | ${chandStr} | ${sigStr} | ${alsoTag(r.sym, 'LORP')} |`);
   }
 
   const lorpHeader  = '| Ticker | Price | Type | MACD0 | Cf | Dist | ATR% | RVOL | VD | Aroon | ADX | DI+ | DI- | %B | WRB | Range% | vs Open | EMA50 | SMA200 | Chand | Sig | Also |';
