@@ -60,9 +60,9 @@ if __name__=="__main__":
     def g(n,fn):
         print(f"  {n:26} win {sum(1 for r in w if fn(r))}/{len(w)}   loss {sum(1 for r in L if fn(r))}/{len(L)}")
     g("MACD < Signal",lambda r:r['macd'] is not None and r['sig'] is not None and r['macd']<r['sig'])
-    g("Aroon < 0 (REAL 29/25)",lambda r:r['aroon'] is not None and r['aroon']<0)
+    g("Aroon < 0 (whichever on chart)",lambda r:r['aroon'] is not None and r['aroon']<0)
     g("ATR% >= 5",lambda r:r['atrpct'] is not None and r['atrpct']>=5)
-    g("CCI_S >= 85 (overbought)",lambda r:r['ccis'] is not None and r['ccis']>=85)
+    g("CCI_S >= 80 (overbought)",lambda r:r['ccis'] is not None and r['ccis']>=80)
     g("ADX < 25",lambda r:r['adx'] is not None and r['adx']<25)
     print("\n=== MEANS: winners vs losers ===")
     for f,lbl in [("atrpct","ATR%"),("aroon","Aroon"),("ccis","CCI_S"),("adx","ADX"),("rvol","RVOL")]:
