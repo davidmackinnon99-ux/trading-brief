@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
-"""On-demand confluence readout from a TradingView chart-export CSV (LORP or SID).
+"""On-demand confluence VERDICT + readout from a TradingView chart-export CSV.
 
 Usage:  python3 scripts/confluence_check.py /path/to/EXPORT.csv [YYYY-MM-DD] [--sid|--lorp]
         no date  = last row in the file (latest exported bar)
         strategy = auto-detected from columns; override with --sid / --lorp
 
-Reads the REAL TV-computed values (LC kernel, GP zones, Volume Delta, Gap/ATR,
-normalised SID RSI/MACD) — nothing recomputed. Columns matched by NAME (first
-occurrence), so reordering/adding plots won't break it. Edit profiles below.
+LORP verdict: PASS/FLAG on the one VALIDATED gate (MACD0 = MACD vs Signal), plus a
+context-alignment tally (NOT validated as predictive - descriptive colour only).
+SID verdict: screener-level read, explicitly UNVALIDATED (no proven SID gate yet).
+Reads REAL TV values; nothing recomputed. Columns matched by name.
 """
 import sys, csv
 
@@ -21,8 +22,6 @@ FACTORS_LORP = {
  "BANDS":     ["Basis","Upper","Lower"],
 }
 SIGNALS_LORP = ["Buy","Sell","StopBuy","StopSell"]
-
-# SID column names taken from Trading Systems Pro v8.5.12 plot titles (+ shared indicators)
 FACTORS_SID = {
  "SID SIGNAL":  ["SID Armed Long","SID Armed Short","Long Entry Signal","Short Entry Signal",
                  "RSI Enters OS","RSI Enters OB","Long Exit Signal","Short Exit Signal"],
@@ -42,43 +41,76 @@ def fmt(v):
         if x==int(x): return str(int(x))
         return f"{x:.3f}".rstrip("0").rstrip(".")
     except: return v
-
 def load(path):
-    rows=list(csv.reader(open(path)))
-    idx={}
-    for i,h in enumerate(rows[0]): idx.setdefault(h,i)
-    return rows[1:],idx
-
+    rows=list(csv.reader(open(path))); hdr=rows[0]; idx={}
+    for i,h in enumerate(hdr): idx.setdefault(h,i)
+    return rows[1:],idx,hdr
 def val(row,idx,name):
     i=idx.get(name)
     if i is None or i>=len(row): return None
     v=row[i].strip()
     return v if v not in ("","NaN","nan") else None
-
+def num(row,idx,name):
+    v=val(row,idx,name)
+    try: return float(v)
+    except: return None
+def aroon_bb(row,idx,hdr):
+    cols=[i for i,h in enumerate(hdr) if h in ("Aroon Oscillator","Aroon Osc")]
+    if not cols: return None
+    i=cols[-1]  # last occurrence = BigBeluga when DM also present
+    try: return float(row[i].strip())
+    except: return None
 def detect(idx):
-    sid_markers =["SID Armed Long","RSI (0-100)","Gap/ATR Ratio","Long Entry Signal"]
-    lorp_markers=["Kernel Regression Estimate","StopBuy","GP_Flag"]
-    if any(m in idx for m in sid_markers):  return "SID"
-    if any(m in idx for m in lorp_markers): return "LORP"
+    if any(m in idx for m in ["SID Armed Long","RSI (0-100)","Gap/ATR Ratio","Long Entry Signal"]): return "SID"
+    if any(m in idx for m in ["Kernel Regression Estimate","StopBuy","GP_Flag"]): return "LORP"
     return "LORP"
 
-if __name__=="__main__":
-    args=[a for a in sys.argv[1:]]
-    force = "SID" if "--sid" in args else "LORP" if "--lorp" in args else None
-    args=[a for a in args if not a.startswith("--")]
-    if not args:
-        print("usage: confluence_check.py EXPORT.csv [YYYY-MM-DD] [--sid|--lorp]"); sys.exit(1)
-    data,idx=load(args[0])
-    date=args[1] if len(args)>1 else None
-    strat = force or detect(idx)
-    FACTORS = FACTORS_SID if strat=="SID" else FACTORS_LORP
-    SIGNALS = SIGNALS_SID if strat=="SID" else SIGNALS_LORP
-    if date:
-        row=next((r for r in data if r[idx.get('time',0)].startswith(date)),None)
-        if row is None: print(f"no row for {date}"); sys.exit(1)
+def verdict_lorp(row,idx,hdr):
+    macd=num(row,idx,"MACD"); sig=num(row,idx,"Signal Line"); out=[]
+    if macd is None or sig is None:
+        out.append("VERDICT: UNKNOWN - no MACD/Signal data")
+    elif macd>=sig:
+        out.append(f"VERDICT: PASS - MACD0 up (MACD {macd:.3f} >= Signal {sig:.3f}, hist +{macd-sig:.3f})")
     else:
-        row=data[-1]
+        h=macd-sig; conv=" - but CONVERGING (near cross)" if h>-0.05 else ""
+        out.append(f"VERDICT: FLAG - MACD0 down (MACD {macd:.3f} < Signal {sig:.3f}, hist {h:.3f}){conv}")
+    checks=[]
+    adx=num(row,idx,"ADX"); dip=num(row,idx,"DI+"); din=num(row,idx,"DI-")
+    if None not in (adx,dip,din): checks.append(("ADX>=25&DI+>DI-", adx>=25 and dip>din))
+    ar=aroon_bb(row,idx,hdr)
+    if ar is not None: checks.append(("Aroon>0", ar>0))
+    rv=num(row,idx,"RVOL ratio")
+    if rv is not None: checks.append(("RVOL>=1", rv>=1.0))
+    atr=num(row,idx,"ATR% raw (buffer ref)")
+    if atr is not None: checks.append(("ATR%<5", atr<5))
+    if checks:
+        score=sum(1 for _,ok in checks if ok)
+        detail="  ".join(("[+]" if ok else "[-]")+lbl for lbl,ok in checks)
+        out.append(f"  context {score}/{len(checks)} (NOT validated - colour only): {detail}")
+    return "\n".join(out)
+
+def verdict_sid(row,idx):
+    rsi=num(row,idx,"RSI (0-100)"); gap=num(row,idx,"Gap/ATR Ratio"); wk=val(row,idx,"Weekly MACD Align"); p=[]
+    if rsi is not None:
+        z="OS -> long setup" if rsi<=40 else "OB -> short setup" if rsi>=60 else "neutral (no setup)"
+        p.append(f"RSI {rsi:.0f} {z}")
+    if gap is not None: p.append(f"Gap/ATR {gap:.2f} ({'EXTENDED >=2 CAUTION' if abs(gap)>=2 else 'ok'})")
+    if wk is not None:  p.append(f"WklyMACDalign={fmt(wk)}")
+    return "VERDICT (SID - UNVALIDATED, no proven gate yet): " + (" | ".join(p) if p else "insufficient data")
+
+if __name__=="__main__":
+    args=sys.argv[1:]
+    force="SID" if "--sid" in args else "LORP" if "--lorp" in args else None
+    args=[a for a in args if not a.startswith("--")]
+    if not args: print("usage: confluence_check.py EXPORT.csv [YYYY-MM-DD] [--sid|--lorp]"); sys.exit(1)
+    data,idx,hdr=load(args[0]); date=args[1] if len(args)>1 else None
+    strat=force or detect(idx)
+    FACTORS=FACTORS_SID if strat=="SID" else FACTORS_LORP
+    SIGNALS=SIGNALS_SID if strat=="SID" else SIGNALS_LORP
+    row=(next((r for r in data if r[idx.get('time',0)].startswith(date)),None) if date else data[-1])
+    if row is None: print(f"no row for {date}"); sys.exit(1)
     print(f"\n[{strat}]  bar: {row[idx.get('time',0)][:10]}   close: {fmt(val(row,idx,'close'))}")
+    print(verdict_sid(row,idx) if strat=="SID" else verdict_lorp(row,idx,hdr))
     fired=[s for s in SIGNALS if val(row,idx,s) is not None]
     print(f"SIGNAL FIRED: {', '.join(fired) if fired else '(none on this bar)'}")
     for grp,cols in FACTORS.items():
