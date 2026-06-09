@@ -18,8 +18,8 @@
  * Available from data window (6 of 14 v3.5 factors):
  *   ✅ Price vs EMA50 (MA#1)
  *   ✅ Price vs SMA200 (MA#2) + EMA50 > SMA200
- *   ✅ MACD above zero
- *   ✅ Aroon > 0 (direction)
+ *   ✅ MACD0 (MACD vs Signal) — VALIDATED entry gate (flag only); 26-trade study: 0/17 winners MACD<Sig, 4/9 losers did
+ *   ✅ Aroon (BigBeluga) > 0 — context only; validated NOT a discriminator, kept for visual trend read
  *   ✅ Volume Delta direction
  *   ✅ RVOL value (⚠️ no 5-bar peak history — declining check needs CSV)
  *   ❌ EMA8/EMA20 stack — not in data window
@@ -1208,6 +1208,11 @@ if (!VERBOSE) {
     const atrStr   = r.atrPct != null ? r.atrPct.toFixed(1) + '%' : '—';
     const rvolStr  = r.rvol   != null ? r.rvol.toFixed(1) : '—';
     const aroonStr = r.aroon != null ? r.aroon.toFixed(0) : '—';
+    // MACD0 (MACD vs Signal histogram) — the validated LORP entry gate (flag, not filter).
+    // Shows ✓ above / ⚠️ below, with histogram value so a narrowing (converging) gap is visible.
+    const macd0Str = (r.macd != null && r.macdSig != null)
+      ? (r.macd >= r.macdSig ? `✓ ${(r.macd - r.macdSig).toFixed(2)}` : `⚠️ ${(r.macd - r.macdSig).toFixed(2)}`)
+      : '—';
     const wrbStr   = r.wrbInPrior === true ? 'WRB ✓' : r.wrbInPrior === false ? '✗' : '—';
     // Sig column — all active signals this bar
     const sigParts = [];
@@ -1256,11 +1261,11 @@ if (!VERBOSE) {
       : r.bbPct >= 0.0 ? `${r.bbPct.toFixed(2)} ⚠️`
       : `${r.bbPct.toFixed(2)} ↓BB`
       : '—';
-    console.log(`| ${r.sym} | $${fmt(r.price)} | ${r.entryType ?? '—'} | ${distStr} | ${atrStr} | ${rvolStr} | ${vdStr} | ${aroonStr} | ${adxStr} | ${diPStr} | ${diMStr} | ${bbStr} | ${wrbStr} | ${rangePct} | ${pbDepth} | ${ma1Str} | ${ma2Str} | ${chandStr} | ${sigStr} | ${alsoTag(r.sym, 'LORP')} |`);
+    console.log(`| ${r.sym} | $${fmt(r.price)} | ${r.entryType ?? '—'} | ${macd0Str} | ${distStr} | ${atrStr} | ${rvolStr} | ${vdStr} | ${aroonStr} | ${adxStr} | ${diPStr} | ${diMStr} | ${bbStr} | ${wrbStr} | ${rangePct} | ${pbDepth} | ${ma1Str} | ${ma2Str} | ${chandStr} | ${sigStr} | ${alsoTag(r.sym, 'LORP')} |`);
   }
 
-  const lorpHeader  = '| Ticker | Price | Type | Dist | ATR% | RVOL | VD | Aroon | ADX | DI+ | DI- | %B | WRB | Range% | vs Open | EMA50 | SMA200 | Chand | Sig | Also |';
-  const lorpDivider = '|--------|-------|------|------|------|------|----|-------|-----|-----|-----|----|----|--------|---------|-------|--------|-------|-----|----|';
+  const lorpHeader  = '| Ticker | Price | Type | MACD0 | Dist | ATR% | RVOL | VD | Aroon | ADX | DI+ | DI- | %B | WRB | Range% | vs Open | EMA50 | SMA200 | Chand | Sig | Also |';
+  const lorpDivider = '|--------|-------|------|-------|------|------|------|----|-------|-----|-----|-----|----|----|--------|---------|-------|--------|-------|-----|----|';
 
   const sortLorp = arr => [...arr].sort((a, b) => {
     const typeOrder = t => t?.startsWith('Pullback') ? 0 : t?.startsWith('Trend') ? 1 : 2;
