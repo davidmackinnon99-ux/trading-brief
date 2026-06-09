@@ -60,21 +60,23 @@ def aroon_bb(row,idx,hdr):
     i=cols[-1]  # last occurrence = BigBeluga when DM also present
     try: return float(row[i].strip())
     except: return None
-def mean_rev_down(row,idx,hdr):
-    """LC Mean Reversion DOWN flags. They export nameless as 'Chars'; the two Chars columns
-    immediately after 'Lower Envelope: Far' are Regular (BM) then Strong (BN). Returns
-    (regular_fired, strong_fired) booleans, or (None,None) if the anchor isn't found.
-    Anchored on a named column so it survives other indicators shifting absolute positions."""
+def mean_rev(row,idx,hdr):
+    """LC Mean Reversion plotchar flags — exported nameless as 'Chars'. The four Chars columns
+    immediately after 'Lower Envelope: Far' are, in order:
+        +1 Reversion DOWN (regular, above candle)   +2 STRONG Reversion DOWN (above candle)
+        +3 Reversion UP   (regular, below candle)   +4 STRONG Reversion UP   (below candle)
+    Anchored on a named column so it survives other indicators shifting absolute positions.
+    Returns dict of booleans (None where the anchor/column isn't found)."""
     anchor=None
     for nm in ("Lower Envelope: Far","Lower Envelope: Average","Lower Envelope: Near"):
         if nm in idx: anchor=idx[nm]; break
-    if anchor is None: return (None,None)
-    def flag(i):
+    def flag(off):
+        if anchor is None: return None
+        i=anchor+off
         if i>=len(hdr) or hdr[i]!="Chars": return None   # guard: must be a Chars column
         if i>=len(row): return None
-        v=row[i].strip()
-        return v not in ("","0","0.0","NaN","nan")
-    return (flag(anchor+1), flag(anchor+2))
+        return row[i].strip() not in ("","0","0.0","NaN","nan")
+    return {"down_reg":flag(1),"down_strong":flag(2),"up_reg":flag(3),"up_strong":flag(4)}
 def detect(idx):
     if any(m in idx for m in ["SID Armed Long","RSI (0-100)","Gap/ATR Ratio","Long Entry Signal"]): return "SID"
     if any(m in idx for m in ["Kernel Regression Estimate","StopBuy","GP_Flag"]): return "LORP"
@@ -89,20 +91,21 @@ def verdict_lorp(row,idx,hdr):
     else:
         h=macd-sig; conv=" - but CONVERGING (near cross)" if h>-0.05 else ""
         out.append(f"VERDICT: FLAG - MACD0 down (MACD {macd:.3f} < Signal {sig:.3f}, hist {h:.3f}){conv}")
-    # Mean Reversion DOWN — the critical pass signal for a long (LORP is long-only). Two LC
-    # plotchar flags exported nameless as 'Chars': Regular (BM) and Strong (BN), found by position
-    # right after the Lower Envelope column. Kernel layer: live read, repaints on history; not a gate
-    # and not in the 26-trade validation — surfaces the risk for a discretionary call. Extension /
-    # envelope position is incidental — the reversion flag itself is the signal.
-    reg, strong = mean_rev_down(row,idx,hdr)
+    # LC Mean Reversion plotchar flags (nameless 'Chars' after the Lower Envelope). LORP is
+    # long-only, so DOWN flags argue against a fresh long and UP flags support a bounce. Kernel
+    # layer: live read, repaints on history; not a gate and not in the 26-trade validation.
+    mr = mean_rev(row,idx,hdr)
     dist = num(row,idx,"Distance from Kernel")
     distStr = f"; Dist from Kernel {dist:.2f}" if dist is not None else ""
-    if strong:
-        out.append(f"  🛑 STRONG Mean Reversion DOWN firing — argues against a fresh long{distStr}")
-        out.append("     (LC kernel layer: live read, repaints on history; not in the 26-trade validation)")
-    elif reg:
-        out.append(f"  ⚠️ Mean Reversion DOWN (regular) firing — caution on a fresh long{distStr}")
-        out.append("     (LC kernel layer: live read, repaints on history; not in the 26-trade validation)")
+    caveat = "     (LC kernel layer: live read, repaints on history; not in the 26-trade validation)"
+    if mr.get("down_strong"):
+        out.append(f"  🛑 STRONG Mean Reversion DOWN firing — argues against a fresh long{distStr}"); out.append(caveat)
+    elif mr.get("down_reg"):
+        out.append(f"  ⚠️ Mean Reversion DOWN (regular) firing — caution on a fresh long{distStr}"); out.append(caveat)
+    elif mr.get("up_strong"):
+        out.append(f"  ✅ STRONG Mean Reversion UP firing — supportive of a long bounce{distStr}"); out.append(caveat)
+    elif mr.get("up_reg"):
+        out.append(f"  ↑ Mean Reversion UP (regular) firing — mild support for a long{distStr}"); out.append(caveat)
     checks=[]
     adx=num(row,idx,"ADX"); dip=num(row,idx,"DI+"); din=num(row,idx,"DI-")
     if None not in (adx,dip,din): checks.append(("ADX>=25&DI+>DI-", adx>=25 and dip>din))
