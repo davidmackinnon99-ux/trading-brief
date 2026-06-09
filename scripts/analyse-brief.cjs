@@ -637,8 +637,9 @@ const results = brief.symbols_scanned.filter(s => !EXCLUDED_TICKERS.has(s.symbol
   const kernelVal      = parseNum(getVal(lcSt?.values, 'Kernel Regression Estimate', 'Kernel'));
   const distFromKernel = parseNum(getVal(lcSt?.values, 'Distance from Kernel'));
   const distAboveKernel = parseNum(getVal(lcSt?.values, 'Distance Above Kernel'));
-  // LC envelope (indicator's own "too far" band) — used to flag extended longs / reversion-down risk.
-  // Kernel-layer value: repaints on history, but a valid live read for the latest bar.
+  // LC envelope (indicator's own "too far" band) — flags an EXTENDED long as a look-closer cue.
+  // NOT the Mean Reversion Down signal (those plotchar flags don't surface reliably in the data
+  // window — vet with confluence_check.py). Kernel-layer value: repaints on history, live read only.
   const upperEnvFar    = parseNum(getVal(lcSt?.values, 'Upper Envelope: Far'));
   const lowerEnvFar    = parseNum(getVal(lcSt?.values, 'Lower Envelope: Far'));
   const extendedAbove  = (price != null && upperEnvFar != null) ? price > upperEnvFar : null;
@@ -1201,7 +1202,7 @@ if (!VERBOSE) {
   } else {
     console.log(`**✅ LORP — ${totalFiltered} candidates** *(${filteredBuyVD} Buy VD · ${filteredSellVD} Sell VD)*`);
     console.log('*Pre-filtered by TV Screener + brief filters — check chart before acting*\n');
-    console.log('*MACD0 = validated entry gate (✓ above / ⚠️ below Signal). Cf = context-alignment tally (ADX/DI · Aroon · RVOL · ATR%), NOT validated — colour only. ⚠️EXT = price above LC Upper Envelope Far = stretched, mean-reversion-down risk for a long (live read, repaints on history).*\n');
+    console.log('*MACD0 = validated entry gate (✓ above / ⚠️ below Signal). Cf = context-alignment tally (ADX/DI · Aroon · RVOL · ATR%), NOT validated — colour only. ⚠️EXT = price above LC Upper Envelope Far (extended) — a LOOK-CLOSER cue only, NOT the reversion signal. The actual Regular/Strong Mean Reversion DOWN flags export nameless and the data window cannot surface them reliably — vet those per-ticker with confluence_check.py.*\n');
   }
 
   function printLorpRow(r) {
