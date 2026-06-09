@@ -84,25 +84,36 @@ def detect(idx):
 
 def verdict_lorp(row,idx,hdr):
     macd=num(row,idx,"MACD"); sig=num(row,idx,"Signal Line"); out=[]
-    if macd is None or sig is None:
-        out.append("VERDICT: UNKNOWN - no MACD/Signal data")
-    elif macd>=sig:
-        out.append(f"VERDICT: PASS - MACD0 up (MACD {macd:.3f} >= Signal {sig:.3f}, hist +{macd-sig:.3f})")
-    else:
-        h=macd-sig; conv=" - but CONVERGING (near cross)" if h>-0.05 else ""
-        out.append(f"VERDICT: FLAG - MACD0 down (MACD {macd:.3f} < Signal {sig:.3f}, hist {h:.3f}){conv}")
-    # LC Mean Reversion plotchar flags (nameless 'Chars' after the Lower Envelope). LORP is
-    # long-only, so DOWN flags argue against a fresh long and UP flags support a bounce. Kernel
-    # layer: live read, repaints on history; not a gate and not in the 26-trade validation.
     mr = mean_rev(row,idx,hdr)
     dist = num(row,idx,"Distance from Kernel")
-    distStr = f"; Dist from Kernel {dist:.2f}" if dist is not None else ""
-    caveat = "     (LC kernel layer: live read, repaints on history; not in the 26-trade validation)"
-    if mr.get("down_strong"):
-        out.append(f"  🛑 STRONG Mean Reversion DOWN firing — argues against a fresh long{distStr}"); out.append(caveat)
+    distStr = f"; Dist {dist:.2f} from kernel" if dist is not None else ""
+    caveat = "     (Mean Reversion = LC kernel layer: live read, repaints on history; not in the 26-trade validation)"
+    # MACD0 gate — the one validated factor
+    if macd is None or sig is None:
+        gate=None;  gate_txt="MACD0 unknown (no MACD/Signal data)"
+    elif macd>=sig:
+        gate=True;  gate_txt=f"MACD0 up (MACD {macd:.3f} >= Signal {sig:.3f}, hist +{macd-sig:.3f})"
+    else:
+        h=macd-sig; conv=" - converging (near cross)" if h>-0.05 else ""
+        gate=False; gate_txt=f"MACD0 down (MACD {macd:.3f} < Signal {sig:.3f}, hist {h:.3f}){conv}"
+    # Headline: a DOWN mean-reversion (LORP is long-only) overrides a passing gate so it can't be
+    # skimmed past — Strong → AVOID, regular → CAUTION. A failing gate stays FLAG on its own.
+    if gate is False:
+        out.append(f"VERDICT: FLAG — {gate_txt}")
+    elif mr.get("down_strong"):
+        out.append(f"VERDICT: 🛑 AVOID — STRONG Mean Reversion DOWN{distStr}")
+        out.append(f"        (gate would PASS: {gate_txt} — overridden by the down-reversion)")
+        out.append(caveat)
     elif mr.get("down_reg"):
-        out.append(f"  ⚠️ Mean Reversion DOWN (regular) firing — caution on a fresh long{distStr}"); out.append(caveat)
-    elif mr.get("up_strong"):
+        out.append(f"VERDICT: ⚠️ CAUTION — Mean Reversion DOWN (regular){distStr}")
+        out.append(f"        (gate {gate_txt})")
+        out.append(caveat)
+    elif gate is True:
+        out.append(f"VERDICT: PASS — {gate_txt}")
+    else:
+        out.append(f"VERDICT: UNKNOWN — {gate_txt}")
+    # UP mean-reversion — supportive context for a long; does not downgrade the headline
+    if mr.get("up_strong"):
         out.append(f"  ✅ STRONG Mean Reversion UP firing — supportive of a long bounce{distStr}"); out.append(caveat)
     elif mr.get("up_reg"):
         out.append(f"  ↑ Mean Reversion UP (regular) firing — mild support for a long{distStr}"); out.append(caveat)
