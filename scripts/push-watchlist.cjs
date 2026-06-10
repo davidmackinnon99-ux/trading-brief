@@ -127,15 +127,22 @@ async function main() {
   }
 
   // ── Resolve list ID via REST API ─────────────────────────────────
-  // Use /api/v1/symbols_list/custom/ to list all user watchlists and take the first one.
-  // Previous approach (walking React fiber from [data-symbol-full]) broke when all
-  // watchlist sections are collapsed — no items render in the DOM so the selector finds nothing.
+  // Target the main watchlist by NAME (default "Watchlist"). Using lists[0] is unsafe:
+  // when a second custom list exists (e.g. an imported "SBT_Merged_…" list) it can sort
+  // first and the push would land on the wrong list. Resolution order:
+  //   1. exact name match (TARGET_WATCHLIST_NAME)
+  //   2. the list with the most symbols (the main watchlist in practice)
+  //   3. lists[0] as a last resort
+  const TARGET_WATCHLIST_NAME = process.env.TARGET_WATCHLIST_NAME || 'Watchlist';
   const LIST_ID_EXPR = `
     fetch('/api/v1/symbols_list/custom/', { credentials: 'include' })
       .then(r => r.json())
       .then(lists => {
         if (!Array.isArray(lists) || lists.length === 0) return null;
-        return String(lists[0].id);
+        var byName = lists.find(l => (l.name || '').trim().toLowerCase() === ${JSON.stringify(TARGET_WATCHLIST_NAME.trim().toLowerCase())});
+        if (byName) return String(byName.id);
+        var biggest = lists.slice().sort((a, b) => (b.symbols ? b.symbols.length : 0) - (a.symbols ? a.symbols.length : 0))[0];
+        return String(biggest.id);
       })
   `;
 
@@ -227,8 +234,21 @@ async function main() {
       'ADX BREAKOUT SCREENER',
       'PULLBACK SCREENER',
     ];
+    // PROTECTED sections — never cleared or written. Belt-and-suspenders guard so a
+    // future edit can't accidentally wipe the user's hand-maintained sections.
+    const PROTECTED_SECTIONS = ['SBT SCANS', 'BTW', 'PRE MARKET CHECKLIST'];
+    const protectedNorm = new Set(PROTECTED_SECTIONS.map(s => normHeader(`###${s}`)));
+    const isProtected = (name) => protectedNorm.has(normHeader(`###${name}`));
+
+    const sectionsToClear = SCREENER_SECTIONS.filter(s => {
+      if (isProtected(s)) {
+        process.stderr.write(`[push-watchlist] REFUSING to clear protected section "${s}"\n`);
+        return false;
+      }
+      return true;
+    });
     let updatedSymbols = [...originalSymbols];
-    for (const sectionName of SCREENER_SECTIONS) {
+    for (const sectionName of sectionsToClear) {
       const before = updatedSymbols.length;
       updatedSymbols = replaceSectionInArray(updatedSymbols, sectionName, []);
       process.stderr.write(`[push-watchlist] Cleared "${sectionName}" (${before} → ${updatedSymbols.length} entries)\n`);
@@ -238,6 +258,10 @@ async function main() {
     const BRIEF_SECTIONS = ['Brief Output'];
 
     for (const sectionName of BRIEF_SECTIONS) {
+      if (isProtected(sectionName)) {
+        process.stderr.write(`[push-watchlist] REFUSING to write protected section "${sectionName}"\n`);
+        continue;
+      }
       const bareTickers = sections[sectionName];
       if (!Array.isArray(bareTickers)) {
         process.stderr.write(`[push-watchlist] SKIP "${sectionName}": not in sidecar\n`);

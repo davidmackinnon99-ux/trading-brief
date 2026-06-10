@@ -130,15 +130,21 @@ async function readAllSections(client) {
   // "No watchlist symbols visible" failure when the panel wasn't rendered.
   // Retries a few times so a transient failure (page mid-load, auth cookie not yet
   // ready) doesn't abort the sync and fall back to a stale rules.json.
+  // Target the main watchlist by NAME (default "Watchlist"), not lists[0], so a second
+  // custom list (e.g. an imported "SBT_Merged_…") can't hijack the read. Order:
+  // exact name match → list with most symbols → lists[0].
+  const targetName = (process.env.TARGET_WATCHLIST_NAME || 'Watchlist').trim().toLowerCase();
   const READ_EXPR = `
     (async function() {
       try {
         var lists = await fetch('/api/v1/symbols_list/custom/', { credentials: 'include' }).then(r => r.json());
         if (!Array.isArray(lists) || lists.length === 0) return JSON.stringify({ error: 'No custom watchlists returned by REST API' });
-        var id = lists[0].id;
+        var pick = lists.find(l => (l.name || '').trim().toLowerCase() === ${JSON.stringify(targetName)});
+        if (!pick) pick = lists.slice().sort((a, b) => (b.symbols ? b.symbols.length : 0) - (a.symbols ? a.symbols.length : 0))[0];
+        var id = pick.id;
         var data = await fetch('/api/v1/symbols_list/custom/' + id + '/', { credentials: 'include' }).then(r => r.json());
         if (!data || !Array.isArray(data.symbols)) return JSON.stringify({ error: 'symbols_list response missing .symbols array' });
-        return JSON.stringify({ symbols: data.symbols, listId: id });
+        return JSON.stringify({ symbols: data.symbols, listId: id, listName: pick.name });
       } catch (e) {
         return JSON.stringify({ error: 'REST read failed: ' + e.message });
       }
