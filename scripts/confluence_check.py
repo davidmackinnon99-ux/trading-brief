@@ -151,9 +151,10 @@ def verdict_sid(row,idx):
     # Gap/ATR is calculated MANUALLY for the trade sheet and is deliberately NOT auto-gated here.
     #   SL  = lowest low from the RSI crossover to entry, floored to the next lowest whole $
     #   Gap = (entry - SL)/entry ;  Ratio = Gap% / ATR%
-    # The Pine "Gap/ATR Ratio" column is only a swing-high/low approximation, so it is ignored.
+    # The Pine "Gap/ATR Ratio" column is only a swing-high/low approximation, shown as a starting point (~).
     # There is NO absolute reject/accept threshold — thumbs-up if the ratio is acceptable.
-    p.append("Gap/ATR (calc manually)")
+    gap=num(row,idx,"Gap/ATR Ratio")   # swing approximation — starting point only (~); real value calc'd manually
+    p.append(f"Gap/ATR ~{gap:.2f}" if gap is not None else "Gap/ATR (calc manually)")
     if wk is not None:  p.append(f"WklyMACDalign={fmt(wk)}")
     head="VERDICT (SID - UNVALIDATED, no proven gate yet): " + " | ".join(p)
     note=("  Gap/ATR (manual): (entry - SL)/entry / ATR%; SL = lowest low from RSI crossover to entry, "

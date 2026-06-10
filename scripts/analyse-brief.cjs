@@ -1562,9 +1562,9 @@ if (!VERBOSE) {
                    : (r.adx >= 20 && r.adx <= 25) ? r.adx.toFixed(1) + ' NML'
                    : r.adx.toFixed(1);
       const atr    = r.atrPct != null ? r.atrPct.toFixed(1) + '%' : D;
-      const gatr   = r.gatrRatio == null ? D
-                   : r.gatrRatio >= 2.0 ? r.gatrRatio.toFixed(2) + ' EXT'
-                   : r.gatrRatio.toFixed(2);
+      // Gap/ATR is the swing approximation — a starting-point reference only; the real value
+      // (entry-SL)/entry / ATR% is worked out manually. No absolute >=2 reject (matches confluence_check.py).
+      const gatr   = r.gatrRatio == null ? D : r.gatrRatio.toFixed(2);
       const rvol   = r.rvol   != null ? r.rvol.toFixed(1) : D;
       const vdDir     = r.vdPos === true ? 'Buy' : r.vdPos === false ? 'Sell' : null;
       const vdAligned = r.isLongPass ? (r.vdPos === true) : (r.vdPos === false);
@@ -1572,11 +1572,10 @@ if (!VERBOSE) {
       const align  = r.wrsiGate === 1 ? '✓' : r.wrsiGate === 0 ? '✗' : '';
       const wrsiCell = wrsi === D ? D : (align ? wrsi + ' ' + align : wrsi);
       const src    = normalizeSrc(r);
-      // Vdt = screener-confluence tally from the cross-validated SID factors:
-      // Gap/ATR<2 (P=0.000), weekly MACD aligned, weekly RSI gate ok. Validated on the
-      // 300-trade book; SID own-trade expectancy not yet established — screener read only.
+      // Vdt = screener-confluence tally: weekly MACD aligned + weekly RSI gate ok.
+      // Gap/ATR is NOT in the tally — it's a manual-calc factor with no absolute reject
+      // (consistent with confluence_check.py); its approx value shows in the Gap column only.
       const vChecks = [
-        r.gatrRatio  != null ? r.gatrRatio < 2.0  : null,
         r.wmacdAlign != null ? r.wmacdAlign === 1 : null,
         r.wrsiGate   != null ? r.wrsiGate === 1   : null,
       ].filter(c => c !== null);
@@ -1617,7 +1616,6 @@ if (!VERBOSE) {
     if (sidLongs.length > 0) {
       console.log(`*Long candidates (${sidLongs.length}):*\n`);
       printSIDTable(sidLongs);
-      extendedCaution(sidLongs, 'swing low');
       adxCaution(sidLongs);
       wmacdCaution(sidLongs);
       gpCaution(sidLongs);
@@ -1627,7 +1625,6 @@ if (!VERBOSE) {
     if (sidShorts.length > 0) {
       console.log(`*Short candidates (${sidShorts.length}):*\n`);
       printSIDTable(sidShorts);
-      extendedCaution(sidShorts, 'swing high');
       adxCaution(sidShorts);
       wmacdCaution(sidShorts);
       gpCaution(sidShorts);
