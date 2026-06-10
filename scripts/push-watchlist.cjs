@@ -269,7 +269,7 @@ async function main() {
           credentials: 'include',
           headers: { 'Content-Type': 'application/json' },
           body: ${JSON.stringify(bodyJson)}
-        }).then(r => r.status + ' ' + r.statusText)
+        }).then(r => r.text().then(t => r.status + ' ' + r.statusText + ' | body: ' + t.substring(0, 400)))
       `,
       awaitPromise: true,
       returnByValue: true,
