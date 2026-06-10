@@ -133,13 +133,25 @@ def verdict_lorp(row,idx,hdr):
     return "\n".join(out)
 
 def verdict_sid(row,idx):
-    rsi=num(row,idx,"RSI (0-100)"); gap=num(row,idx,"Gap/ATR Ratio"); wk=val(row,idx,"Weekly MACD Align"); p=[]
-    if rsi is not None:
-        z="OS -> long setup" if rsi<=40 else "OB -> short setup" if rsi>=60 else "neutral (no setup)"
-        p.append(f"RSI {rsi:.0f} {z}")
-    if gap is not None: p.append(f"Gap/ATR {gap:.2f} ({'EXTENDED >=2 CAUTION' if abs(gap)>=2 else 'ok'})")
+    # Setup is decided by the SID indicator's OWN fired signal, NOT an RSI-zone guess.
+    # A real Long/Short Entry firing inside the neutral RSI band must not read as "no setup".
+    long_entry  = (num(row,idx,"Long Entry Signal")  or 0) != 0
+    short_entry = (num(row,idx,"Short Entry Signal") or 0) != 0
+    armed_long  = (num(row,idx,"SID Armed Long")     or 0) != 0
+    armed_short = (num(row,idx,"SID Armed Short")    or 0) != 0
+    rsi=num(row,idx,"RSI (0-100)"); gap=num(row,idx,"Gap/ATR Ratio"); wk=val(row,idx,"Weekly MACD Align")
+    if   long_entry:  setup="LONG ENTRY fired"
+    elif short_entry: setup="SHORT ENTRY fired"
+    elif armed_long:  setup="armed long (no entry trigger this bar)"
+    elif armed_short: setup="armed short (no entry trigger this bar)"
+    else:             setup="no SID setup"
+    p=[setup]
+    if rsi is not None:   # RSI is context/colour only — never the setup gate
+        p.append(f"RSI {rsi:.0f} ({'OS' if rsi<=40 else 'OB' if rsi>=60 else 'mid'})")
+    if gap is not None:   # Gap/ATR = (entry - SL)/ATR, read verbatim from col; SL proxy = 10-bar swing (see Pine)
+        p.append(f"Gap/ATR {gap:.2f} ({'EXTENDED >=2 CAUTION' if abs(gap)>=2 else 'ok'})")
     if wk is not None:  p.append(f"WklyMACDalign={fmt(wk)}")
-    return "VERDICT (SID - UNVALIDATED, no proven gate yet): " + (" | ".join(p) if p else "insufficient data")
+    return "VERDICT (SID - UNVALIDATED, no proven gate yet): " + " | ".join(p)
 
 if __name__=="__main__":
     args=sys.argv[1:]
@@ -154,7 +166,7 @@ if __name__=="__main__":
     if row is None: print(f"no row for {date}"); sys.exit(1)
     print(f"\n[{strat}]  bar: {row[idx.get('time',0)][:10]}   close: {fmt(val(row,idx,'close'))}")
     print(verdict_sid(row,idx) if strat=="SID" else verdict_lorp(row,idx,hdr))
-    fired=[s for s in SIGNALS if val(row,idx,s) is not None]
+    fired=[s for s in SIGNALS if (num(row,idx,s) or 0) != 0]   # only signals actually firing (=1), not every 0/1 column present
     print(f"SIGNAL FIRED: {', '.join(fired) if fired else '(none on this bar)'}")
     for grp,cols in FACTORS.items():
         line=" | ".join(f"{c}={fmt(val(row,idx,c))}" for c in cols if c in idx and val(row,idx,c) is not None)
