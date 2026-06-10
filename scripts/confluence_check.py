@@ -26,7 +26,7 @@ FACTORS_SID = {
  "SID SIGNAL":  ["SID Armed Long","SID Armed Short","Long Entry Signal","Short Entry Signal",
                  "RSI Enters OS","RSI Enters OB","Long Exit Signal","Short Exit Signal"],
  "CORE (L1)":   ["RSI (0-100)","ADX","SMA200","Aroon Osc"],
- "CONFLUENCE":  ["Gap/ATR Ratio","MACD (0-100)","Signal (0-100)","CCI Stochastic"],
+ "CONFLUENCE":  ["MACD (0-100)","Signal (0-100)","CCI Stochastic"],
  "WEEKLY":      ["Weekly RSI","Weekly RSI Gate","Weekly MACD Align"],
  "VOLATILITY":  ["ATR%"],
  "VOLUME":      ["RVOL ratio","Z-score","Volume Delta (Close)"],
@@ -139,7 +139,7 @@ def verdict_sid(row,idx):
     short_entry = (num(row,idx,"Short Entry Signal") or 0) != 0
     armed_long  = (num(row,idx,"SID Armed Long")     or 0) != 0
     armed_short = (num(row,idx,"SID Armed Short")    or 0) != 0
-    rsi=num(row,idx,"RSI (0-100)"); gap=num(row,idx,"Gap/ATR Ratio"); wk=val(row,idx,"Weekly MACD Align")
+    rsi=num(row,idx,"RSI (0-100)"); wk=val(row,idx,"Weekly MACD Align")
     if   long_entry:  setup="LONG ENTRY fired"
     elif short_entry: setup="SHORT ENTRY fired"
     elif armed_long:  setup="armed long (no entry trigger this bar)"
@@ -148,10 +148,17 @@ def verdict_sid(row,idx):
     p=[setup]
     if rsi is not None:   # RSI is context/colour only — never the setup gate
         p.append(f"RSI {rsi:.0f} ({'OS' if rsi<=40 else 'OB' if rsi>=60 else 'mid'})")
-    if gap is not None:   # Gap/ATR = (entry - SL)/ATR, read verbatim from col; SL proxy = 10-bar swing (see Pine)
-        p.append(f"Gap/ATR {gap:.2f} ({'EXTENDED >=2 CAUTION' if abs(gap)>=2 else 'ok'})")
+    # Gap/ATR is calculated MANUALLY for the trade sheet and is deliberately NOT auto-gated here.
+    #   SL  = lowest low from the RSI crossover to entry, floored to the next lowest whole $
+    #   Gap = (entry - SL)/entry ;  Ratio = Gap% / ATR%
+    # The Pine "Gap/ATR Ratio" column is only a swing-high/low approximation, so it is ignored.
+    # There is NO absolute reject/accept threshold — thumbs-up if the ratio is acceptable.
+    p.append("Gap/ATR (calc manually)")
     if wk is not None:  p.append(f"WklyMACDalign={fmt(wk)}")
-    return "VERDICT (SID - UNVALIDATED, no proven gate yet): " + " | ".join(p)
+    head="VERDICT (SID - UNVALIDATED, no proven gate yet): " + " | ".join(p)
+    note=("  Gap/ATR (manual): (entry - SL)/entry / ATR%; SL = lowest low from RSI crossover to entry, "
+          "floored to whole $. No absolute reject - thumbs-up if the ratio is acceptable.")
+    return head + "\n" + note
 
 if __name__=="__main__":
     args=sys.argv[1:]
