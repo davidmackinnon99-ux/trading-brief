@@ -1543,8 +1543,8 @@ if (!VERBOSE) {
   } else {
     console.log(`**⚡ SID — ${sidPass.length} signals** *(${sidLongs.length} Long · ${sidShorts.length} Short)*`);
     console.log('*SID entry signal fired — verify Weekly RSI gate + Gap/ATR Ratio manually before acting.*');
-    console.log('*Gap/ATR = how many ATRs the entry sits from the recent swing (direction-aware: low for longs, high for shorts). On the 300-trade log, HIGHER = more extended entry = LOWER expectancy — ≥2.0 underperformed <2.0 (P=0.000, both directions). Treat 🚩 EXTENDED as caution, NOT ideal. ATR% alone has low predictive value.*\n');
-    console.log('*Vdt = screener-confluence tally (Gap/ATR<2 · Weekly MACD aligned · Weekly RSI gate ok). These factors are cross-validated on the independent 300-trade book; SID system expectancy on own trades is not yet established (small sample) — read Vdt as screener confluence, NOT a validated go/no-go.*\n');
+    console.log('*Gap/ATR = how many ATRs the entry sits from the recent swing (direction-aware: low for longs, high for shorts). On the 300-trade log, HIGHER = more extended entry = LOWER expectancy — ≥2.0 underperformed <2.0 (P=0.000, both directions). Shown as an approximate starting point (~); calculate the real value manually before acting — no auto-flag, no hard reject. ATR% alone has low predictive value.*\n');
+    console.log('*Vdt = screener-confluence tally (Weekly MACD aligned · Weekly RSI gate ok). These factors are cross-validated on the independent 300-trade book; SID system expectancy on own trades is not yet established (small sample) — read Vdt as screener confluence, NOT a validated go/no-go. Gap/ATR is a manual-calc starting point, not part of the tally.*\n');
 
     const sidHeaders = ['Ticker','Dir','Price','Gap/ATR','ADX','W.RSI','SMA200','RVOL','Src','Vdt'];
     const sidRightAlign = new Set([2, 7]);  // Price, RVOL (others carry tags/marks -> left-aligned)
