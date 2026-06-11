@@ -1202,10 +1202,10 @@ if (!VERBOSE) {
   } else {
     console.log(`**✅ LORP — ${totalFiltered} candidates** *(${filteredBuyVD} Buy VD · ${filteredSellVD} Sell VD)*`);
     console.log('*Pre-filtered by TV Screener + brief filters — check chart before acting*\n');
-    console.log('*MACD0 = validated entry gate (✓ above / ⚠️ below Signal). Cf = context-alignment tally (ADX/DI · Aroon · RVOL · ATR%), NOT validated — colour only. ⚠️EXT = price above LC Upper Envelope Far (extended) — a LOOK-CLOSER cue only, NOT the reversion signal. The actual Regular/Strong Mean Reversion DOWN flags export nameless and the data window cannot surface them reliably — vet those per-ticker with confluence_check.py.*\n');
+    console.log('*MACD0 = validated entry gate (✓ above / ⚠️ below Signal). ⚠️EXT = price above LC Upper Envelope Far (extended) — a LOOK-CLOSER cue only, NOT the reversion signal. Context columns (Cf, ADX, RVOL, Aroon, %B, ATR%, MAs, Chandelier) now live on the chart / confluence_check.py to keep the table readable. The actual Regular/Strong Mean Reversion DOWN flags export nameless and the data window cannot surface them reliably — vet those per-ticker with confluence_check.py.*\n');
   }
 
-  function printLorpRow(r) {
+  function lorpRowCells(r) {
     // Pullback entries: negative VD is expected (pullback IS the selling pressure) — show as note not warning
     const isPullback = r.entryType?.startsWith('Pullback');
     const vdStr = r.vdPos === true  ? 'Buy ✓'
@@ -1280,11 +1280,22 @@ if (!VERBOSE) {
       : `${r.bbPct.toFixed(2)} ↓BB`
       : '—';
     const entryStr = (r.entryType ?? '—') + (r.extendedAbove === true ? ' ⚠️EXT' : '');
-    console.log(`| ${r.sym} | $${fmt(r.price)} | ${entryStr} | ${macd0Str} | ${cfStr} | ${distStr} | ${atrStr} | ${rvolStr} | ${vdStr} | ${aroonStr} | ${adxStr} | ${diPStr} | ${diMStr} | ${bbStr} | ${wrbStr} | ${rangePct} | ${pbDepth} | ${ma1Str} | ${ma2Str} | ${chandStr} | ${sigStr} | ${alsoTag(r.sym, 'LORP')} |`);
+    return [r.sym, `$${fmt(r.price)}`, entryStr, macd0Str, distStr, vdStr, sigStr, alsoTag(r.sym, 'LORP')];
   }
 
-  const lorpHeader  = '| Ticker | Price | Type | MACD0 | Cf | Dist | ATR% | RVOL | VD | Aroon | ADX | DI+ | DI- | %B | WRB | Range% | vs Open | EMA50 | SMA200 | Chand | Sig | Also |';
-  const lorpDivider = '|--------|-------|------|-------|----|------|------|------|----|-------|-----|-----|-----|----|----|--------|---------|-------|--------|-------|-----|----|';
+  const lorpHeaders = ['Ticker', 'Price', 'Type', 'MACD0', 'Dist', 'VD', 'Sig', 'Also'];
+  const lorpRightAlign = new Set([1, 4]);  // Price, Dist right-aligned; tag columns left-aligned
+  // Fixed-width monospace grid (same renderer as the SID table) so columns line up under the
+  // headers in any viewer, not only a markdown renderer. Context columns (Cf/ADX/RVOL/Aroon/
+  // %B/ATR%/MAs/Chandelier) moved off the table — read them on the chart or via confluence_check.py.
+  function printLorpTable(rows) {
+    const cells = rows.map(lorpRowCells);
+    const widths = lorpHeaders.map((h, i) => Math.max(h.length, ...cells.map(c => String(c[i]).length)));
+    const pad = (x, i) => { const sx = String(x); const g = Math.max(0, widths[i] - sx.length); return lorpRightAlign.has(i) ? ' '.repeat(g) + sx : sx + ' '.repeat(g); };
+    console.log('| ' + lorpHeaders.map((h, i) => pad(h, i)).join(' | ') + ' |');
+    console.log('|-' + widths.map(w => '-'.repeat(w)).join('-|-') + '-|');
+    cells.forEach(c => console.log('| ' + c.map((x, i) => pad(x, i)).join(' | ') + ' |'));
+  }
 
   const sortLorp = arr => [...arr].sort((a, b) => {
     const typeOrder = t => t?.startsWith('Pullback') ? 0 : t?.startsWith('Trend') ? 1 : 2;
@@ -1323,16 +1334,12 @@ if (!VERBOSE) {
 
     if (buyTickers.length > 0) {
       console.log(`*${label} — Buy VD (${buyTickers.length}):*\n`);
-      console.log(lorpHeader);
-      console.log(lorpDivider);
-      sortLorp(buyTickers).forEach(printLorpRow);
+      printLorpTable(sortLorp(buyTickers));
       console.log('');
     }
     if (sellTickers.length > 0) {
       console.log(`*${label} — Sell VD ⚠️ (${sellTickers.length}, context only):*\n`);
-      console.log(lorpHeader);
-      console.log(lorpDivider);
-      sortLorp(sellTickers).forEach(printLorpRow);
+      printLorpTable(sortLorp(sellTickers));
       console.log('');
     }
   }
