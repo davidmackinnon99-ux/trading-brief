@@ -1298,10 +1298,18 @@ if (!VERBOSE) {
   }
 
   const sortLorp = arr => [...arr].sort((a, b) => {
-    const typeOrder = t => t?.startsWith('Pullback') ? 0 : t?.startsWith('Trend') ? 1 : 2;
+    // Breakout & Trend first (the setups we act on now), Pullback last (reference).
+    const typeOrder = t => t?.startsWith('Breakout') ? 0 : t?.startsWith('Trend') ? 1 : 2;  // Pullback = 2
     const tDiff = typeOrder(a.entryType) - typeOrder(b.entryType);
     if (tDiff !== 0) return tDiff;
-    return (a.distFromKernel ?? 999) - (b.distFromKernel ?? 999);
+    // Within a type: a fired LC signal floats to the top.
+    const fired = r => (r.lorpBuySignal || r.lorpSellSignal) ? 0 : 1;
+    const fDiff = fired(a) - fired(b);
+    if (fDiff !== 0) return fDiff;
+    // Then MACD0 histogram descending — confirming / about-to-turn momentum first,
+    // deep-negative last (surfaces resuming pullbacks, sinks rolling-over ones).
+    const m = r => (r.macd != null && r.macdSig != null) ? (r.macd - r.macdSig) : -Infinity;
+    return m(b) - m(a);
   });
 
   function printLorpSection(tickers, label) {
