@@ -1559,14 +1559,14 @@ if (!VERBOSE) {
     console.log(`**⚡ SID — ${sidPass.length} signals** *(${sidLongs.length} Long · ${sidShorts.length} Short)*`);
     console.log('*SID entry signal fired — verify Weekly RSI gate + Gap/ATR Ratio manually before acting.*');
     console.log('*Gap/ATR = how many ATRs the entry sits from the recent swing (direction-aware: low for longs, high for shorts). On the 300-trade log, HIGHER = more extended entry = LOWER expectancy — ≥2.0 underperformed <2.0 (P=0.000, both directions). Shown as an approximate starting point (~); calculate the real value manually before acting — no auto-flag, no hard reject. ATR% alone has low predictive value.*\n');
-    console.log('*Vdt = screener-confluence tally (Weekly MACD aligned · Weekly RSI gate ok). These factors are cross-validated on the independent 300-trade book; SID system expectancy on own trades is not yet established (small sample) — read Vdt as screener confluence, NOT a validated go/no-go. Gap/ATR is a manual-calc starting point, not part of the tally.*\n');
+    console.log('*Vdt = screener-confluence tally (Weekly MACD aligned · Weekly RSI gate ok), with a (MACD✓ RSI✗) suffix naming which leg passed ✓ / failed ✗. These factors are cross-validated on the independent 300-trade book; SID system expectancy on own trades is not yet established (small sample) — read Vdt as screener confluence, NOT a validated go/no-go. Gap/ATR is a manual-calc starting point, not part of the tally.*\n');
 
-    const sidHeaders = ['Ticker','Dir','Price','Gap/ATR','ADX','W.RSI','SMA200','RVOL','Src','Vdt'];
+    const sidHeaders = ['Ticker','Sig','Price','Gap/ATR','ADX','W.RSI','SMA200','RVOL','Src','Vdt'];
     const sidRightAlign = new Set([2, 7]);  // Price, RVOL (others carry tags/marks -> left-aligned)
 
     function sidRowCells(r) {
       const D = '-';
-      const dir    = r.isLongPass ? 'Long' : 'Short';
+      const sig    = r.isLongPass ? '🟢 Long' : '🔴 Short';  // fired SID entry signal (🟢 long / 🔴 short)
       const wrsi   = r.wrsi    != null ? r.wrsi.toFixed(1) : D;
       const gate   = r.wrsiGate === 1 ? 'ok' : r.wrsiGate === 0 ? 'warn' : D;
       const sma200 = r.aboveSMA200 === true  ? ('Abv ' + (r.sma200Pct != null ? '+' + r.sma200Pct.toFixed(1) + '%' : '')).trim()
@@ -1587,15 +1587,18 @@ if (!VERBOSE) {
       const align  = r.wrsiGate === 1 ? '✓' : r.wrsiGate === 0 ? '✗' : '';
       const wrsiCell = wrsi === D ? D : (align ? wrsi + ' ' + align : wrsi);
       const src    = normalizeSrc(r);
-      // Vdt = screener-confluence tally: weekly MACD aligned + weekly RSI gate ok.
+      // Vdt = screener-confluence tally: weekly MACD aligned + weekly RSI gate ok, with
+      // the (MACD RSI) suffix naming which leg passed (✓) / failed (✗) / no data (·).
       // Gap/ATR is NOT in the tally — it's a manual-calc factor with no absolute reject
       // (consistent with confluence_check.py); its approx value shows in the Gap column only.
-      const vChecks = [
-        r.wmacdAlign != null ? r.wmacdAlign === 1 : null,
-        r.wrsiGate   != null ? r.wrsiGate === 1   : null,
-      ].filter(c => c !== null);
-      const vdt = vChecks.length ? `${vChecks.filter(c => c).length}/${vChecks.length}` : '-';
-      return [r.sym, dir, '$' + fmt(r.price), gatr, adx, wrsiCell, sma200, rvol, src, vdt];
+      const macdChk = r.wmacdAlign != null ? r.wmacdAlign === 1 : null;
+      const rsiChk  = r.wrsiGate   != null ? r.wrsiGate === 1   : null;
+      const vChecks = [macdChk, rsiChk].filter(c => c !== null);
+      const mark = c => c == null ? '·' : c ? '✓' : '✗';
+      const vdt = vChecks.length
+        ? `${vChecks.filter(c => c).length}/${vChecks.length} (MACD${mark(macdChk)} RSI${mark(rsiChk)})`
+        : '-';
+      return [r.sym, sig, '$' + fmt(r.price), gatr, adx, wrsiCell, sma200, rvol, src, vdt];
     }
 
     function printSIDTable(rows) {
