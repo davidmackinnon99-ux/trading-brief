@@ -254,6 +254,36 @@ async function main() {
       process.stderr.write(`[push-watchlist] Cleared "${sectionName}" (${before} → ${updatedSymbols.length} entries)\n`);
     }
 
+    // ── Commit the screener clears in their OWN POST first, so the screeners always
+    // empty even if the Brief Output write below fails. (Previously the clear and the
+    // Brief Output write shared one atomic POST: a single duplicate — 2026-06-12 UNH was
+    // in both BTW and Brief Output — rejected the whole thing and left the screeners full.)
+    // postList is reused for both commits.
+    const postList = async (arr, label) => {
+      process.stderr.write(`[push-watchlist] POSTing ${label}: ${arr.length} entries...\n`);
+      const res = await Runtime.evaluate({
+        expression: `
+          fetch('/api/v1/symbols_list/custom/${listId}/replace/?unsafe=true', {
+            method: 'POST',
+            credentials: 'include',
+            headers: { 'Content-Type': 'application/json' },
+            body: ${JSON.stringify(JSON.stringify(arr))}
+          }).then(r => r.text().then(t => r.status + ' ' + r.statusText + ' | body: ' + t.substring(0, 400)))
+        `,
+        awaitPromise: true,
+        returnByValue: true,
+      });
+      const status = res?.result?.value;
+      process.stderr.write(`[push-watchlist] ${label} POST response: ${status}\n`);
+      return status;
+    };
+
+    const clearStatus = await postList(updatedSymbols, 'screener clear');
+    if (!(clearStatus && clearStatus.startsWith('2'))) {
+      process.stderr.write(`[push-watchlist] ERROR: screener clear POST failed — aborting before Brief Output\n`);
+      process.exit(1);
+    }
+
     // ── Step 2: Write Brief Output section ───────────────────────
     const BRIEF_SECTIONS = ['Brief Output'];
 
@@ -271,41 +301,41 @@ async function main() {
       // Resolve exchange prefixes — match against full current list before mutating
       const resolvedTickers = bareTickers.map(t => resolveExchangePrefix(t, originalSymbols));
 
+      // Skip any ticker already living in another (non-cleared) section — TV rejects the
+      // same symbol twice in one list. It stays where it is (e.g. a BTW member that fired
+      // a signal); we just don't duplicate it into Brief Output. Computed on a COPY since
+      // replaceSectionInArray mutates; old Brief Output is excluded (it's being replaced).
+      const elsewhere = new Set(
+        replaceSectionInArray([...updatedSymbols], sectionName, [])
+          .filter(s => typeof s === 'string' && !s.startsWith('###'))
+          .map(s => s.toUpperCase())
+      );
+      const writeTickers = [];
+      const skipped = [];
+      for (const t of resolvedTickers) {
+        if (elsewhere.has(String(t).toUpperCase())) skipped.push(t);
+        else writeTickers.push(t);
+      }
+      if (skipped.length) {
+        process.stderr.write(`[push-watchlist] Brief Output: skipped ${skipped.length} already in another section (kept there, not duplicated): ${skipped.join(', ')}\n`);
+      }
+
       const before = updatedSymbols.length;
-      updatedSymbols = replaceSectionInArray(updatedSymbols, sectionName, resolvedTickers);
+      updatedSymbols = replaceSectionInArray(updatedSymbols, sectionName, writeTickers);
       const after = updatedSymbols.length;
 
       process.stderr.write(
-        `[push-watchlist] "${sectionName}": ${bareTickers.length} tickers → ` +
-        `resolved: ${resolvedTickers.join(', ') || '(empty)'} ` +
+        `[push-watchlist] "${sectionName}": ${writeTickers.length} written, ${skipped.length} skipped ` +
         `(list size: ${before} → ${after})\n`
       );
     }
 
-    // ── POST full updated array back ──────────────────────────────
-    process.stderr.write(`[push-watchlist] POSTing ${updatedSymbols.length}-entry list back to TV...\n`);
-    const bodyJson = JSON.stringify(updatedSymbols);
-
-    const replaceResult = await Runtime.evaluate({
-      expression: `
-        fetch('/api/v1/symbols_list/custom/${listId}/replace/?unsafe=true', {
-          method: 'POST',
-          credentials: 'include',
-          headers: { 'Content-Type': 'application/json' },
-          body: ${JSON.stringify(bodyJson)}
-        }).then(r => r.text().then(t => r.status + ' ' + r.statusText + ' | body: ' + t.substring(0, 400)))
-      `,
-      awaitPromise: true,
-      returnByValue: true,
-    });
-
-    const httpStatus = replaceResult?.result?.value;
-    process.stderr.write(`[push-watchlist] POST response: ${httpStatus}\n`);
-
-    if (httpStatus && httpStatus.startsWith('2')) {
-      process.stdout.write(`[push-watchlist] Watchlist updated successfully (${httpStatus})\n`);
+    // ── Commit Brief Output in its own POST (screeners already committed above) ──
+    const briefStatus = await postList(updatedSymbols, 'Brief Output');
+    if (briefStatus && briefStatus.startsWith('2')) {
+      process.stdout.write(`[push-watchlist] Watchlist updated successfully (${briefStatus})\n`);
     } else {
-      process.stderr.write(`[push-watchlist] WARNING: unexpected HTTP status: ${httpStatus}\n`);
+      process.stderr.write(`[push-watchlist] WARNING: Brief Output POST failed: ${briefStatus} (screener clear already committed)\n`);
       process.exit(1);
     }
 
