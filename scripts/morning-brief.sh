@@ -92,9 +92,14 @@ fi
 #   6Qpm8oT7 = PULLBACK    6hvBVx9e = ADX BREAKOUT
 
 # ── SCAN 1: LORP layout ───────────────────────────────────────────────────────
+# Strategy-agnostic: scan ALL watchlist sections so a fired LC entry is captured
+# regardless of which section the ticker sits in — mirrors the SID scan and matches
+# how the LORP alerts fire (off the whole watchlist, not just LORP SCREENER).
+# The brief anchors on the fired entry and tags section-of-origin in the Also column;
+# it does NOT gate on section membership.
 echo "[$(date)] Scanning LORP layout (OWHfyWBq)..." >> "$LOGFILE"
 TRADINGVIEW_LAYOUT_ID="OWHfyWBq" \
-  "$NODE" "$TV_DIR/src/cli/index.js" brief --sections "LORP SCREENER" > "$OUTFILE_LORP" 2>> "$LOGFILE"
+  "$NODE" "$TV_DIR/src/cli/index.js" brief --sections "LORP SCREENER,LORP BRIEF,SID SCREENER,SID BRIEF,BTW,PULLBACK SCREENER,PULLBACK BRIEF,ADX BREAKOUT SCREENER,ADX BREAKOUT BRIEF" > "$OUTFILE_LORP" 2>> "$LOGFILE"
 BRIEF_EXIT=$?
 if [ $BRIEF_EXIT -eq 0 ] && [ -s "$OUTFILE_LORP" ]; then
     echo "[$(date)] LORP scan complete" >> "$LOGFILE"

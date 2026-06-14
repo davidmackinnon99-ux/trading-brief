@@ -651,9 +651,12 @@ const results = brief.symbols_scanned.filter(s => !EXCLUDED_TICKERS.has(s.symbol
   const lcSell     = Object.prototype.hasOwnProperty.call(_lcVals, 'Sell')     ? parseNum(_lcVals['Sell'])     : null;
   const lcStopBuy  = Object.prototype.hasOwnProperty.call(_lcVals, 'StopBuy')  ? parseNum(_lcVals['StopBuy'])  : null;
   const lcStopSell = Object.prototype.hasOwnProperty.call(_lcVals, 'StopSell') ? parseNum(_lcVals['StopSell']) : null;
-  // Valid LORP entry signal: Buy > 0 OR StopBuy > 0
-  const lorpBuySignal  = (lcBuy     != null && lcBuy     > 0) || (lcStopBuy  != null && lcStopBuy  > 0);
-  const lorpSellSignal = (lcSell    != null && lcSell    > 0) || (lcStopSell != null && lcStopSell > 0);
+  // Valid LORP entry signal: Buy > 0 only. StopBuy/StopSell are EXIT signals — confirmed by
+  // the persistent-watch updater, which treats lcStopBuy>0 as 'Exited: StopBuy fired'. Counting
+  // StopBuy as a buy made a closed/extended position read as a fresh entry for days after it
+  // ran (e.g. BIRK: Buy=∅, StopBuy=49.28 still populated, Dist 2.23 = extended). Entry = Buy/Sell.
+  const lorpBuySignal  = (lcBuy  != null && lcBuy  > 0);
+  const lorpSellSignal = (lcSell != null && lcSell > 0);
 
   // ── CE (Confluence Engine) signals — read by header name, not column position ──
   // 'Buy Label'  → CE Buy signal  (non-zero = fired this bar)
@@ -1181,9 +1184,13 @@ if (!VERBOSE) {
 
   const totalLorp = lorpScreener.length + lorpBriefTickers.length;
 
-  // Apply brief-level filters to get true candidate counts
+  // Apply brief-level filters to get true candidate counts.
+  // PRECEDENCE: a fired LC entry (Buy) is the anchor — it always passes. RVOL/VD/MACD0 are
+  // context that annotate the row, never gates that remove it. Non-fired screener rows still
+  // get the RVOL sanity bounds (they're trend candidates, not confirmed entries).
   function applyBriefFilters(tickers) {
     return tickers.filter(r => {
+      if (r.lorpBuySignal || r.lorpSellSignal) return true;   // fired entry — never filtered
       if (r.entryType === 'No LC data') return false;
       if (r.rvol != null && r.rvol < 1.0) return false;
       if (r.rvol != null && r.rvol >= 4) return false;
@@ -1191,10 +1198,16 @@ if (!VERBOSE) {
       return true;
     });
   }
+  // Fired LC entries sitting in OTHER watchlist sections (caught now the scan reads all
+  // sections). They anchor regardless of section; the Also column tags where they came from.
+  const lorpFiredOther = lorpOther.filter(r => r.lorpBuySignal || r.lorpSellSignal);
   const lorpScreenerFiltered = applyBriefFilters(lorpScreener);
   const lorpBriefFiltered    = applyBriefFilters(lorpBriefTickers);
-  const filteredBuyVD  = [...lorpScreenerFiltered, ...lorpBriefFiltered].filter(r => r.entryType?.startsWith('Pullback') || (r.vd != null && r.vd > 0.5)).length;
-  const filteredSellVD = [...lorpScreenerFiltered, ...lorpBriefFiltered].filter(r => !r.entryType?.startsWith('Pullback') && (r.vd == null || r.vd <= 0.5)).length;
+  const lorpFiredOtherFiltered = applyBriefFilters(lorpFiredOther);
+  const allLorpFiltered = [...lorpScreenerFiltered, ...lorpBriefFiltered, ...lorpFiredOtherFiltered];
+  const isBuyVD  = r => r.lorpBuySignal || r.entryType?.startsWith('Pullback') || (r.vd != null && r.vd > 0.5);
+  const filteredBuyVD  = allLorpFiltered.filter(isBuyVD).length;
+  const filteredSellVD = allLorpFiltered.filter(r => !isBuyVD(r)).length;
   const totalFiltered  = filteredBuyVD + filteredSellVD;
 
   if (totalFiltered === 0) {
@@ -1327,6 +1340,9 @@ if (!VERBOSE) {
       const rvol  = r.rvol  != null ? r.rvol.toFixed(2)  : 'n/a';
       const aroon = r.aroon != null ? r.aroon.toFixed(1) : 'n/a';
       const vd    = r.vd    != null ? r.vd.toFixed(2)    : 'n/a';
+      // PRECEDENCE: a fired LC entry anchors the row — it is never filtered out. RVOL/VD only
+      // annotate. (Pre-fix, AVLV's fired Buy @ $90.79 was dropped here for RVOL 0.53 < 1.0.)
+      if (r.lorpBuySignal || r.lorpSellSignal) return true;
       if (r.entryType === 'No LC data')                                               { process.stderr.write(`[LORP rejected] ${r.sym}: No LC data  Buy=${buy} Sell=${sell} RVOL=${rvol} Aroon=${aroon} VD=${vd}\n`); return false; }
       if (r.rvol != null && r.rvol < 1.0)                                             { process.stderr.write(`[LORP rejected] ${r.sym}: RVOL too low  Buy=${buy} Sell=${sell} RVOL=${rvol} Aroon=${aroon} VD=${vd}\n`); return false; }
       if (r.rvol != null && r.rvol >= 4)                                              { process.stderr.write(`[LORP rejected] ${r.sym}: RVOL too high  Buy=${buy} Sell=${sell} RVOL=${rvol} Aroon=${aroon} VD=${vd}\n`); return false; }
@@ -1335,10 +1351,11 @@ if (!VERBOSE) {
       return true;
     });
 
-    // Pullback entries: negative VD is expected — always shown in Buy section with ↓ (PB) note
-    // Trend/Breakout entries: VD > 0.5 required for Buy section
-    const buyTickers  = filtered.filter(r => r.entryType?.startsWith('Pullback') || (r.vd != null && r.vd > 0.5));
-    const sellTickers = filtered.filter(r => !r.entryType?.startsWith('Pullback') && (r.vd == null || r.vd <= 0.5));
+    // A fired LC Buy always sits in the Buy section regardless of VD (the entry leads).
+    // Pullback entries: negative VD is expected — always shown in Buy section with ↓ (PB) note.
+    // Trend/Breakout non-fired rows: VD > 0.5 to sit in Buy, else dropped to Sell-context.
+    const buyTickers  = filtered.filter(r => r.lorpBuySignal || r.entryType?.startsWith('Pullback') || (r.vd != null && r.vd > 0.5));
+    const sellTickers = filtered.filter(r => !r.lorpBuySignal && !r.entryType?.startsWith('Pullback') && (r.vd == null || r.vd <= 0.5));
 
     if (buyTickers.length > 0) {
       console.log(`*${label} — Buy VD (${buyTickers.length}):*\n`);
@@ -1354,6 +1371,9 @@ if (!VERBOSE) {
 
   printLorpSection(lorpScreener, 'LORP Screener');
   printLorpSection(lorpBriefTickers, 'Watch List (carry forward)');
+  // Fired LC entries that live in another watchlist section (e.g. LFST in SID SCREENER).
+  // Surfaced now the scan reads all sections; the Also column shows section-of-origin.
+  printLorpSection(lorpFiredOther, 'Fired entry — other section');
 
   // Screener comparison
   if (lorpScreenerSet.size > 0) {
@@ -1371,8 +1391,9 @@ if (!VERBOSE) {
       ? new Date(brief.generated_at).toISOString()
       : new Date().toISOString()).split('T')[0];
 
-    // Tickers that passed Buy VD filter today (same logic as printLorpSection buyTickers)
-    const todayBuyVD = [...lorpScreener, ...lorpBriefTickers].filter(r => {
+    // Tickers that passed Buy VD filter today (same entry-anchored logic as printLorpSection)
+    const todayBuyVD = [...lorpScreener, ...lorpBriefTickers, ...lorpFiredOther].filter(r => {
+      if (r.lorpBuySignal) return true;   // fired entry — always tracked, regardless of RVOL/VD/section
       if (r.entryType === 'No LC data') return false;
       if (r.rvol != null && r.rvol < 1.0) return false;
       if (r.rvol != null && r.rvol >= 4)  return false;
