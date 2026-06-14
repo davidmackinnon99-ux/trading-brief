@@ -20,9 +20,10 @@ const path     = require('path');
 
 // ─── Configuration ────────────────────────────────────────────────────────────
 
-// Watchlist section names to include in the morning brief.
-// Uses case-insensitive partial matching — "BTW" matches "BTW LIST" etc.
-// Update these if you rename sections in TradingView.
+// Canonical section names — NOT an allowlist. Every section on the watchlist is ingested;
+// these are only used to normalise known section names so analyse-brief.cjs / the scans can
+// look them up by exact string. Any section NOT listed here is still ingested, under its own
+// name. Keep these matching the names analyse-brief.cjs expects (lorpScreenerSet, BTW, etc.).
 const SECTIONS = [
   'LORP SCREENER',
   'LORP BRIEF',           // Carry-forward from prior LORP scans
@@ -262,34 +263,33 @@ async function main() {
     process.exit(0);
   }
 
-  // Match and collect symbols from requested sections
+  // Ingest EVERY section on the watchlist — no allowlist. Sections whose names match a
+  // known canonical name (the ones analyse-brief.cjs / the scans look up by exact string)
+  // are normalised to that canonical name; every other section passes through under its own
+  // name. Add or rename a section in TradingView and it flows through with no code change.
   const included = {};
-  const unmatched = [];
   const allSymbols = new Set();
 
-  for (const wanted of SECTIONS) {
-    const matches = matchSection(wanted, sectionNames);
-    if (matches.length === 0) {
-      unmatched.push(wanted);
-      log(`  ⚠️  Section '${wanted}' — no match found`);
-      continue;
-    }
+  // Canonical name for a raw TV section: exact (case-insensitive) match wins, then partial
+  // (so "BTW LIST" still maps to "BTW"), else the section keeps its own raw name.
+  const canonicalName = (rawName) => {
+    const r = rawName.toLowerCase();
+    const exact = SECTIONS.find(c => c.toLowerCase() === r);
+    if (exact) return exact;
+    const partial = SECTIONS.find(c => { const cl = c.toLowerCase(); return cl.includes(r) || r.includes(cl); });
+    return partial || rawName;
+  };
 
-    included[wanted] = [];
-    for (const match of matches) {
-      const raw = allSections[match] || [];
-      const filtered = raw.filter(s => isValidTicker(s) && !isExcluded(s));
-      const tickers = filtered.map(extractTicker);
-      tickers.forEach(t => allSymbols.add(t));
-      included[wanted].push(...tickers);
-      log(`  '${wanted}' → matched '${match}': ${tickers.length} symbols (${raw.length - filtered.length} ASX excluded)`);
-    }
+  for (const rawName of sectionNames) {
+    const key = canonicalName(rawName);
+    const raw = allSections[rawName] || [];
+    const filtered = raw.filter(s => isValidTicker(s) && !isExcluded(s)).map(extractTicker);
+    if (!included[key]) included[key] = [];
+    for (const t of filtered) { included[key].push(t); allSymbols.add(t); }
+    log(`  '${rawName}' → '${key}': ${filtered.length} symbols (${raw.length - filtered.length} ASX/invalid excluded)`);
   }
-
-  if (unmatched.length > 0) {
-    log(`  Sections not found: ${unmatched.join(', ')}`);
-    log(`  Available: ${sectionNames.join(', ')}`);
-  }
+  // Dedup within each section (a ticker listed twice under one section name)
+  for (const k of Object.keys(included)) included[k] = Array.from(new Set(included[k]));
 
   const sorted = Array.from(allSymbols).sort();
   log(`Total after merge + dedup: ${sorted.length} symbols`);
