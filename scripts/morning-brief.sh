@@ -1,5 +1,5 @@
 #!/bin/bash
-# Morning Brief — runs via launchd at 6:30 AM Tue–Sat
+# Morning Brief — runs via launchd at 7:00 AM Tue–Sat
 # Launches TradingView if not running, then runs the full watchlist scan.
 
 # Load Gmail credentials if present
