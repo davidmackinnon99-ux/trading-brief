@@ -61,22 +61,26 @@ def aroon_bb(row,idx,hdr):
     try: return float(row[i].strip())
     except: return None
 def mean_rev(row,idx,hdr):
-    """LC Mean Reversion plotchar flags — exported nameless as 'Chars'. The four Chars columns
-    immediately after 'Lower Envelope: Far' are, in order:
-        +1 Reversion DOWN (regular, above candle)   +2 STRONG Reversion DOWN (above candle)
-        +3 Reversion UP   (regular, below candle)   +4 STRONG Reversion UP   (below candle)
-    Anchored on a named column so it survives other indicators shifting absolute positions.
-    Returns dict of booleans (None where the anchor/column isn't found)."""
-    anchor=None
-    for nm in ("Lower Envelope: Far","Lower Envelope: Average","Lower Envelope: Near"):
-        if nm in idx: anchor=idx[nm]; break
-    def flag(off):
-        if anchor is None: return None
-        i=anchor+off
-        if i>=len(hdr) or hdr[i]!="Chars": return None   # guard: must be a Chars column
+    """LC Mean Reversion plotchar flags — exported nameless as 'Chars'. LC Premium emits its four
+    mean-reversion plotchars, in plot order:
+        1 Reversion DOWN (regular)   2 STRONG Reversion DOWN
+        3 Reversion UP   (regular)   4 STRONG Reversion UP
+    Located as the first four 'Chars' columns AFTER 'Distance from Kernel' (LC Premium's last named
+    scalar before the plotchars). 'Distance from Kernel' is exported whether or not the LC envelope
+    is displayed, so this survives the envelope being toggled off — unlike the old 'Lower Envelope:
+    Far' anchor, which drops out of the export when the envelope is hidden and silently kills the
+    down-reversion override. Returns dict of booleans (None where the columns aren't found)."""
+    start=idx.get("Distance from Kernel")
+    if start is None:   # fallback for older exports without the kernel column
+        for nm in ("Lower Envelope: Far","Lower Envelope: Average","Lower Envelope: Near"):
+            if nm in idx: start=idx[nm]; break
+    chars=[i for i,h in enumerate(hdr) if h=="Chars" and (start is None or i>start)]
+    def flag(n):
+        if len(chars)<4: return None     # need all four plotchar columns present
+        i=chars[n]
         if i>=len(row): return None
         return row[i].strip() not in ("","0","0.0","NaN","nan")
-    return {"down_reg":flag(1),"down_strong":flag(2),"up_reg":flag(3),"up_strong":flag(4)}
+    return {"down_reg":flag(0),"down_strong":flag(1),"up_reg":flag(2),"up_strong":flag(3)}
 def detect(idx):
     if any(m in idx for m in ["SID Armed Long","RSI (0-100)","Gap/ATR Ratio","Long Entry Signal"]): return "SID"
     if any(m in idx for m in ["Kernel Regression Estimate","StopBuy","GP_Flag"]): return "LORP"
