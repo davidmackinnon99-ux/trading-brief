@@ -22,7 +22,7 @@ Each factor is marked as a **hard filter** (tickers excluded/moved if it fails) 
 | VD — Pullback | Negative VD is expected (pullback = selling pressure) → always shown in Buy section with `↓ (PB x)` note |
 
 ### Pre-filtered upstream by TV Screener (before scan)
-ATR <5%, MACD>0, EMA21>EMA34, Vol>500K, RelVol>1.0, Price>EMA34, Aroon Down<30%, RSI 45–75
+ATR <5%, MACD>0, EMA21>EMA34, Vol>500K, RelVol>1.0, Price>EMA34, Aroon Down>0%, RSI 45–75, Price>=$10, Mkt Cap 1B to 100B, ADX>=20
 
 ### Entry type (Distance from Kernel)
 - Pullback 🔄 — Dist < 0.5
