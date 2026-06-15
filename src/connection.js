@@ -6,6 +6,20 @@ const CDP_HOST = 'localhost';
 const CDP_PORT = 9222;
 const MAX_RETRIES = 5;
 const BASE_DELAY = 500;
+const CDP_CALL_TIMEOUT_MS = 20000;   // hard cap on any single CDP Runtime.evaluate
+const CDP_LIVENESS_TIMEOUT_MS = 5000; // hard cap on the getClient() liveness probe
+
+// Wrap a CDP promise so a wedged socket can never hang forever. A raw
+// Runtime.evaluate on a dead/half-open CDP socket returns a promise that NEVER
+// settles — neither resolves nor rejects — which silently stalls the whole scan
+// beneath the per-symbol timeout in morning.js. This forces a rejection instead.
+function withTimeout(promise, ms, label) {
+  let timer;
+  const t = new Promise((_, reject) => {
+    timer = setTimeout(() => reject(new Error(`${label} timeout after ${ms / 1000}s`)), ms);
+  });
+  return Promise.race([promise, t]).finally(() => clearTimeout(timer));
+}
 
 // Known direct API paths discovered via live probing (see PROBE_RESULTS.md)
 const KNOWN_PATHS = {
@@ -31,10 +45,14 @@ export { KNOWN_PATHS };
 export async function getClient() {
   if (client) {
     try {
-      // Quick liveness check
-      await client.Runtime.evaluate({ expression: '1', returnByValue: true });
+      // Quick liveness check — capped so a wedged socket can't hang here forever
+      await withTimeout(
+        client.Runtime.evaluate({ expression: '1', returnByValue: true }),
+        CDP_LIVENESS_TIMEOUT_MS, 'CDP liveness'
+      );
       return client;
     } catch {
+      try { await client.close(); } catch {}
       client = null;
       targetInfo = null;
     }
@@ -195,12 +213,29 @@ export async function getTargetInfo() {
 
 export async function evaluate(expression, opts = {}) {
   const c = await getClient();
-  const result = await c.Runtime.evaluate({
-    expression,
-    returnByValue: true,
-    awaitPromise: opts.awaitPromise ?? false,
-    ...opts,
-  });
+  let result;
+  try {
+    result = await withTimeout(
+      c.Runtime.evaluate({
+        expression,
+        returnByValue: true,
+        awaitPromise: opts.awaitPromise ?? false,
+        ...opts,
+      }),
+      opts.timeoutMs || CDP_CALL_TIMEOUT_MS, 'CDP evaluate'
+    );
+  } catch (err) {
+    // On a CDP timeout the socket is wedged and will never recover on its own —
+    // drop the client so the NEXT call reconnects (session recovery). This lets the
+    // per-symbol timeout + consecutive-timeout abort in morning.js actually engage
+    // instead of every symbol hanging forever on the same dead socket.
+    if (/timeout/i.test(err.message)) {
+      try { await client?.close(); } catch {}
+      client = null;
+      targetInfo = null;
+    }
+    throw err;
+  }
   if (result.exceptionDetails) {
     const msg = result.exceptionDetails.exception?.description
       || result.exceptionDetails.text

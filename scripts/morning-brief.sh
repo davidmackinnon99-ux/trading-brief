@@ -34,7 +34,18 @@ if [ -f "$LOCKFILE" ]; then
     fi
 fi
 echo $$ > "$LOCKFILE"
-trap 'rm -f "$LOCKFILE"' EXIT INT TERM
+
+# Global watchdog — hard-stop the whole brief if it ever runs absurdly long.
+# Defence-in-depth behind the per-call CDP timeouts in connection.js: guarantees a
+# wedged scan can never hold the lock for hours and silently skip the next run.
+MAX_TOTAL_SECS=4500   # 75 minutes
+( sleep $MAX_TOTAL_SECS
+  echo "[$(date)] GLOBAL WATCHDOG: brief exceeded ${MAX_TOTAL_SECS}s — killing pipeline" >> "$LOGFILE"
+  osascript -e 'display notification "Brief exceeded time budget — killed" with title "Morning Brief Failed" sound name "Basso"' 2>/dev/null || true
+  kill -KILL -$$ 2>/dev/null
+) &
+WATCHDOG_PID=$!
+trap 'rm -f "$LOCKFILE"; kill "$WATCHDOG_PID" 2>/dev/null' EXIT INT TERM
 
 echo "[$(date)] Starting morning brief" >> "$LOGFILE"
 
