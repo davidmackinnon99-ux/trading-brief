@@ -1578,11 +1578,10 @@ if (!VERBOSE) {
     console.log('**⚡ SID — 0 signals** *(no entry signals fired today)*\n');
   } else {
     console.log(`**⚡ SID — ${sidPass.length} signals** *(${sidLongs.length} Long · ${sidShorts.length} Short)*`);
-    console.log('*SID entry signal fired — assess Weekly RSI visually on the chart, and verify Gap/ATR Ratio manually, before acting.*');
+    console.log('*SID entry signal fired — verify Gap/ATR Ratio manually before acting.*');
     console.log('*Gap/ATR = how many ATRs the entry sits from the recent swing (direction-aware: low for longs, high for shorts). On the 300-trade log, HIGHER = more extended entry = LOWER expectancy — ≥2.0 underperformed <2.0 (P=0.000, both directions). Shown as an approximate starting point (~); calculate the real value manually before acting — no auto-flag, no hard reject. ATR% alone has low predictive value.*\n');
-    console.log('*Vdt = screener-confluence tally — Weekly MACD aligned only (✓/✗). Weekly RSI has been REMOVED from the brief (indicator unreliable) — assess weekly RSI VISUALLY on the chart. Weekly MACD is cross-validated on the independent 300-trade book; SID system expectancy on own trades is not yet established (small sample) — read Vdt as screener confluence, NOT a validated go/no-go. Gap/ATR is a manual-calc starting point, not part of the tally.*\n');
 
-    const sidHeaders = ['Ticker','Sig','Price','Gap/ATR','ADX','SMA200','RVOL','Src','Vdt'];
+    const sidHeaders = ['Ticker','Sig','Price','Gap/ATR','ADX','SMA200','RVOL','Src'];
     const sidRightAlign = new Set([2, 6]);  // Price, RVOL (others carry tags/marks -> left-aligned)
 
     function sidRowCells(r) {
@@ -1604,17 +1603,8 @@ if (!VERBOSE) {
       const vdAligned = r.isLongPass ? (r.vdPos === true) : (r.vdPos === false);
       const vd     = vdDir == null ? D : (vdDir + ' ' + (vdAligned ? 'ok' : 'x'));
       const src    = normalizeSrc(r);
-      // Vdt = screener-confluence tally: weekly MACD aligned only (✓/✗). Weekly RSI has been
-      // removed from the brief (indicator unreliable) — assess weekly RSI visually on the chart.
-      // Gap/ATR is NOT in the tally — it's a manual-calc factor with no absolute reject
-      // (consistent with confluence_check.py); its approx value shows in the Gap column only.
-      const macdChk = r.wmacdAlign != null ? r.wmacdAlign === 1 : null;
-      const vChecks = [macdChk].filter(c => c !== null);
-      const mark = c => c == null ? '·' : c ? '✓' : '✗';
-      const vdt = vChecks.length
-        ? `${vChecks.filter(c => c).length}/${vChecks.length} (MACD${mark(macdChk)})`
-        : '-';
-      return [r.sym, sig, '$' + fmt(r.price), gatr, adx, sma200, rvol, src, vdt];
+      // Weekly RSI + Weekly MACD removed from the brief entirely (weekly indicator deleted on TV).
+      return [r.sym, sig, '$' + fmt(r.price), gatr, adx, sma200, rvol, src];
     }
 
     function printSIDTable(rows) {
@@ -1640,18 +1630,10 @@ if (!VERBOSE) {
       console.log(`> ⚠️ ADX no-man's-land (20–25) — neither coiling (<20) nor trending (≥25); directional read unreliable: ${nml.map(r => `${r.sym} (${r.adx.toFixed(1)})`).join(', ')}`);
     }
 
-    function wmacdCaution(rows) {
-      const mis = rows.filter(r => r.wmacdAlign === 0);
-      if (!mis.length) return;
-      console.log('');
-      console.log(`> ⚠️ Weekly MACD not aligned — higher-timeframe momentum disagrees with trade direction (independent 300-trade book: weekly-MACD-aligned entries materially outperformed; advisory): ${mis.map(r => r.sym).join(', ')}`);
-    }
-
     if (sidLongs.length > 0) {
       console.log(`*Long candidates (${sidLongs.length}):*\n`);
       printSIDTable(sidLongs);
       adxCaution(sidLongs);
-      wmacdCaution(sidLongs);
       gpCaution(sidLongs);
       console.log('');
     }
@@ -1660,7 +1642,6 @@ if (!VERBOSE) {
       console.log(`*Short candidates (${sidShorts.length}):*\n`);
       printSIDTable(sidShorts);
       adxCaution(sidShorts);
-      wmacdCaution(sidShorts);
       gpCaution(sidShorts);
       console.log('');
     }
@@ -1817,10 +1798,10 @@ if (!VERBOSE) {
   console.log('**LORP:** Distance from Kernel (Pullback 🔄 <0.5 · Trend ↗ 0.5–1.5 · Breakout 🚀 >1.5)  ');
   console.log('         🟢 LC Premium Buy/StopBuy signal · Buy VD ✓ · RVOL >1.0 · Aroon >0 & rising · WRB prior bars · ATR% <5%  ');
   console.log('         Sell VD ⚠️ shown for context only — not entry signals\n');
-  console.log('**SID:**  Long: RSI crossed below 30 (OS touch) · RSI rising · MACD ↑ 1 bar · ⚠️ Weekly RSI gate (visual check on chart)  ');
-  console.log('          Short: RSI crossed above 70 (OB touch) · RSI falling · MACD ↓ 1 bar · ⚠️ Weekly RSI gate (visual check on chart)  ');
-  console.log('          SMA200 tier (HIGH CONVICTION ≥5% away) · ADX (<20 coiling ✓ · 20-25 NML ⚠️ · 25-40 trending) · Weekly MACD align ⚠️ if HTF momentum disagrees  ');
-  console.log('          Weekly RSI = VISUAL CHECK on chart (removed from brief — indicator unreliable) · Gap/ATR EXT = ≥2 extended (caution) · Src: SID·LORP·BTW·PB·BO·CAP  ');
+  console.log('**SID:**  Long: RSI crossed below 30 (OS touch) · RSI rising · MACD ↑ 1 bar  ');
+  console.log('          Short: RSI crossed above 70 (OB touch) · RSI falling · MACD ↓ 1 bar  ');
+  console.log('          SMA200 tier (HIGH CONVICTION ≥5% away) · ADX (<20 coiling ✓ · 20-25 NML ⚠️ · 25-40 trending)  ');
+  console.log('          Gap/ATR EXT = ≥2 extended (caution) · Src: SID·LORP·BTW·PB·BO·CAP  ');
   console.log('          ATR% risk · Gap/ATR = entry extension (🚩 ≥2.0 EXTENDED = historically LOWER expectancy) · VD (ref)  ');
   console.log('          🟡 GP: NEAR / 🟢 GP: IN — zone proximity reference only\n');
   console.log('**PULLBACK v2.0:** Entry trigger: Stage 3 🟢 ENTRY · Stage 2 🟠 EMA21 · Stage 1 🟡 PB  ');
@@ -2164,7 +2145,7 @@ if (!VERBOSE) {
   console.log('\n' + '═'.repeat(60));
   console.log('\nPRELIMINARY SCREEN LIMITATIONS:');
   console.log('  SID:      See SID section at bottom of email (BTW universe, RSI OB/OS scan).');
-  console.log('  LORP:     Signals from LORP Confluence v1.2 indicator. Missing: Weekly RSI/MACD,');
+  console.log('  LORP:     Signals from LORP Confluence v1.2 indicator. Missing:');
   console.log('            HTF divergence — verify on chart before acting.');
   console.log('  ADX:      Box data + breakout direction — verify on chart before acting.');
   console.log('  PULLBACK: Pullback=1/Breakout=1 from ADX + EMA21 Trend Setup (Booker Method).\n');

@@ -27,7 +27,6 @@ FACTORS_SID = {
                  "RSI Enters OS","RSI Enters OB","Long Exit Signal","Short Exit Signal"],
  "CORE (L1)":   ["RSI (0-100)","ADX","SMA200","Aroon Osc"],
  "CONFLUENCE":  ["MACD (0-100)","Signal (0-100)","CCI Stochastic"],
- "WEEKLY":      ["Weekly MACD Align"],   # Weekly RSI removed - indicator unreliable, assess visually on chart
  "VOLATILITY":  ["ATR%"],
  "VOLUME":      ["RVOL ratio","Z-score","Volume Delta (Close)"],
  "DIRECTION":   ["DI+","DI-"],
@@ -143,7 +142,7 @@ def verdict_sid(row,idx):
     short_entry = (num(row,idx,"Short Entry Signal") or 0) != 0
     armed_long  = (num(row,idx,"SID Armed Long")     or 0) != 0
     armed_short = (num(row,idx,"SID Armed Short")    or 0) != 0
-    rsi=num(row,idx,"RSI (0-100)"); wk=val(row,idx,"Weekly MACD Align")
+    rsi=num(row,idx,"RSI (0-100)")
     if   long_entry:  setup="LONG ENTRY fired"
     elif short_entry: setup="SHORT ENTRY fired"
     elif armed_long:  setup="armed long (no entry trigger this bar)"
@@ -159,7 +158,6 @@ def verdict_sid(row,idx):
     # There is NO absolute reject/accept threshold — thumbs-up if the ratio is acceptable.
     gap=num(row,idx,"Gap/ATR Ratio")   # swing approximation — starting point only (~); real value calc'd manually
     p.append(f"Gap/ATR ~{gap:.2f}" if gap is not None else "Gap/ATR (calc manually)")
-    if wk is not None:  p.append(f"WklyMACDalign={fmt(wk)}")
     head="VERDICT (SID - UNVALIDATED, no proven gate yet): " + " | ".join(p)
     note=("  Gap/ATR (manual): (entry - SL)/entry / ATR%; SL = lowest low from RSI crossover to entry, "
           "floored to whole $. No absolute reject - thumbs-up if the ratio is acceptable.")
