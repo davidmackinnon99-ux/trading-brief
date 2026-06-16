@@ -1578,18 +1578,16 @@ if (!VERBOSE) {
     console.log('**⚡ SID — 0 signals** *(no entry signals fired today)*\n');
   } else {
     console.log(`**⚡ SID — ${sidPass.length} signals** *(${sidLongs.length} Long · ${sidShorts.length} Short)*`);
-    console.log('*SID entry signal fired — verify Weekly RSI gate + Gap/ATR Ratio manually before acting.*');
+    console.log('*SID entry signal fired — assess Weekly RSI visually on the chart, and verify Gap/ATR Ratio manually, before acting.*');
     console.log('*Gap/ATR = how many ATRs the entry sits from the recent swing (direction-aware: low for longs, high for shorts). On the 300-trade log, HIGHER = more extended entry = LOWER expectancy — ≥2.0 underperformed <2.0 (P=0.000, both directions). Shown as an approximate starting point (~); calculate the real value manually before acting — no auto-flag, no hard reject. ATR% alone has low predictive value.*\n');
-    console.log('*Vdt = screener-confluence tally (Weekly MACD aligned · Weekly RSI gate ok), with a (MACD✓ RSI✗) suffix naming which leg passed ✓ / failed ✗. These factors are cross-validated on the independent 300-trade book; SID system expectancy on own trades is not yet established (small sample) — read Vdt as screener confluence, NOT a validated go/no-go. Gap/ATR is a manual-calc starting point, not part of the tally.*\n');
+    console.log('*Vdt = screener-confluence tally — Weekly MACD aligned only (✓/✗). Weekly RSI has been REMOVED from the brief (indicator unreliable) — assess weekly RSI VISUALLY on the chart. Weekly MACD is cross-validated on the independent 300-trade book; SID system expectancy on own trades is not yet established (small sample) — read Vdt as screener confluence, NOT a validated go/no-go. Gap/ATR is a manual-calc starting point, not part of the tally.*\n');
 
-    const sidHeaders = ['Ticker','Sig','Price','Gap/ATR','ADX','W.RSI','SMA200','RVOL','Src','Vdt'];
-    const sidRightAlign = new Set([2, 7]);  // Price, RVOL (others carry tags/marks -> left-aligned)
+    const sidHeaders = ['Ticker','Sig','Price','Gap/ATR','ADX','SMA200','RVOL','Src','Vdt'];
+    const sidRightAlign = new Set([2, 6]);  // Price, RVOL (others carry tags/marks -> left-aligned)
 
     function sidRowCells(r) {
       const D = '-';
       const sig    = r.isLongPass ? '🟢 Long' : '🔴 Short';  // fired SID entry signal (🟢 long / 🔴 short)
-      const wrsi   = r.wrsi    != null ? r.wrsi.toFixed(1) : D;
-      const gate   = r.wrsiGate === 1 ? 'ok' : r.wrsiGate === 0 ? 'warn' : D;
       const sma200 = r.aboveSMA200 === true  ? ('Abv ' + (r.sma200Pct != null ? '+' + r.sma200Pct.toFixed(1) + '%' : '')).trim()
                    : r.aboveSMA200 === false ? ('Blw ' + (r.sma200Pct != null ? r.sma200Pct.toFixed(1) + '%' : '')).trim()
                    : D;
@@ -1605,21 +1603,18 @@ if (!VERBOSE) {
       const vdDir     = r.vdPos === true ? 'Buy' : r.vdPos === false ? 'Sell' : null;
       const vdAligned = r.isLongPass ? (r.vdPos === true) : (r.vdPos === false);
       const vd     = vdDir == null ? D : (vdDir + ' ' + (vdAligned ? 'ok' : 'x'));
-      const align  = r.wrsiGate === 1 ? '✓' : r.wrsiGate === 0 ? '✗' : '';
-      const wrsiCell = wrsi === D ? D : (align ? wrsi + ' ' + align : wrsi);
       const src    = normalizeSrc(r);
-      // Vdt = screener-confluence tally: weekly MACD aligned + weekly RSI gate ok, with
-      // the (MACD RSI) suffix naming which leg passed (✓) / failed (✗) / no data (·).
+      // Vdt = screener-confluence tally: weekly MACD aligned only (✓/✗). Weekly RSI has been
+      // removed from the brief (indicator unreliable) — assess weekly RSI visually on the chart.
       // Gap/ATR is NOT in the tally — it's a manual-calc factor with no absolute reject
       // (consistent with confluence_check.py); its approx value shows in the Gap column only.
       const macdChk = r.wmacdAlign != null ? r.wmacdAlign === 1 : null;
-      const rsiChk  = r.wrsiGate   != null ? r.wrsiGate === 1   : null;
-      const vChecks = [macdChk, rsiChk].filter(c => c !== null);
+      const vChecks = [macdChk].filter(c => c !== null);
       const mark = c => c == null ? '·' : c ? '✓' : '✗';
       const vdt = vChecks.length
-        ? `${vChecks.filter(c => c).length}/${vChecks.length} (MACD${mark(macdChk)} RSI${mark(rsiChk)})`
+        ? `${vChecks.filter(c => c).length}/${vChecks.length} (MACD${mark(macdChk)})`
         : '-';
-      return [r.sym, sig, '$' + fmt(r.price), gatr, adx, wrsiCell, sma200, rvol, src, vdt];
+      return [r.sym, sig, '$' + fmt(r.price), gatr, adx, sma200, rvol, src, vdt];
     }
 
     function printSIDTable(rows) {
@@ -1822,10 +1817,10 @@ if (!VERBOSE) {
   console.log('**LORP:** Distance from Kernel (Pullback 🔄 <0.5 · Trend ↗ 0.5–1.5 · Breakout 🚀 >1.5)  ');
   console.log('         🟢 LC Premium Buy/StopBuy signal · Buy VD ✓ · RVOL >1.0 · Aroon >0 & rising · WRB prior bars · ATR% <5%  ');
   console.log('         Sell VD ⚠️ shown for context only — not entry signals\n');
-  console.log('**SID:**  Long: RSI crossed below 30 (OS touch) · RSI rising · MACD ↑ 1 bar · ⚠️ Weekly RSI gate (manual check)  ');
-  console.log('          Short: RSI crossed above 70 (OB touch) · RSI falling · MACD ↓ 1 bar · ⚠️ Weekly RSI gate (manual check)  ');
+  console.log('**SID:**  Long: RSI crossed below 30 (OS touch) · RSI rising · MACD ↑ 1 bar · ⚠️ Weekly RSI gate (visual check on chart)  ');
+  console.log('          Short: RSI crossed above 70 (OB touch) · RSI falling · MACD ↓ 1 bar · ⚠️ Weekly RSI gate (visual check on chart)  ');
   console.log('          SMA200 tier (HIGH CONVICTION ≥5% away) · ADX (<20 coiling ✓ · 20-25 NML ⚠️ · 25-40 trending) · Weekly MACD align ⚠️ if HTF momentum disagrees  ');
-  console.log('          W.RSI ✓/✗ = weekly RSI direction agrees/disagrees with trade · Gap/ATR EXT = ≥2 extended (caution) · Src: SID·LORP·BTW·PB·BO·CAP  ');
+  console.log('          Weekly RSI = VISUAL CHECK on chart (removed from brief — indicator unreliable) · Gap/ATR EXT = ≥2 extended (caution) · Src: SID·LORP·BTW·PB·BO·CAP  ');
   console.log('          ATR% risk · Gap/ATR = entry extension (🚩 ≥2.0 EXTENDED = historically LOWER expectancy) · VD (ref)  ');
   console.log('          🟡 GP: NEAR / 🟢 GP: IN — zone proximity reference only\n');
   console.log('**PULLBACK v2.0:** Entry trigger: Stage 3 🟢 ENTRY · Stage 2 🟠 EMA21 · Stage 1 🟡 PB  ');

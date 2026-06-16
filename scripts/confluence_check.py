@@ -27,7 +27,7 @@ FACTORS_SID = {
                  "RSI Enters OS","RSI Enters OB","Long Exit Signal","Short Exit Signal"],
  "CORE (L1)":   ["RSI (0-100)","ADX","SMA200","Aroon Osc"],
  "CONFLUENCE":  ["MACD (0-100)","Signal (0-100)","CCI Stochastic"],
- "WEEKLY":      ["Weekly RSI","Weekly RSI Gate","Weekly MACD Align"],
+ "WEEKLY":      ["Weekly MACD Align"],   # Weekly RSI removed - indicator unreliable, assess visually on chart
  "VOLATILITY":  ["ATR%"],
  "VOLUME":      ["RVOL ratio","Z-score","Volume Delta (Close)"],
  "DIRECTION":   ["DI+","DI-"],
