@@ -99,13 +99,14 @@ def verdict_lorp(row,idx,hdr):
     else:
         h=macd-sig; conv=" - converging (near cross)" if h>-0.05 else ""
         gate=False; gate_txt=f"MACD0 down (MACD {macd:.3f} < Signal {sig:.3f}, hist {h:.3f}){conv}"
-    # Headline: a DOWN mean-reversion (LORP is long-only) overrides a passing gate so it can't be
-    # skimmed past — Strong → AVOID, regular → CAUTION. A failing gate stays FLAG on its own.
+    # Headline: a DOWN mean-reversion (LORP is long-only) is a look-closer, not a hard block.
+    # Strong & regular both → CAUTION (Strong downgraded from AVOID — observed follow-through has
+    # been profitable so far, small sample; revisit if that changes). Failing gate stays FLAG.
     if gate is False:
         out.append(f"VERDICT: FLAG — {gate_txt}")
     elif mr.get("down_strong"):
-        out.append(f"VERDICT: 🛑 AVOID — STRONG Mean Reversion DOWN{distStr}")
-        out.append(f"        (gate would PASS: {gate_txt} — overridden by the down-reversion)")
+        out.append(f"VERDICT: ⚠️ CAUTION — STRONG Mean Reversion DOWN{distStr}")
+        out.append(f"        (gate {gate_txt} — strong down-reversion firing; look closer, not a hard avoid)")
         out.append(caveat)
     elif mr.get("down_reg"):
         out.append(f"VERDICT: ⚠️ CAUTION — Mean Reversion DOWN (regular){distStr}")
