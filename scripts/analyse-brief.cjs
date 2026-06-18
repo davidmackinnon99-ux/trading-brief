@@ -284,6 +284,7 @@ if (spyScan && !spyScan.error) {
 const prevAdxMap    = {};
 const prevDiPlusMap  = {};
 const prevDiMinusMap = {};
+const prevSigMap     = {};   // ticker -> Set of signal markers fired in the most recent prior brief (freshness de-dup)
 {
   const dateMatch = briefFile.match(/brief-(\d{4}-\d{2}-\d{2})/);
   if (dateMatch) {
@@ -306,6 +307,26 @@ const prevDiMinusMap = {};
             if (adxPrev    != null) prevAdxMap[s.symbol]    = adxPrev;
             if (diPlusPrev  != null) prevDiPlusMap[s.symbol]  = diPlusPrev;
             if (diMinusPrev != null) prevDiMinusMap[s.symbol] = diMinusPrev;
+            // Signal-marker set for prior-brief freshness de-dup (display-layer only).
+            const lcV  = getStudy(sts, 'Lorentzian Classification Premium', 'Lorentzian', 'LC Premium')?.values || {};
+            const ppV  = getStudy(sts, 'Pocket Pivot')?.values || {};
+            const capV = getStudy(sts, 'CAP Tools Supplement', 'CAP Tools')?.values || {};
+            const arV  = getStudy(sts, 'Aroon')?.values || {};
+            const _has = (o,k) => Object.prototype.hasOwnProperty.call(o,k);
+            const _pos = (o,k) => { const x = parseNum(o[k]); return x != null && x > 0; };
+            const _fired = new Set();
+            if (_has(lcV,'Buy')  && _pos(lcV,'Buy'))   _fired.add('LC');
+            if (_has(lcV,'Sell') && _pos(lcV,'Sell'))  _fired.add('LCs');
+            if (_has(arV,'Long'))           _fired.add('A_L');
+            if (_has(arV,'Short'))          _fired.add('A_S');
+            if (_pos(arV,'Long (Chart)'))   _fired.add('AC_L');
+            if (_pos(arV,'Short (Chart)'))  _fired.add('AC_S');
+            if (_pos(ppV,'Pocket Pivot'))   _fired.add('PP');
+            if (_pos(capV,'Climax Demand')) _fired.add('CD');
+            if (_pos(capV,'Strong Demand')) _fired.add('SD');
+            if (_pos(capV,'Climax Supply')) _fired.add('CS');
+            if (_pos(capV,'Strong Supply')) _fired.add('SS');
+            if (_fired.size) prevSigMap[s.symbol] = _fired;
           });
           process.stderr.write(`[adx-slope] Prior ADX/DI loaded from ${priorDateStr} (${Object.keys(prevAdxMap).length} symbols)\n`);
         } catch(e) {
@@ -1245,22 +1266,32 @@ if (!VERBOSE) {
     ].filter(c => c !== null);
     const cfStr = cfChecks.length ? `${cfChecks.filter(c => c).length}/${cfChecks.length}` : '—';
     const wrbStr   = r.wrbInPrior === true ? 'WRB ✓' : r.wrbInPrior === false ? '✗' : '—';
-    // Sig column — all active signals this bar
+    // Sig column — FRESH signals this bar only. Markers already present for this
+    // ticker in the most recent prior brief are filtered as carried-over (held), so
+    // indicators that hold their plotted value for ~2 bars (Pocket Pivot, CAP) no
+    // longer surface stale fires. Display-layer only — underlying flags are untouched.
+    const _prevSig = prevSigMap[r.sym];
+    const _fresh   = (code) => !(_prevSig && _prevSig.has(code));
     const sigParts = [];
-    if (r.lorpBuySignal)                                     sigParts.push('🟢 LC');
-    if (r.lorpSellSignal)                                    sigParts.push('🔴 LC');
-    if (r.aroonLong  !== null)                               sigParts.push('🟢 A');
-    if (r.aroonShort !== null)                               sigParts.push('🔴 A');
-    if (r.aroonLongChart  != null && r.aroonLongChart  > 0)  sigParts.push('🟢 AC');
-    if (r.aroonShortChart != null && r.aroonShortChart > 0)  sigParts.push('🔴 AC');
-    // Pocket Pivot
-    if (r.pocketPivot === true)             sigParts.push('★ PP');
-    // CAP Tools signals (new May 2026)
-    if (r.capClimaxDemand > 0)  sigParts.push('🔥 CD');   // Climax Demand
-    if (r.capStrongDemand > 0)  sigParts.push('💪 SD');   // Strong Demand
-    if (r.capClimaxSupply > 0)  sigParts.push('🔥 CS');   // Climax Supply
-    if (r.capStrongSupply > 0)  sigParts.push('💪 SS');   // Strong Supply
-    const sigStr = sigParts.length ? sigParts.join(' ') : '—';
+    let carriedOver = 0;
+    const addSig = (cond, code, label) => {
+      if (!cond) return;
+      if (_fresh(code)) sigParts.push(label);
+      else carriedOver++;
+    };
+    addSig(r.lorpBuySignal,                                     'LC',   '🟢 LC');
+    addSig(r.lorpSellSignal,                                    'LCs',  '🔴 LC');
+    addSig(r.aroonLong  !== null,                              'A_L',  '🟢 A');
+    addSig(r.aroonShort !== null,                              'A_S',  '🔴 A');
+    addSig(r.aroonLongChart  != null && r.aroonLongChart  > 0, 'AC_L', '🟢 AC');
+    addSig(r.aroonShortChart != null && r.aroonShortChart > 0, 'AC_S', '🔴 AC');
+    addSig(r.pocketPivot === true,                             'PP',   '★ PP');
+    addSig(r.capClimaxDemand > 0,                              'CD',   '🔥 CD');
+    addSig(r.capStrongDemand > 0,                              'SD',   '💪 SD');
+    addSig(r.capClimaxSupply > 0,                              'CS',   '🔥 CS');
+    addSig(r.capStrongSupply > 0,                              'SS',   '💪 SS');
+    let sigStr = sigParts.length ? sigParts.join(' ') : '—';
+    if (carriedOver > 0) sigStr += `${sigParts.length ? ' ' : ''}·${carriedOver}c`;  // ·Nc = N carried-over (held from prior brief)
     const distStr  = r.distFromKernel != null ? r.distFromKernel.toFixed(2) : '—';
     const rangePct = (r.high != null && r.low != null && r.low > 0)
       ? ((r.high - r.low) / r.low * 100).toFixed(1) + '%' : '—';
@@ -1797,7 +1828,8 @@ if (!VERBOSE) {
   console.log('📐 **CONFLUENCE FACTORS BY STRATEGY**\n');
   console.log('**LORP:** Distance from Kernel (Pullback 🔄 <0.5 · Trend ↗ 0.5–1.5 · Breakout 🚀 >1.5)  ');
   console.log('         🟢 LC Premium Buy/StopBuy signal · Buy VD ✓ · RVOL >1.0 · Aroon >0 & rising · WRB prior bars · ATR% <5%  ');
-  console.log('         Sell VD ⚠️ shown for context only — not entry signals\n');
+  console.log('         Sell VD ⚠️ shown for context only — not entry signals  ');
+  console.log('         Sig = FRESH fires only — markers already in the prior brief are filtered as carried-over · ·Nc = N held-over markers suppressed\n');
   console.log('**SID:**  Long: RSI crossed below 30 (OS touch) · RSI rising · MACD ↑ 1 bar  ');
   console.log('          Short: RSI crossed above 70 (OB touch) · RSI falling · MACD ↓ 1 bar  ');
   console.log('          SMA200 tier (HIGH CONVICTION ≥5% away) · ADX (<20 coiling ✓ · 20-25 NML ⚠️ · 25-40 trending)  ');
