@@ -15,14 +15,14 @@ Each factor is marked as a **hard filter** (tickers excluded/moved if it fails) 
 | Factor | Rule |
 |--------|------|
 | LC data | No LC data → excluded entirely |
-| RVOL | < 1.0 or ≥ 4.0 → excluded |
-| Aroon | ≤ 0 → excluded |
-| Aroon direction | Aroon ≤ Signal Line (falling) → excluded |
+| Verdict | PASS = MACD0 up (MACD ≥ Signal) AND an LC Premium Buy fires. LC Buy is the PRIMARY criterion and overrides context — a ticker with an LC Buy is NOT excluded for failing Aroon / RVOL / ADX. |
 | VD — Trend/Breakout | VD ≤ 0.5 → moved to Sell VD ⚠️ section (context only) |
 | VD — Pullback | Negative VD is expected (pullback = selling pressure) → always shown in Buy section with `↓ (PB x)` note |
 
-### Pre-filtered upstream by TV Screener (before scan)
-ATR <5%, MACD>0, EMA21>EMA34, Vol>500K, RelVol>1.0, Price>EMA34, Aroon Down>0%, RSI 45–75, Price>=$10, Mkt Cap 1B to 100B, ADX>=20
+> **RVOL and Aroon are NOT brief-code filters** — `confluence_check.py` marks them "colour only / NOT validated." They are gated UPSTREAM at the TV Screener (RelVol>1.5, Aroon ≥0%), not in the brief code, and shown downstream as context only. (CAVA 2026-06-18 passed with RVOL 0.90 and Aroon −4.88, scoring 1/4 on context.)
+
+### Pre-filtered upstream by TV Screener (before scan) — tightened 2026-06-21
+ATR <5%, MACD>0, EMA21>EMA34, Vol>1.5M, RelVol>1.5, Price>EMA34, Aroon ≥0%, RSI 45–75, Price ≥$15, Mkt Cap 2B to 100B, ADX>=20
 
 ### Entry type (Distance from Kernel)
 - Pullback 🔄 — Dist < 0.5
@@ -174,3 +174,4 @@ Close price, ADX value, BBWP value, vs SMA20 direction (↑/↓), Booker Quality
 - **GP Zone flags** require GP Zone Exporter indicator on all layouts
 - **Brief Output watchlist** — merged, deduplicated, alphabetically sorted list of all signals pushed to TradingView after each brief
 - **Sell VD ⚠️ section** (LORP) — shown for context only, not actionable entry signals
+
