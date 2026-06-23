@@ -38,9 +38,12 @@ echo $$ > "$LOCKFILE"
 # Global watchdog — hard-stop the whole brief if it ever runs absurdly long.
 # Defence-in-depth behind the per-call CDP timeouts in connection.js: guarantees a
 # wedged scan can never hold the lock for hours and silently skip the next run.
-MAX_TOTAL_SECS=9000   # 150 minutes — backstop only; per-call CDP timeouts catch real hangs.
-                      # Set well above a legitimate full run (LORP+SID+others on the 289-symbol
-                      # universe is ~90 min) so it never false-trips, only catches true wedges.
+MAX_TOTAL_SECS=14400  # 240 minutes — backstop only; per-call CDP timeouts catch real hangs.
+                      # Sized for the current ~406-symbol universe: LORP + SID each scan the
+                      # FULL watchlist (~66 min each at ~10s/symbol) + REGIME/PULLBACK/ADX ≈ 160
+                      # min total. Raised 150→240 after the 406-symbol run tripped the old budget.
+                      # If the universe keeps growing, address scan throughput rather than just
+                      # raising this further (see scan_delay_ms / waitForChartReady).
 ( sleep $MAX_TOTAL_SECS
   echo "[$(date)] GLOBAL WATCHDOG: brief exceeded ${MAX_TOTAL_SECS}s — killing pipeline" >> "$LOGFILE"
   osascript -e 'display notification "Brief exceeded time budget — killed" with title "Morning Brief Failed" sound name "Basso"' 2>/dev/null || true
