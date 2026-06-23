@@ -113,7 +113,11 @@ fi
 # wherever it sits, exactly like the alerts. The brief anchors on the fired entry and
 # tags section-of-origin in the Also column; it does NOT gate on section membership.
 echo "[$(date)] Scanning LORP layout (OWHfyWBq) — full watchlist..." >> "$LOGFILE"
-TRADINGVIEW_LAYOUT_ID="OWHfyWBq" \
+# READY_REQUIRE_STUDY: wait for the ML Lorentzian indicator to actually populate before
+# reading (it recalculates 2–7s after price loads — the slowest study on the layout).
+# Without this the adaptive readiness check returns before LC data is present and every
+# ticker is wrongly excluded as "No LC data".
+TRADINGVIEW_LAYOUT_ID="OWHfyWBq" READY_REQUIRE_STUDY="Lorentzian" \
   "$NODE" "$TV_DIR/src/cli/index.js" brief > "$OUTFILE_LORP" 2>> "$LOGFILE"
 BRIEF_EXIT=$?
 if [ $BRIEF_EXIT -eq 0 ] && [ -s "$OUTFILE_LORP" ]; then
@@ -129,7 +133,7 @@ fi
 # NOTE: the SID scan can hang indefinitely on some symbols — the root cause is
 # a per-symbol hang in the CDP scan (needs per-symbol timeout in the scan code).
 echo "[$(date)] Scanning SID layout (XN1LuowU) — full watchlist..." >> "$LOGFILE"
-TRADINGVIEW_LAYOUT_ID="XN1LuowU" \
+TRADINGVIEW_LAYOUT_ID="XN1LuowU" READY_REQUIRE_STUDY="SID Trading Signals" \
   "$NODE" "$TV_DIR/src/cli/index.js" brief > "$OUTFILE_SID" 2>> "$LOGFILE"
 SID_SCAN_EXIT=$?
 if [ $SID_SCAN_EXIT -eq 0 ] && [ -s "$OUTFILE_SID" ]; then
@@ -151,7 +155,7 @@ fi
 
 # ── SCAN 4: PULLBACK layout ───────────────────────────────────────────────────
 echo "[$(date)] Scanning PULLBACK layout (6Qpm8oT7)..." >> "$LOGFILE"
-TRADINGVIEW_LAYOUT_ID="6Qpm8oT7" \
+TRADINGVIEW_LAYOUT_ID="6Qpm8oT7" READY_REQUIRE_STUDY="EMA21 Trend Setup" \
   "$NODE" "$TV_DIR/src/cli/index.js" brief --sections "PULLBACK SCREENER,PULLBACK BRIEF" > "$OUTFILE_PULLBACK" 2>> "$LOGFILE"
 PULLBACK_EXIT=$?
 if [ $PULLBACK_EXIT -eq 0 ] && [ -s "$OUTFILE_PULLBACK" ]; then
@@ -162,7 +166,7 @@ fi
 
 # ── SCAN 5: ADX BREAKOUT layout ───────────────────────────────────────────────
 echo "[$(date)] Scanning ADX BREAKOUT layout (6hvBVx9e)..." >> "$LOGFILE"
-TRADINGVIEW_LAYOUT_ID="6hvBVx9e" \
+TRADINGVIEW_LAYOUT_ID="6hvBVx9e" READY_REQUIRE_STUDY="ADX Breakout" \
   "$NODE" "$TV_DIR/src/cli/index.js" brief --sections "ADX BREAKOUT SCREENER,ADX BREAKOUT BRIEF" > "$OUTFILE_ADX" 2>> "$LOGFILE"
 ADX_EXIT=$?
 if [ $ADX_EXIT -eq 0 ] && [ -s "$OUTFILE_ADX" ]; then
