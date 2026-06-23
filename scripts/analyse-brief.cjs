@@ -1500,8 +1500,8 @@ if (!VERBOSE) {
       console.log('---\n');
       console.log(`**📋 LORP PERSISTENT WATCH — ${activeWatch.length} tickers**`);
       console.log('*Tracks tickers through pullback phase regardless of TV Screener filters*\n');
-      console.log('| Ticker | Price | Days | Buy Date | Buy $ | CCI OS | MACD X | CE | Status |');
-      console.log('|--------|-------|------|----------|-------|--------|--------|----|--------|');
+      console.log('| Ticker | Price | Days | Buy Date | Buy $ | MACD X | CE | Status |');
+      console.log('|--------|-------|------|----------|-------|--------|----|--------|');
 
       for (const [sym, entry] of activeWatch) {
         const r = lorpAll.find(t => bareSym(t.sym) === sym);
@@ -1514,8 +1514,6 @@ if (!VERBOSE) {
           : '—';
         const buyPrice  = entry.lorp_buy_price != null ? `$${entry.lorp_buy_price.toFixed(2)}` : '—';
 
-        // CCI OS: Enter Long (into OS) fired — from CCI_S indicator (current bar)
-        const cciOSStr  = r?.cciOSEntry  ? '🔔 OS' : '—';
         // MACD Cross proxy: MACD positive AND above signal line
         const macdXStr  = (r?.macd != null && r.macd > 0 &&
                            r?.macdSig != null && r.macd > r.macdSig) ? '✓' : '—';
@@ -1524,7 +1522,7 @@ if (!VERBOSE) {
         // Status note: warn if ticker is not in today's scan
         const statusStr = r ? 'Active' : 'Active ⚠ not in scan';
 
-        console.log(`| ${sym} | ${priceStr} | ${days} | ${buyDate} | ${buyPrice} | ${cciOSStr} | ${macdXStr} | ${ceBuyStr} | ${statusStr} |`);
+        console.log(`| ${sym} | ${priceStr} | ${days} | ${buyDate} | ${buyPrice} | ${macdXStr} | ${ceBuyStr} | ${statusStr} |`);
       }
       console.log('');
 
