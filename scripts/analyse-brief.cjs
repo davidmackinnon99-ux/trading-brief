@@ -923,7 +923,7 @@ adxRawSyms.forEach(s => {
   const studies = s.indicators?.studies || [];
   const price   = s.quote?.last;
 
-  const bookerAdx  = getStudy(studies, 'Rob Booker - ADX Breakout DM Final', 'ADX Breakout DM');
+  const bookerAdx  = getStudy(studies, 'Rob Booker - ADX Continuation DM', 'ADX Continuation DM', 'Rob Booker - ADX Breakout DM Final', 'ADX Breakout DM');
   const bookerQV   = getStudy(studies, 'Rob Booker-Quality Volume Breakout', 'Quality Volume Breakout');
   const adxSt      = getStudy(studies, 'ADX and DI', 'Average Directional Index', 'ADX');
   const gpSt       = getStudy(studies, 'GP Zone Exporter', 'GP Zone');
@@ -990,20 +990,23 @@ const lorpWatch = results.filter(r => r.strategy === 'LORP_WATCH');
 const adxHasDedicatedScan = Object.keys(adxPageMap).length > 0;
 const adxHasBBWP = adxHasDedicatedScan && Object.values(adxPageMap).some(r => r.bbwp != null);
 
+// CONTINUATION screen (was coiling): trending name (ADX >= 25), DI confirms direction,
+// and price has broken the box. Matches ADX Continuation DM (isBuyValid/isSellValid).
+// The 25-40 band cap is applied upstream by the TV Screener, so the brief only floors at 25.
+const ADX_TREND = 25;
 const adxCoiling = (() => {
   if (!adxHasDedicatedScan) {
-    process.stderr.write('[adx] No dedicated ADX scan — falling back to LORP scan (no BBWP/Box data)\n');
-    return results.filter(r => !r.error && r.adx != null && r.adx < 18 && adxUniverseSet.has(r.sym));
+    process.stderr.write('[adx] No dedicated ADX scan — falling back to LORP scan (ADX>=25 + DI, no box)\n');
+    return results.filter(r => !r.error && r.adx != null && r.adx >= ADX_TREND
+      && r.diPlus != null && r.diMinus != null && r.diPlus !== r.diMinus
+      && adxUniverseSet.has(r.sym));
   }
-  if (adxHasBBWP) {
-    return Object.entries(adxPageMap)
-      .filter(([sym, r]) => adxUniverseSet.has(sym) && r.bbwp != null && r.bbwp <= 5)
-      .map(([sym, r]) => ({ sym, ...r }));
-  }
-  // BBWP indicator not on layout — fall back to ADX < 18
-  process.stderr.write('[adx] No BBWP data on layout — falling back to ADX < 18 coiling filter\n');
   return Object.entries(adxPageMap)
-    .filter(([sym, r]) => adxUniverseSet.has(sym) && r.adx != null && r.adx < 18)
+    .filter(([sym, r]) => adxUniverseSet.has(sym) && r.adx != null && r.adx >= ADX_TREND
+      && r.diPlus != null && r.diMinus != null && r.price != null
+      && r.boxUpper != null && r.boxLower != null
+      && ((r.price > r.boxUpper && r.diPlus > r.diMinus)     // long continuation breakout
+       || (r.price < r.boxLower && r.diMinus > r.diPlus)))   // short continuation breakout
     .map(([sym, r]) => ({ sym, ...r }));
 })();
 
@@ -1757,6 +1760,16 @@ if (!VERBOSE) {
   // ── ADX Breakout ──
   console.log('---\n');
   {
+    function printAdxContRow(r) {
+      const closeStr = r.price != null ? `$${fmt(r.price)}` : '—';
+      const adxStr   = r.adx   != null ? r.adx.toFixed(1)   : '—';
+      const diStr    = (r.diPlus != null && r.diMinus != null) ? `${r.diPlus.toFixed(0)}/${r.diMinus.toFixed(0)}` : '—';
+      const brk      = (r.price != null && r.boxUpper != null && r.price > r.boxUpper) ? '↑ box'
+                     : (r.price != null && r.boxLower != null && r.price < r.boxLower) ? '↓ box'
+                     : '—';
+      const bqTag    = r.bookerQualUp === 1 ? ' 🔔 BQ↑' : r.bookerQualDown === 1 ? ' 🔔 BQ↓' : '';
+      console.log(`| ${r.sym}${bqTag} | ${closeStr} | ${adxStr} | ${diStr} | ${brk} | ${alsoTag(r.sym, 'ADX')} |`);
+    }
     function printAdxBBWPRow(r) {
       const closeStr   = r.price != null ? `$${fmt(r.price)}` : '—';
       const adxStr     = r.adx   != null ? r.adx.toFixed(1)   : '—';
@@ -1766,19 +1779,18 @@ if (!VERBOSE) {
       const bqTag      = r.bookerQualUp  === 1 ? ' 🔔 BQ↑'
                        : r.bookerQualDown === 1 ? ' 🔔 BQ↓'
                        : '';
-      const alsoStr    = alsoTag(r.sym, 'ADX');
-      console.log(`| ${r.sym}${bqTag} | ${closeStr} | ${adxStr} | ${bbwpStr} | ${direction} | ${alsoStr} |`);
+      console.log(`| ${r.sym}${bqTag} | ${closeStr} | ${adxStr} | ${bbwpStr} | ${direction} | ${alsoTag(r.sym, 'ADX')} |`);
     }
 
-    const hasCoiling  = adxCoiling.length  > 0;
+    const hasCoiling  = adxCoiling.length  > 0;   // now: continuation candidates
     const hasExtended = adxExtended.length > 0;
 
     if (hasCoiling || hasExtended) {
       if (hasCoiling) {
-        console.log(`**⚡ BBWP COILING (≤5%) — ${adxCoiling.length} tickers**\n`);
-        console.log('| Ticker | Close | ADX | BBWP | vs SMA20 | Also |');
-        console.log('|--------|-------|-----|------|----------|------|');
-        adxCoiling.forEach(printAdxBBWPRow);
+        console.log(`**⚡ ADX CONTINUATION (ADX ≥ 25) — ${adxCoiling.length} tickers**\n`);
+        console.log('| Ticker | Close | ADX | DI+/DI- | Break | Also |');
+        console.log('|--------|-------|-----|---------|-------|------|');
+        adxCoiling.forEach(printAdxContRow);
         console.log('');
       }
       if (hasExtended) {
@@ -1788,7 +1800,7 @@ if (!VERBOSE) {
         adxExtended.forEach(printAdxBBWPRow);
         console.log('');
       }
-      console.log('*TV Screener pre-filters ADX 15–18 · BBWP ≤5 = coiling · BBWP ≥98 = extended · 🔔 BQ = Booker Quality signal on this bar*\n');
+      console.log('*ADX ≥ 25 + DI direction + close beyond Box = continuation breakout · 25–40 cap applied by TV Screener · 🔔 BQ = Booker Quality signal*\n');
       console.log('*⚠️ Confirm breakout direction + ADX rising on chart before acting*\n');
     }
     // No output when neither section has candidates — correct and expected
@@ -1838,7 +1850,7 @@ if (!VERBOSE) {
   console.log('                   ADX + EMA21 Trend Setup (Booker Method) · SlingShotSystem bands  ');
   console.log('                   Hard gates: Band inverted → suppressed · Inside GP Zone → suppressed  ');
   console.log('                   ⚑ LuxAlgo HTF Divergence: manual chart check required\n');
-  console.log('**ADX BREAKOUT:** Screen: ADX <18 (coiling) · ADX ↑ rising · Box/ATR = box range ÷ ATR (ref) · RVOL ≥2x  ');
+  console.log('**ADX CONTINUATION:** Screen: ADX ≥25 (trending) · DI+ > DI- (long) / DI- > DI+ (short) · close beyond Box · 25–40 cap via TV Screener  ');
   console.log('                  Entry trigger: price breaks above Box Upper (Long) OR below Box Lower (Short)  ');
   console.log('                  VD is reference only — a BUY entry can have positive or negative VD  ');
   console.log('                  Quality: ✅ Up = Booker Quality Up · ↓ Down = Booker Quality Down · — = no signal  ');
