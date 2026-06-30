@@ -410,20 +410,22 @@ const sidResults = sidBrief ? sidBrief.symbols_scanned.filter(s => !EXCLUDED_TIC
   // Exit signals
   const sidLongExit   = parseNum(getVal(sidCSt?.values, 'Long Exit Signal',  'Long Exit'));
   const sidShortExit  = parseNum(getVal(sidCSt?.values, 'Short Exit Signal', 'Short Exit'));
-  // Confluence factors — from SID Trading Signals Pro v8.5.10 (embedded in indicator)
-  const wrsiGate      = parseNum(getVal(sidCSt?.values, 'Weekly RSI Gate', 'Weekly RSI gate', 'WRSI Gate'));
+  // Confluence factors — from SID Trading Signals Pro v8.5.12 (embedded in indicator)
+  // REMOVED: Weekly RSI Gate & Weekly MACD Align (proved unreliable in coding); Aroon Osc
+  // (dropped in favour of ADX + DI+/DI-).
   const wrsi          = parseNum(getVal(sidCSt?.values, 'Weekly RSI'));
   const sma200        = parseNum(getVal(sidCSt?.values, 'SMA200'));
-  const aroonOsc      = parseNum(getVal(sidCSt?.values, 'Aroon Osc', 'Aroon Oscillator'));
   const adxVal        = parseNum(getVal(sidCSt?.values, 'ADX'));
+  const diPlusSid     = parseNum(getVal(sidCSt?.values, 'DI+', '+DI', 'DI Plus'));
+  const diMinusSid    = parseNum(getVal(sidCSt?.values, 'DI-', '-DI', 'DI Minus'));
   const atrPctSid     = parseNum(getVal(sidCSt?.values, 'ATR%'));
   const gatrRatio     = parseNum(getVal(sidCSt?.values, 'Gap/ATR Ratio'));
-  const wmacdAlign    = parseNum(getVal(sidCSt?.values, 'Weekly MACD Align', 'Weekly MACD Aligned', 'WMACD Align'));
 
   // Fallback to standalone indicators if SID-C not found
-  const aroon  = aroonOsc ?? parseNum(getVal(aroonSt?.values, 'Aroon Oscillator', 'Aroon', 'aroon'));
-  const adx    = adxVal   ?? parseNum(getVal(adxSt?.values, 'ADX', 'adx'));
-  const atrPct = atrPctSid ?? parseNum(getVal(atrSt?.values, 'ATR% raw (buffer ref)', 'ATR%', 'ATR %'));
+  const adx     = adxVal     ?? parseNum(getVal(adxSt?.values, 'ADX', 'adx'));
+  const diPlus  = diPlusSid  ?? parseNum(getVal(adxSt?.values, 'DI+', '+DI'));
+  const diMinus = diMinusSid ?? parseNum(getVal(adxSt?.values, 'DI-', '-DI'));
+  const atrPct  = atrPctSid  ?? parseNum(getVal(atrSt?.values, 'ATR% raw (buffer ref)', 'ATR%', 'ATR %'));
   const vd     = parseVD(getVal(vdSt?.values, 'Volume Delta', 'Vol Delta', 'Delta', 'delta'));
   const vdPos  = vd != null ? vd > 0 : null;
 
@@ -447,8 +449,8 @@ const sidResults = sidBrief ? sidBrief.symbols_scanned.filter(s => !EXCLUDED_TIC
   const aboveSMA200 = (price != null && sma200 != null) ? price > sma200 : null;
   const sma200Pct   = pct(price, sma200);
 
-  // Signal passes on entry firing alone — Weekly RSI Gate shown as context, not a hard filter.
-  // User assesses weekly RSI direction by eye; wrsiGate and wrsi exposed as table columns.
+  // Signal passes on entry firing alone. Raw Weekly RSI exposed for a manual by-eye direction
+  // check; the computed Weekly RSI Gate & Weekly MACD Align were removed (unreliable). Aroon → ADX+DI.
   const isLongPass  = sidArmedLong  === 1;
   const isShortPass = sidArmedShort === 1;
   const isArmed     = sidArmedLong  === 1 || sidArmedShort === 1;
@@ -459,10 +461,10 @@ const sidResults = sidBrief ? sidBrief.symbols_scanned.filter(s => !EXCLUDED_TIC
   const inBTW         = btwSet.has(s.symbol);
 
   return {
-    sym: s.symbol, price, isLongPass, isShortPass, isArmed, wrsiGate,
+    sym: s.symbol, price, isLongPass, isShortPass, isArmed,
     sidArmedLong, sidArmedShort, sidLongExit, sidShortExit,
     wrsi, sma200, aboveSMA200, sma200Pct,
-    aroon, adx, atrPct, gatrRatio, rvol, vd, vdPos, wmacdAlign,
+    adx, diPlus, diMinus, atrPct, gatrRatio, rvol, vd, vdPos,
     inSIDScreener, inSIDBrief, inBTW,
     gpFlag, gpTop, gpBot,
     high: s.quote?.high, low: s.quote?.low,
@@ -1229,7 +1231,11 @@ if (!VERBOSE) {
   const lorpBriefFiltered    = applyBriefFilters(lorpBriefTickers);
   const lorpFiredOtherFiltered = applyBriefFilters(lorpFiredOther);
   const allLorpFiltered = [...lorpScreenerFiltered, ...lorpBriefFiltered, ...lorpFiredOtherFiltered];
-  const isBuyVD  = r => r.lorpBuySignal || r.entryType?.startsWith('Pullback') || (r.vd != null && r.vd > 0.5);
+  // Actionable = LONG (LORP is long-only) AND (fired LC Buy / Pullback entry) OR MACD0 in the
+  // -1..+2 band. The band keeps near-the-cross momentum and excludes EXTENDED names (MACD0 > 2,
+  // e.g. MTZ 6.08) and deep-below (< -1). Extended/out-of-band non-fired rows drop to context.
+  const macd0Band = r => { const m = (r.macd != null && r.macdSig != null) ? (r.macd - r.macdSig) : null; return m != null && m >= -1 && m <= 2; };
+  const isBuyVD  = r => r.lorpBuySignal || r.entryType?.startsWith('Pullback') || (r.vd != null && r.vd > 0.5 && macd0Band(r));
   const filteredBuyVD  = allLorpFiltered.filter(isBuyVD).length;
   const filteredSellVD = allLorpFiltered.filter(r => !isBuyVD(r)).length;
   const totalFiltered  = filteredBuyVD + filteredSellVD;
@@ -1237,7 +1243,7 @@ if (!VERBOSE) {
   if (totalFiltered === 0) {
     console.log('**✅ LORP — 0 candidates** *(TV Screener returned no tickers passing brief filters)*\n');
   } else {
-    console.log(`**✅ LORP — ${totalFiltered} candidates** *(${filteredBuyVD} Buy VD · ${filteredSellVD} Sell VD)*`);
+    console.log(`**✅ LORP — ${filteredBuyVD} actionable** *(Buy VD, MACD0 −1..+2; +${filteredSellVD} Sell VD / extended = context only)*`);
     console.log('*Pre-filtered by TV Screener + brief filters — check chart before acting*\n');
     console.log('*MACD0 = validated entry gate (✓ above / ⚠️ below Signal). ⚠️EXT = price above LC Upper Envelope Far (extended) — a LOOK-CLOSER cue only, NOT the reversion signal. Context columns (Cf, ADX, RVOL, Aroon, %B, ATR%, MAs, Chandelier) now live on the chart / confluence_check.py to keep the table readable. The actual Regular/Strong Mean Reversion DOWN flags export nameless and the data window cannot surface them reliably — vet those per-ticker with confluence_check.py.*\n');
   }
@@ -1388,8 +1394,8 @@ if (!VERBOSE) {
     // A fired LC Buy always sits in the Buy section regardless of VD (the entry leads).
     // Pullback entries: negative VD is expected — always shown in Buy section with ↓ (PB) note.
     // Trend/Breakout non-fired rows: VD > 0.5 to sit in Buy, else dropped to Sell-context.
-    const buyTickers  = filtered.filter(r => r.lorpBuySignal || r.entryType?.startsWith('Pullback') || (r.vd != null && r.vd > 0.5));
-    const sellTickers = filtered.filter(r => !r.lorpBuySignal && !r.entryType?.startsWith('Pullback') && (r.vd == null || r.vd <= 0.5));
+    const buyTickers  = filtered.filter(r => r.lorpBuySignal || r.entryType?.startsWith('Pullback') || (r.vd != null && r.vd > 0.5 && macd0Band(r)));
+    const sellTickers = filtered.filter(r => !(r.lorpBuySignal || r.entryType?.startsWith('Pullback') || (r.vd != null && r.vd > 0.5 && macd0Band(r))));
 
     if (buyTickers.length > 0) {
       console.log(`*${label} — Buy VD (${buyTickers.length}):*\n`);
@@ -1546,7 +1552,7 @@ if (!VERBOSE) {
   // ── SID Market Breadth (ETF vs Stock OB/OS counts) ──
   console.log('---\n');
   {
-    const sidScanned = sidResults.filter(r => !r.error && r.wrsi != null || r.sidArmedLong != null || r.sidArmedShort != null || r.aroon != null);
+    const sidScanned = sidResults.filter(r => !r.error && (r.wrsi != null || r.sidArmedLong != null || r.sidArmedShort != null || r.adx != null));
     // Use all scanned SID results that have RSI data to calculate breadth
     // OB = armed short (RSI has been >= 70), OS = armed long (RSI has been <= 30)
     const allSidScanned = sidResults.filter(r => !r.error);
@@ -1556,7 +1562,7 @@ if (!VERBOSE) {
     function baseTicker(sym) { return sym.includes(':') ? sym.split(':')[1] : sym; }
 
     // Use isLongPass/isShortPass so breadth counts match the signals table exactly
-    // (both require the Weekly RSI Gate to pass, not just a raw entry signal)
+    // (entry signal firing alone — Weekly RSI Gate removed as a gate)
     const etfOB    = allSidScanned.filter(r => r.isShortPass && etfUniverse.has(baseTicker(r.sym)));
     const etfOS    = allSidScanned.filter(r => r.isLongPass  && etfUniverse.has(baseTicker(r.sym)));
     const stockOB  = allSidScanned.filter(r => r.isShortPass && !etfUniverse.has(baseTicker(r.sym)));
@@ -1611,10 +1617,10 @@ if (!VERBOSE) {
   } else {
     console.log(`**⚡ SID — ${sidPass.length} signals** *(${sidLongs.length} Long · ${sidShorts.length} Short)*`);
     console.log('*SID entry signal fired — verify Gap/ATR Ratio manually before acting.*');
-    console.log('*Gap/ATR = how many ATRs the entry sits from the recent swing (direction-aware: low for longs, high for shorts). On the 300-trade log, HIGHER = more extended entry = LOWER expectancy — ≥2.0 underperformed <2.0 (P=0.000, both directions). Shown as an approximate starting point (~); calculate the real value manually before acting — no auto-flag, no hard reject. ATR% alone has low predictive value.*\n');
+    console.log('*Gap/ATR = SL distance in ATRs (how far the stop sits from entry). Per STRATEGIES.md: ≥2.0 ideal (sound stop room) · <1.5 avoid (stop too tight, noise-vulnerable). Shown as an approximate starting point (~); calculate the real value manually before acting — no auto-flag, no hard reject. ATR% alone has low predictive value.*\n');
 
-    const sidHeaders = ['Ticker','Sig','Price','Gap/ATR','ADX','SMA200','RVOL','Src'];
-    const sidRightAlign = new Set([2, 6]);  // Price, RVOL (others carry tags/marks -> left-aligned)
+    const sidHeaders = ['Ticker','Sig','Price','Gap/ATR','ADX','DI','SMA200','RVOL','Src'];
+    const sidRightAlign = new Set([2, 7]);  // Price, RVOL (others carry tags/marks -> left-aligned)
 
     function sidRowCells(r) {
       const D = '-';
@@ -1622,7 +1628,7 @@ if (!VERBOSE) {
       const sma200 = r.aboveSMA200 === true  ? ('Abv ' + (r.sma200Pct != null ? '+' + r.sma200Pct.toFixed(1) + '%' : '')).trim()
                    : r.aboveSMA200 === false ? ('Blw ' + (r.sma200Pct != null ? r.sma200Pct.toFixed(1) + '%' : '')).trim()
                    : D;
-      const aroon  = r.aroon  != null ? r.aroon.toFixed(0) : D;
+      const di     = (r.diPlus != null && r.diMinus != null) ? `${r.diPlus.toFixed(0)}/${r.diMinus.toFixed(0)}` : D;
       const adx    = r.adx == null ? D
                    : (r.adx >= 20 && r.adx <= 25) ? r.adx.toFixed(1) + ' NML'
                    : r.adx.toFixed(1);
@@ -1636,7 +1642,7 @@ if (!VERBOSE) {
       const vd     = vdDir == null ? D : (vdDir + ' ' + (vdAligned ? 'ok' : 'x'));
       const src    = normalizeSrc(r);
       // Weekly RSI + Weekly MACD removed from the brief entirely (weekly indicator deleted on TV).
-      return [r.sym, sig, '$' + fmt(r.price), gatr, adx, sma200, rvol, src];
+      return [r.sym, sig, '$' + fmt(r.price), gatr, adx, di, sma200, rvol, src];
     }
 
     function printSIDTable(rows) {
@@ -1649,10 +1655,11 @@ if (!VERBOSE) {
     }
 
     function extendedCaution(rows, swingWord) {
-      const ext = rows.filter(r => r.gatrRatio != null && r.gatrRatio >= 2.0).sort((a, b) => b.gatrRatio - a.gatrRatio);
-      if (!ext.length) return;
+      // Per STRATEGIES.md: Gap/ATR >= 2.0 is IDEAL (stop room); < 1.5 is the caution (stop too tight).
+      const tight = rows.filter(r => r.gatrRatio != null && r.gatrRatio < 1.5).sort((a, b) => a.gatrRatio - b.gatrRatio);
+      if (!tight.length) return;
       console.log('');
-      console.log(`> \ud83d\udea9 EXTENDED entries \u2014 Gap/ATR >= 2.0; entry sits far from the recent ${swingWord}, historically LOWER expectancy (verify before acting): ${ext.map(r => `${r.sym} (${r.gatrRatio.toFixed(2)})`).join(', ')}`);
+      console.log(`> \ud83d\udea9 TIGHT STOP \u2014 Gap/ATR < 1.5; stop sits too close to entry (noise-vulnerable), avoid: ${tight.map(r => `${r.sym} (${r.gatrRatio.toFixed(2)})`).join(', ')}`);
     }
 
     function adxCaution(rows) {
@@ -1843,8 +1850,8 @@ if (!VERBOSE) {
   console.log('**SID:**  Long: RSI crossed below 30 (OS touch) · RSI rising · MACD ↑ 1 bar  ');
   console.log('          Short: RSI crossed above 70 (OB touch) · RSI falling · MACD ↓ 1 bar  ');
   console.log('          SMA200 tier (HIGH CONVICTION ≥5% away) · ADX (<20 coiling ✓ · 20-25 NML ⚠️ · 25-40 trending)  ');
-  console.log('          Gap/ATR EXT = ≥2 extended (caution) · Src: SID·LORP·BTW·PB·BO·CAP  ');
-  console.log('          ATR% risk · Gap/ATR = entry extension (🚩 ≥2.0 EXTENDED = historically LOWER expectancy) · VD (ref)  ');
+  console.log('          Gap/ATR ≥2.0 ideal (stop room) · <1.5 avoid (stop too tight) · Src: SID·LORP·BTW·PB·BO·CAP  ');
+  console.log('          ATR% risk · Gap/ATR = SL distance in ATRs (per STRATEGIES.md: ≥2.0 ideal · <1.5 avoid) · VD (ref)  ');
   console.log('          🟡 GP: NEAR / 🟢 GP: IN — zone proximity reference only\n');
   console.log('**PULLBACK v2.0:** Entry trigger: Stage 3 🟢 ENTRY · Stage 2 🟠 EMA21 · Stage 1 🟡 PB  ');
   console.log('                   ADX + EMA21 Trend Setup (Booker Method) · SlingShotSystem bands  ');

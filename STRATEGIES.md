@@ -40,7 +40,7 @@ ATR%, RVOL, VD, Aroon, ADX, DI+/DI-, %B, WRB, Range%, vs Open, EMA50, SMA200, VI
 ## SID — OB/OS Bounce (Long + Short, Daily)
 
 **Layout:** XN1LuowU · Hint: `SID Trading Signals Pro`  
-**Indicator:** SID Trading Signals Pro v8.5.10 (entry + confluence), NOT v10.5.4.15 strategy
+**Indicator:** SID Trading Signals Pro v8.5.12 (entry + confluence), NOT v10.5.4.15 strategy
 
 ### Hard filters (brief code)
 
@@ -53,11 +53,9 @@ ATR%, RVOL, VD, Aroon, ADX, DI+/DI-, %B, WRB, Range%, vs Open, EMA50, SMA200, VI
 
 | Column | Notes |
 |--------|-------|
-| Weekly RSI | Raw value for manual direction check |
-| Gate ✅/⚠️ | Indicator-calculated: ✅ = weekly RSI direction aligns with trade, ⚠️ = does not. **Not a hard filter — assess by eye** |
+| Weekly RSI | Raw value for manual direction check (assess by eye). The computed Weekly RSI Gate & Weekly MACD Align were REMOVED — unreliable in coding. |
 | SMA200 | Price position vs SMA200 (conviction reference) |
-| Aroon | Direction context |
-| ADX | Trend strength context (<20 choppy, 20–25 danger zone) |
+| ADX + DI+/DI- | Trend strength + direction (<20 choppy, 20–25 danger zone). Replaces Aroon (dropped). |
 | ATR% | Risk sizing reference |
 | RVOL | Volume confirmation |
 | VD | Buy/Sell pressure reference |
