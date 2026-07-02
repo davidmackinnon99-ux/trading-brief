@@ -192,6 +192,11 @@ if [ $BRIEF_EXIT -eq 0 ] && [ -s "$OUTFILE_LORP" ]; then
     CSV_OUT="$BRIEFS_DIR/brief-$DATE-data.csv"
     echo "[$(date)] Generating tables..." >> "$LOGFILE"
     "$NODE" "$TV_DIR/scripts/analyse-brief.cjs" "$OUTFILE_LORP" "$OUTFILE_SID" "$OUTFILE_REGIME" "$OUTFILE_PULLBACK" "$OUTFILE_ADX" > "$TABLES_OUT" 2>> "$LOGFILE"
+    # ── LORP open-trade monitor — append to the brief body so it's emailed with the brief ──
+    # Grades the LORP rows in open_trades.csv (health verdict + suggested stop) via yfinance.
+    echo "[$(date)] Appending LORP open-trade monitor..." >> "$LOGFILE"
+    python3 "$TV_DIR/scripts/lorp_open_trades_report.py" >> "$TABLES_OUT" 2>> "$LOGFILE" \
+        || echo "[$(date)] LORP open-trade report failed (non-fatal)" >> "$LOGFILE"
     # Copy CSV and tables to Downloads/Briefs for easy access
     mkdir -p "$HOME/Downloads/Briefs"
     [ -f "$CSV_OUT" ]    && cp "$CSV_OUT"    "$HOME/Downloads/Briefs/brief-$DATE-data.csv" 2>/dev/null || true
