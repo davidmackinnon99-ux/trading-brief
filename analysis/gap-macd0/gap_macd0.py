@@ -72,20 +72,22 @@ def summarise(df, value_col, direction_aware):
     for lab in (BUCKET_ORDER if direction_aware else LABELS):
         sub = tmp[tmp["_bucket"] == lab]
         if len(sub) == 0:
-            rows.append((lab, 0, None, None)); continue
+            rows.append((lab, 0, None, None, None)); continue
         rows.append((lab, len(sub),
                      100 * sub["win"].mean(),
-                     sub["return_pct"].mean()))
+                     sub["return_pct"].mean(),
+                     sub["return_pct"].median()))
     return rows
 
 
 def print_table(title, rows):
     print(f"\n{title}")
-    print(f"  {'bucket':<11} {'N':>5} {'win%':>7} {'avg_ret%':>9}")
-    for lab, n, wr, ar in rows:
+    print(f"  {'bucket':<11} {'N':>5} {'win%':>7} {'avg_ret%':>9} {'med_ret%':>9}")
+    for lab, n, wr, ar, med in rows:
         wr_s = f"{wr:6.1f}" if wr is not None else "     -"
         ar_s = f"{ar:+8.2f}" if ar is not None else "       -"
-        print(f"  {lab:<11} {n:>5} {wr_s:>7} {ar_s:>9}")
+        med_s = f"{med:+8.2f}" if med is not None else "       -"
+        print(f"  {lab:<11} {n:>5} {wr_s:>7} {ar_s:>9} {med_s:>9}")
 
 
 def main():
@@ -132,11 +134,11 @@ def main():
             f.write(f"Input: `{path}` · {len(df)} trades · MACD0_IS_RAW={MACD0_IS_RAW}\n\n")
             for (var, d), rows in report.items():
                 f.write(f"## {var} — {d} (n={sum(df.direction==d)})\n\n")
-                f.write("| bucket | N | win% | avg_ret% |\n|---|---|---|---|\n")
-                for lab, n, wr, ar in rows:
+                f.write("| bucket | N | win% | avg_ret% | med_ret% |\n|---|---|---|---|---|\n")
+                for lab, n, wr, ar, med in rows:
                     f.write(f"| {lab} | {n} | "
-                            f"{wr:.1f} | {ar:+.2f} |\n" if wr is not None
-                            else f"| {lab} | {n} | - | - |\n")
+                            f"{wr:.1f} | {ar:+.2f} | {med:+.2f} |\n" if wr is not None
+                            else f"| {lab} | {n} | - | - | - |\n")
                 f.write("\n")
         print(f"\nwrote {md_out}")
 
