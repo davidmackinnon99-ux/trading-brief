@@ -22,7 +22,7 @@ Each factor is marked as a **hard filter** (tickers excluded/moved if it fails) 
 > **RVOL and Aroon are NOT brief-code filters** — `confluence_check.py` marks them "colour only / NOT validated." They are gated UPSTREAM at the TV Screener (RelVol>1.5, Aroon ≥0%), not in the brief code, and shown downstream as context only. (CAVA 2026-06-18 passed with RVOL 0.90 and Aroon −4.88, scoring 1/4 on context.)
 
 ### Pre-filtered upstream by TV Screener (before scan) — tightened 2026-06-21
-ATR <5%, MACD>0, EMA21>EMA34, Vol>1.5M, RelVol>1.5, Price>EMA34, Aroon ≥0%, RSI 45–75, Price ≥$15, Mkt Cap 2B to 100B, ADX>=20
+ATR <5%, MACD>0, EMA21>EMA34, Vol>1.2M, RelVol>1.5, Price>EMA34, Aroon ≥0%, RSI 45–75, Price ≥$15, Mkt Cap 2B to 100B, ADX>=20
 
 ### Entry type (Distance from Kernel)
 - Pullback 🔄 — Dist < 0.5
@@ -30,7 +30,7 @@ ATR <5%, MACD>0, EMA21>EMA34, Vol>1.5M, RelVol>1.5, Price>EMA34, Aroon ≥0%, RS
 - Breakout 🚀 — Dist > 1.5
 
 ### Context columns (shown, not filtered)
-ATR%, RVOL, VD, Aroon, ADX, DI+/DI-, WRB, Range%, vs Open, EMA50, SMA200, VIDYA, Chandelier Stop, Backtest Adapter History
+Bar Prediction Values, ATR%, RVOL, VD, Aroon, ADX, DI+/DI-, WRB, Range%, vs Open, EMA50, SMA200, VIDYA, Chandelier Stop, Backtest Adapter History
 
 ### Sig column flags
 `🟢 LC` / `🔴 LC` — LC Premium Buy/Sell · `🟢 A` / `🔴 A` — Aroon signal · `★ PP` — Pocket Pivot · `🔥 CD` — Climax Demand · `💪 SD` — Strong Demand · `🔥 CS` — Climax Supply · `💪 SS` — Strong Supply
