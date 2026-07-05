@@ -30,7 +30,7 @@ ATR <5%, MACD>0, EMA21>EMA34, Vol>1.5M, RelVol>1.5, Price>EMA34, Aroon ≥0%, RS
 - Breakout 🚀 — Dist > 1.5
 
 ### Context columns (shown, not filtered)
-ATR%, RVOL, VD, Aroon, ADX, DI+/DI-, %B, WRB, Range%, vs Open, EMA50, SMA200, VIDYA, Chandelier Stop, Backtest Adapter History
+ATR%, RVOL, VD, Aroon, ADX, DI+/DI-, WRB, Range%, vs Open, EMA50, SMA200, VIDYA, Chandelier Stop, Backtest Adapter History
 
 ### Sig column flags
 `🟢 LC` / `🔴 LC` — LC Premium Buy/Sell · `🟢 A` / `🔴 A` — Aroon signal · `★ PP` — Pocket Pivot · `🔥 CD` — Climax Demand · `💪 SD` — Strong Demand · `🔥 CS` — Climax Supply · `💪 SS` — Strong Supply
@@ -46,7 +46,7 @@ ATR%, RVOL, VD, Aroon, ADX, DI+/DI-, %B, WRB, Range%, vs Open, EMA50, SMA200, VI
 
 | Factor | Rule |
 |--------|------|
-| Entry signal | `Long Entry Signal = 1` or `Short Entry Signal = 1` from v8.5.10 must be true |
+| Entry signal | `Long Entry Signal = 1` or `Short Entry Signal = 1` from v8.5.12 must be true |
 | 10-bar rule | Built into indicator — entry can only fire within 10 bars of initial OB/OS cross |
 
 ### Context columns (shown, not filtered)
