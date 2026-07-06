@@ -1,0 +1,704 @@
+{
+  "study": {
+    "id": "63fa6651-d2dd-41e0-9226-537eca03d2bd",
+    "name": "BATS_CIFR_1D_refined_regime_focused",
+    "totalTrials": 100,
+    "status": "completed",
+    "symbol": "BATS",
+    "timeframe": "D"
+  },
+  "topTrials": [
+    {
+      "number": 13,
+      "value": 0.0840064782261074,
+      "params": {
+        "crossoverlag": 4,
+        "lookbackwindow": 7,
+        "maxbarsback": 7652,
+        "minimum_trades": 10,
+        "neighborscount": 21,
+        "regimethreshold": -1.51832219833545,
+        "regressionlevel": 49,
+        "relativeweight": 28,
+        "smaperiod": 29
+      },
+      "state": "COMPLETE",
+      "datetime_start": "2026-07-06T02:12:13.068925",
+      "datetime_complete": "2026-07-06T02:12:16.996113",
+      "duration": 3.927188
+    },
+    {
+      "number": 17,
+      "value": 0.071146002506115,
+      "params": {
+        "crossoverlag": 6,
+        "lookbackwindow": 8,
+        "maxbarsback": 6615,
+        "minimum_trades": 10,
+        "neighborscount": 14,
+        "regimethreshold": -1.26675294990005,
+        "regressionlevel": 35,
+        "relativeweight": 24,
+        "smaperiod": 48
+      },
+      "state": "COMPLETE",
+      "datetime_start": "2026-07-06T02:12:39.156895",
+      "datetime_complete": "2026-07-06T02:12:43.098323",
+      "duration": 3.941428
+    },
+    {
+      "number": 4,
+      "value": 0.0679997271431581,
+      "params": {
+        "crossoverlag": 5,
+        "lookbackwindow": 12,
+        "maxbarsback": 6098,
+        "minimum_trades": 10,
+        "neighborscount": 14,
+        "regimethreshold": -1.27173397226531,
+        "regressionlevel": 59,
+        "relativeweight": 13,
+        "smaperiod": 70
+      },
+      "state": "COMPLETE",
+      "datetime_start": "2026-07-06T02:11:26.387081",
+      "datetime_complete": "2026-07-06T02:11:30.314936",
+      "duration": 3.927855
+    },
+    {
+      "number": 16,
+      "value": 0.0661050452827432,
+      "params": {
+        "crossoverlag": 5,
+        "lookbackwindow": 10,
+        "maxbarsback": 6665,
+        "minimum_trades": 10,
+        "neighborscount": 14,
+        "regimethreshold": -0.942734915726599,
+        "regressionlevel": 59,
+        "relativeweight": 30,
+        "smaperiod": 77
+      },
+      "state": "COMPLETE",
+      "datetime_start": "2026-07-06T02:12:32.694873",
+      "datetime_complete": "2026-07-06T02:12:36.605723",
+      "duration": 3.91085
+    },
+    {
+      "number": 14,
+      "value": 0.0654490324093307,
+      "params": {
+        "crossoverlag": 7,
+        "lookbackwindow": 12,
+        "maxbarsback": 7574,
+        "minimum_trades": 10,
+        "neighborscount": 12,
+        "regimethreshold": -1.61871407615501,
+        "regressionlevel": 49,
+        "relativeweight": 18,
+        "smaperiod": 45
+      },
+      "state": "COMPLETE",
+      "datetime_start": "2026-07-06T02:12:19.714570",
+      "datetime_complete": "2026-07-06T02:12:23.664555",
+      "duration": 3.949985
+    },
+    {
+      "number": 8,
+      "value": 0.0404612132234411,
+      "params": {
+        "crossoverlag": 4,
+        "lookbackwindow": 14,
+        "maxbarsback": 7036,
+        "minimum_trades": 10,
+        "neighborscount": 27,
+        "regimethreshold": -1.54898531366764,
+        "regressionlevel": 59,
+        "relativeweight": 27,
+        "smaperiod": 66
+      },
+      "state": "COMPLETE",
+      "datetime_start": "2026-07-06T02:11:46.289375",
+      "datetime_complete": "2026-07-06T02:11:50.214408",
+      "duration": 3.925033
+    },
+    {
+      "number": 15,
+      "value": 0.038540561363033,
+      "params": {
+        "crossoverlag": 5,
+        "lookbackwindow": 10,
+        "maxbarsback": 7716,
+        "minimum_trades": 10,
+        "neighborscount": 33,
+        "regimethreshold": -1.54270664624174,
+        "regressionlevel": 58,
+        "relativeweight": 12,
+        "smaperiod": 37
+      },
+      "state": "COMPLETE",
+      "datetime_start": "2026-07-06T02:12:26.228935",
+      "datetime_complete": "2026-07-06T02:12:30.162057",
+      "duration": 3.933122
+    },
+    {
+      "number": 19,
+      "value": 0.0286263734893008,
+      "params": {
+        "crossoverlag": 7,
+        "lookbackwindow": 15,
+        "maxbarsback": 7539,
+        "minimum_trades": 10,
+        "neighborscount": 11,
+        "regimethreshold": -1.63244578860242,
+        "regressionlevel": 36,
+        "relativeweight": 26,
+        "smaperiod": 78
+      },
+      "state": "COMPLETE",
+      "datetime_start": "2026-07-06T02:12:50.202553",
+      "datetime_complete": "2026-07-06T02:12:54.183987",
+      "duration": 3.981434
+    },
+    {
+      "number": 2,
+      "value": 0.0213423159142814,
+      "params": {
+        "crossoverlag": 5,
+        "lookbackwindow": 13,
+        "maxbarsback": 6070,
+        "minimum_trades": 10,
+        "neighborscount": 6,
+        "regimethreshold": -1.91854401387984,
+        "regressionlevel": 52,
+        "relativeweight": 1,
+        "smaperiod": 53
+      },
+      "state": "COMPLETE",
+      "datetime_start": "2026-07-06T02:11:15.290312",
+      "datetime_complete": "2026-07-06T02:11:19.205386",
+      "duration": 3.915074
+    },
+    {
+      "number": 10,
+      "value": 0.018056989269971,
+      "params": {
+        "crossoverlag": 6,
+        "lookbackwindow": 12,
+        "maxbarsback": 6059,
+        "minimum_trades": 10,
+        "neighborscount": 11,
+        "regimethreshold": -1.97846599330922,
+        "regressionlevel": 59,
+        "relativeweight": 21,
+        "smaperiod": 71
+      },
+      "state": "COMPLETE",
+      "datetime_start": "2026-07-06T02:11:57.408094",
+      "datetime_complete": "2026-07-06T02:12:01.410792",
+      "duration": 4.002698
+    },
+    {
+      "number": 70,
+      "value": 0.0135703728246283,
+      "params": {
+        "crossoverlag": 6,
+        "lookbackwindow": 15,
+        "maxbarsback": 6325,
+        "minimum_trades": 10,
+        "neighborscount": 11,
+        "regimethreshold": -1.70899074085473,
+        "regressionlevel": 55,
+        "relativeweight": 24,
+        "smaperiod": 28
+      },
+      "state": "COMPLETE",
+      "datetime_start": "2026-07-06T02:17:01.966701",
+      "datetime_complete": "2026-07-06T02:17:05.948790",
+      "duration": 3.982089
+    },
+    {
+      "number": 96,
+      "value": 0.00745303767788523,
+      "params": {
+        "crossoverlag": 6,
+        "lookbackwindow": 14,
+        "maxbarsback": 6016,
+        "minimum_trades": 10,
+        "neighborscount": 7,
+        "regimethreshold": -0.659829952558187,
+        "regressionlevel": 51,
+        "relativeweight": 24,
+        "smaperiod": 52
+      },
+      "state": "COMPLETE",
+      "datetime_start": "2026-07-06T02:19:11.021853",
+      "datetime_complete": "2026-07-06T02:19:15.026358",
+      "duration": 4.004505
+    },
+    {
+      "number": 31,
+      "value": 0.00123057181716252,
+      "params": {
+        "crossoverlag": 4,
+        "lookbackwindow": 12,
+        "maxbarsback": 6302,
+        "minimum_trades": 10,
+        "neighborscount": 7,
+        "regimethreshold": -1.26574343591225,
+        "regressionlevel": 37,
+        "relativeweight": 11,
+        "smaperiod": 51
+      },
+      "state": "COMPLETE",
+      "datetime_start": "2026-07-06T02:13:49.237975",
+      "datetime_complete": "2026-07-06T02:13:53.227906",
+      "duration": 3.989931
+    },
+    {
+      "number": 44,
+      "value": 0.000671103909111689,
+      "params": {
+        "crossoverlag": 5,
+        "lookbackwindow": 11,
+        "maxbarsback": 6208,
+        "minimum_trades": 10,
+        "neighborscount": 8,
+        "regimethreshold": -1.06447208659048,
+        "regressionlevel": 49,
+        "relativeweight": 22,
+        "smaperiod": 30
+      },
+      "state": "COMPLETE",
+      "datetime_start": "2026-07-06T02:14:53.441711",
+      "datetime_complete": "2026-07-06T02:14:57.437420",
+      "duration": 3.995709
+    }
+  ],
+  "analysis": {
+    "parameterStatistics": {
+      "crossoverlag": {
+        "name": "crossoverlag",
+        "min": 4,
+        "max": 7,
+        "avg": 5.357142857142857,
+        "stdDev": 0.9715336077668173,
+        "values": [
+          4,
+          6,
+          5,
+          5,
+          7,
+          4,
+          5,
+          7,
+          5,
+          6,
+          6,
+          6,
+          4,
+          5
+        ],
+        "convergenceScore": 0.3238445359222724
+      },
+      "lookbackwindow": {
+        "name": "lookbackwindow",
+        "min": 7,
+        "max": 15,
+        "avg": 11.785714285714286,
+        "stdDev": 2.3353975320388303,
+        "values": [
+          7,
+          8,
+          12,
+          10,
+          12,
+          14,
+          10,
+          15,
+          13,
+          12,
+          15,
+          14,
+          12,
+          11
+        ],
+        "convergenceScore": 0.2919246915048538
+      },
+      "maxbarsback": {
+        "name": "maxbarsback",
+        "min": 6016,
+        "max": 7716,
+        "avg": 6705.357142857143,
+        "stdDev": 638.4375578755705,
+        "values": [
+          7652,
+          6615,
+          6098,
+          6665,
+          7574,
+          7036,
+          7716,
+          7539,
+          6070,
+          6059,
+          6325,
+          6016,
+          6302,
+          6208
+        ],
+        "convergenceScore": 0.37555150463268855
+      },
+      "minimum_trades": {
+        "name": "minimum_trades",
+        "min": 10,
+        "max": 10,
+        "avg": 10,
+        "stdDev": 0,
+        "values": [
+          10,
+          10,
+          10,
+          10,
+          10,
+          10,
+          10,
+          10,
+          10,
+          10,
+          10,
+          10,
+          10,
+          10
+        ],
+        "convergenceScore": 0
+      },
+      "neighborscount": {
+        "name": "neighborscount",
+        "min": 6,
+        "max": 33,
+        "avg": 14,
+        "stdDev": 7.596991885890475,
+        "values": [
+          21,
+          14,
+          14,
+          14,
+          12,
+          27,
+          33,
+          11,
+          6,
+          11,
+          11,
+          7,
+          7,
+          8
+        ],
+        "convergenceScore": 0.2813700698477954
+      },
+      "regimethreshold": {
+        "name": "regimethreshold",
+        "min": -1.97846599330922,
+        "max": -0.659829952558187,
+        "avg": -1.4241744345713518,
+        "stdDev": 0.35566708841423195,
+        "values": [
+          -1.51832219833545,
+          -1.26675294990005,
+          -1.27173397226531,
+          -0.942734915726599,
+          -1.61871407615501,
+          -1.54898531366764,
+          -1.54270664624174,
+          -1.63244578860242,
+          -1.91854401387984,
+          -1.97846599330922,
+          -1.70899074085473,
+          -0.659829952558187,
+          -1.26574343591225,
+          -1.06447208659048
+        ],
+        "convergenceScore": 0.26972346987547885
+      },
+      "regressionlevel": {
+        "name": "regressionlevel",
+        "min": 35,
+        "max": 59,
+        "avg": 50.5,
+        "stdDev": 8.483176628733231,
+        "values": [
+          49,
+          35,
+          59,
+          59,
+          49,
+          59,
+          58,
+          36,
+          52,
+          59,
+          55,
+          51,
+          37,
+          49
+        ],
+        "convergenceScore": 0.35346569286388463
+      },
+      "relativeweight": {
+        "name": "relativeweight",
+        "min": 1,
+        "max": 30,
+        "avg": 20.071428571428573,
+        "stdDev": 7.841868269690818,
+        "values": [
+          28,
+          24,
+          13,
+          30,
+          18,
+          27,
+          12,
+          26,
+          1,
+          21,
+          24,
+          24,
+          11,
+          22
+        ],
+        "convergenceScore": 0.27040925067899374
+      },
+      "smaperiod": {
+        "name": "smaperiod",
+        "min": 28,
+        "max": 78,
+        "avg": 52.5,
+        "stdDev": 17.02833772610485,
+        "values": [
+          29,
+          48,
+          70,
+          77,
+          45,
+          66,
+          37,
+          78,
+          53,
+          71,
+          28,
+          52,
+          51,
+          30
+        ],
+        "convergenceScore": 0.340566754522097
+      }
+    },
+    "parameterImportance": [
+      {
+        "name": "neighborscount",
+        "importance": 0.37027123259595257,
+        "avgValue": 14,
+        "range": 27,
+        "correlation": 0.4418305009297544,
+        "rankCorrelation": 0.7142857142857143,
+        "varianceContribution": 0.6129122983055248,
+        "permutationImportance": 0.29340943962899824,
+        "fanovaScore": 0.6129122983055248,
+        "mdiScore": 0.000599400833919306,
+        "pruningAwareScore": 0,
+        "hybridScore": 0.37027123259595257
+      },
+      {
+        "name": "minimum_trades",
+        "importance": 0.3645587534753275,
+        "avgValue": 10,
+        "range": 0,
+        "correlation": 0,
+        "rankCorrelation": -1,
+        "varianceContribution": 0.9110080127945943,
+        "permutationImportance": 0,
+        "fanovaScore": 0.9110080127945943,
+        "mdiScore": 0.0006221934299589909,
+        "pruningAwareScore": 0,
+        "hybridScore": 0.3645587534753275
+      },
+      {
+        "name": "lookbackwindow",
+        "importance": 0.32807563927647754,
+        "avgValue": 11.785714285714286,
+        "range": 8,
+        "correlation": -0.6177766461866965,
+        "rankCorrelation": -0.5956043956043956,
+        "varianceContribution": 0.5014812933422266,
+        "permutationImportance": 0.1736344846374731,
+        "fanovaScore": 0.5014812933422266,
+        "mdiScore": 0.00035891233635117946,
+        "pruningAwareScore": 0,
+        "hybridScore": 0.32807563927647754
+      },
+      {
+        "name": "maxbarsback",
+        "importance": 0.30147939951663005,
+        "avgValue": 6705.357142857143,
+        "range": 1700,
+        "correlation": 0.5091633152414504,
+        "rankCorrelation": 0.5296703296703297,
+        "varianceContribution": 0.32705219530434104,
+        "permutationImportance": 0.4709755950934665,
+        "fanovaScore": 0.32705219530434104,
+        "mdiScore": 0.0003556203599309667,
+        "pruningAwareScore": 0,
+        "hybridScore": 0.30147939951663005
+      },
+      {
+        "name": "smaperiod",
+        "importance": 0.17088459571402673,
+        "avgValue": 52.5,
+        "range": 50,
+        "correlation": 0.10542317642130504,
+        "rankCorrelation": 0.0989010989010989,
+        "varianceContribution": 0.3617517593469003,
+        "permutationImportance": 0.05179074582894493,
+        "fanovaScore": 0.3617517593469003,
+        "mdiScore": 0.00004906538512747705,
+        "pruningAwareScore": 0,
+        "hybridScore": 0.17088459571402673
+      },
+      {
+        "name": "regimethreshold",
+        "importance": 0.1398825721978682,
+        "avgValue": -1.4241744345713518,
+        "range": 1.318636040751033,
+        "correlation": -0.008152668799272386,
+        "rankCorrelation": -0.006593406593406593,
+        "varianceContribution": 0.3465625902429589,
+        "permutationImportance": 0,
+        "fanovaScore": 0.3465625902429589,
+        "mdiScore": 0.0001385431231751506,
+        "pruningAwareScore": 0,
+        "hybridScore": 0.1398825721978682
+      },
+      {
+        "name": "relativeweight",
+        "importance": 0.13663482906912233,
+        "avgValue": 20.071428571428573,
+        "range": 29,
+        "correlation": 0.26585761086014115,
+        "rankCorrelation": 0.31868131868131866,
+        "varianceContribution": 0.18121780744427582,
+        "permutationImportance": 0.1210511001712177,
+        "fanovaScore": 0.18121780744427582,
+        "mdiScore": 0.0002353777125891544,
+        "pruningAwareScore": 0,
+        "hybridScore": 0.13663482906912233
+      },
+      {
+        "name": "regressionlevel",
+        "importance": 0.10690181150905907,
+        "avgValue": 50.5,
+        "range": 24,
+        "correlation": 0.08025821296241008,
+        "rankCorrelation": -0.02857142857142857,
+        "varianceContribution": 0.2371024332855484,
+        "permutationImportance": 0,
+        "fanovaScore": 0.2371024332855484,
+        "mdiScore": 0.00008842500191277164,
+        "pruningAwareScore": 0,
+        "hybridScore": 0.10690181150905907
+      },
+      {
+        "name": "crossoverlag",
+        "importance": 0.07989843789943689,
+        "avgValue": 5.357142857142857,
+        "range": 3,
+        "correlation": -0.03909218740708558,
+        "rankCorrelation": -0.3230769230769231,
+        "varianceContribution": 0.18498243217271249,
+        "permutationImportance": 0,
+        "fanovaScore": 0.18498243217271249,
+        "mdiScore": 0.0001665476771562064,
+        "pruningAwareScore": 0,
+        "hybridScore": 0.07989843789943689
+      }
+    ],
+    "convergenceRate": 0.9230769230769231,
+    "performanceProgression": [
+      {
+        "rank": 14,
+        "value": 0.000671103909111689,
+        "improvement": 0
+      },
+      {
+        "rank": 13,
+        "value": 0.00123057181716252,
+        "improvement": 83.36531801630753
+      },
+      {
+        "rank": 12,
+        "value": 0.00745303767788523,
+        "improvement": 1010.5638898379375
+      },
+      {
+        "rank": 11,
+        "value": 0.0135703728246283,
+        "improvement": 1922.0971209347913
+      },
+      {
+        "rank": 10,
+        "value": 0.018056989269971,
+        "improvement": 2590.6398584195776
+      },
+      {
+        "rank": 9,
+        "value": 0.0213423159142814,
+        "improvement": 3080.180539036242
+      },
+      {
+        "rank": 8,
+        "value": 0.0286263734893008,
+        "improvement": 4165.565004261753
+      },
+      {
+        "rank": 7,
+        "value": 0.038540561363033,
+        "improvement": 5642.860507853019
+      },
+      {
+        "rank": 6,
+        "value": 0.0404612132234411,
+        "improvement": 5929.053425869303
+      },
+      {
+        "rank": 5,
+        "value": 0.0654490324093307,
+        "improvement": 9652.443924214766
+      },
+      {
+        "rank": 4,
+        "value": 0.0661050452827432,
+        "improvement": 9750.195235823252
+      },
+      {
+        "rank": 3,
+        "value": 0.0679997271431581,
+        "improvement": 10032.518410325814
+      },
+      {
+        "rank": 2,
+        "value": 0.071146002506115,
+        "improvement": 10501.339306797938
+      },
+      {
+        "rank": 1,
+        "value": 0.0840064782261074,
+        "improvement": 12417.655922657807
+      }
+    ]
+  },
+  "recommendations": [
+    "Strong parameter convergence detected - the optimization has found a stable region",
+    "Focus on fine-tuning: Neighbors Count, Minimum Trades, Lookback Window - these show the highest impact",
+    "Performance is still improving significantly - consider running more trials"
+  ]
+}
