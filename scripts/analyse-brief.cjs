@@ -420,6 +420,10 @@ const sidResults = sidBrief ? sidBrief.symbols_scanned.filter(s => !EXCLUDED_TIC
   const diMinusSid    = parseNum(getVal(sidCSt?.values, 'DI-', '-DI', 'DI Minus'));
   const atrPctSid     = parseNum(getVal(sidCSt?.values, 'ATR%'));
   const gatrRatio     = parseNum(getVal(sidCSt?.values, 'Gap/ATR Ratio'));
+  // MACD0 (MACD vs Signal) for the SID table — same source as the LORP path.
+  const macdStSid  = getStudy(studies, 'MACD_Cross Zero', 'MACD Cross Zero', 'MACD');
+  const macdSid    = parseNum(getVal(macdStSid?.values, 'MACD', 'MACD Line', 'MACD line'));
+  const macdSigSid = parseNum(getVal(macdStSid?.values, 'Signal Line', 'Signal', 'signal'));
 
   // Fallback to standalone indicators if SID-C not found
   const adx     = adxVal     ?? parseNum(getVal(adxSt?.values, 'ADX', 'adx'));
@@ -465,6 +469,7 @@ const sidResults = sidBrief ? sidBrief.symbols_scanned.filter(s => !EXCLUDED_TIC
     sidArmedLong, sidArmedShort, sidLongExit, sidShortExit,
     wrsi, sma200, aboveSMA200, sma200Pct,
     adx, diPlus, diMinus, atrPct, gatrRatio, rvol, vd, vdPos,
+    macd: macdSid, macdSig: macdSigSid,
     inSIDScreener, inSIDBrief, inBTW,
     gpFlag, gpTop, gpBot,
     high: s.quote?.high, low: s.quote?.low,
@@ -1619,8 +1624,8 @@ if (!VERBOSE) {
     console.log('*SID entry signal fired — verify Gap/ATR Ratio manually before acting.*');
     console.log('*Gap/ATR = SL distance in ATRs (how far the stop sits from entry). Per STRATEGIES.md: ≥2.0 ideal (sound stop room) · <1.5 avoid (stop too tight, noise-vulnerable). Shown as an approximate starting point (~); calculate the real value manually before acting — no auto-flag, no hard reject. ATR% alone has low predictive value.*\n');
 
-    const sidHeaders = ['Ticker','Sig','Price','Gap/ATR','ADX','DI','SMA200','RVOL','Src'];
-    const sidRightAlign = new Set([2, 7]);  // Price, RVOL (others carry tags/marks -> left-aligned)
+    const sidHeaders = ['Ticker','Sig','Price','MACD0','Gap/ATR','ADX','DI','SMA200','RVOL','Src'];
+    const sidRightAlign = new Set([2, 8]);  // Price, RVOL (MACD0 inserted at idx 3 -> RVOL shifts to 8)
 
     function sidRowCells(r) {
       const D = '-';
@@ -1642,7 +1647,9 @@ if (!VERBOSE) {
       const vd     = vdDir == null ? D : (vdDir + ' ' + (vdAligned ? 'ok' : 'x'));
       const src    = normalizeSrc(r);
       // Weekly RSI + Weekly MACD removed from the brief entirely (weekly indicator deleted on TV).
-      return [r.sym, sig, '$' + fmt(r.price), gatr, adx, di, sma200, rvol, src];
+      const macd0    = (r.macd != null && r.macdSig != null) ? (r.macd - r.macdSig) : null;
+      const macd0Str = macd0 == null ? D : (macd0 >= 0 ? '+' : '') + macd0.toFixed(2);
+      return [r.sym, sig, '$' + fmt(r.price), macd0Str, gatr, adx, di, sma200, rvol, src];
     }
 
     function printSIDTable(rows) {
