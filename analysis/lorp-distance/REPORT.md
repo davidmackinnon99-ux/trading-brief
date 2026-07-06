@@ -38,6 +38,11 @@ trades. 30 entries total (29 closed, 1 open). See `inputs/`, full run in `output
 
 - **Tiny, non-random sample.** These 5 tickers were selected *because* they held recent losers —
   selection bias. Absolute expectancies are unreliable; the relative pattern is only suggestive.
+- **The expectancy gap is outlier-driven — do NOT lean on it.** The not-extended bucket's
+  +4.97% is almost entirely one trade (BE 2026-01-05, +41%). Remove that single outlier and the
+  not-extended bucket falls to ~+1.7%/trade, indistinguishable from extended's +1.49%. So on this
+  sample the *only* stable signal is the win-rate gap (47% vs 58%), and even that is small-sample.
+  The geometry rationale stands on its own; the P&L numbers do not yet.
 - **Systematic ≠ live.** These outcomes are the v2.11 rule's, not the discretionary results
   actually taken (which included breakeven moves). Divergences between the two are themselves
   informative about management vs entry.
