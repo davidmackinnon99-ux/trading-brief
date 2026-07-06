@@ -13,3 +13,11 @@ safety-check-log.json
 # Large generated data files
 *.json.bak
 briefs/
+
+# Secrets — never commit
+.env
+.env.*
+!.env.example
+
+# Install-time symlink created by the one-shot setup
+AGENTS.md
