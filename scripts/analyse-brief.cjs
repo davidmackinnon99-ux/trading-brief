@@ -1647,8 +1647,9 @@ if (!VERBOSE) {
       const vd     = vdDir == null ? D : (vdDir + ' ' + (vdAligned ? 'ok' : 'x'));
       const src    = normalizeSrc(r);
       // Weekly RSI + Weekly MACD removed from the brief entirely (weekly indicator deleted on TV).
-      const macd0    = (r.macd != null && r.macdSig != null) ? (r.macd - r.macdSig) : null;
-      const macd0Str = macd0 == null ? D : (macd0 >= 0 ? '+' : '') + macd0.toFixed(2);
+      // MACD0 distance normalised to % of price ((macd-signal)/price*100) so it is comparable across tickers.
+      const macd0Pct = (r.macd != null && r.macdSig != null && r.price) ? (r.macd - r.macdSig) / r.price * 100 : null;
+      const macd0Str = macd0Pct == null ? D : (macd0Pct >= 0 ? '+' : '') + macd0Pct.toFixed(2) + '%';
       return [r.sym, sig, '$' + fmt(r.price), macd0Str, gatr, adx, di, sma200, rvol, src];
     }
 
@@ -1676,6 +1677,14 @@ if (!VERBOSE) {
       console.log(`> ⚠️ ADX no-man's-land (20–25) — neither coiling (<20) nor trending (≥25); directional read unreliable: ${nml.map(r => `${r.sym} (${r.adx.toFixed(1)})`).join(', ')}`);
     }
 
+    // Validated SID short guards (sid-adx-analysis): ADX 40-50 run-over, MACD0 >= +0.25% premature fade.
+    function sidShortCaution(rows) {
+      const runover = rows.filter(r => r.adx != null && r.adx >= 40 && r.adx < 50);
+      const premature = rows.filter(r => r.macd != null && r.macdSig != null && r.price && ((r.macd - r.macdSig) / r.price * 100) >= 0.25);
+      if (runover.length) { console.log(''); console.log(`> ⛔ SHORT run-over zone — ADX 40–50 (validated −3.16%/trade, avg loss −13.6%): ${runover.map(r => `${r.sym} (${r.adx.toFixed(1)})`).join(', ')}`); }
+      if (premature.length) { console.log(''); console.log(`> ⚠️ Premature fade — MACD0 ≥ +0.25% above signal (validated −0.81%/trade): ${premature.map(r => r.sym).join(', ')}`); }
+    }
+
     if (sidLongs.length > 0) {
       console.log(`*Long candidates (${sidLongs.length}):*\n`);
       printSIDTable(sidLongs);
@@ -1688,6 +1697,7 @@ if (!VERBOSE) {
       console.log(`*Short candidates (${sidShorts.length}):*\n`);
       printSIDTable(sidShorts);
       adxCaution(sidShorts);
+      sidShortCaution(sidShorts);
       gpCaution(sidShorts);
       console.log('');
     }
