@@ -1,7 +1,7 @@
 # SID Strategy — Project Continuity
 
 **Living doc — git is the version history (no more numbered copies).**
-**Last updated:** 30 June 2026
+**Last updated:** 7 July 2026
 **Supersedes:** SID_Project_Continuity_9 (29 Mar 2026) + the iCloud `v10` draft — both archive only.
 **Strategy:** v10.5.4.15 (backtest) · **Indicator:** SID Trading Signals Pro v8.5.12 (entry+confluence)
 
@@ -28,6 +28,29 @@ satellites realigned:
 - Versions corrected: strategy → v10.5.4.15; indicator → v8.5.12 (STRATEGIES.md updated).
 - **ADX band resolved:** defer to STRATEGIES.md — SID danger zone = **20–25** (<20 choppy).
   v9 §25's "30–40 danger" (4-ticker set) is archived as superseded.
+
+---
+
+## 1b. Findings update — 7 July 2026 (validated on the 2,618-trade `trades_all.csv`)
+Committed analyses: `Indicators/sid-adx-analysis/` (ADX, MACD0-distance, DI-spread) + broad-39 OOS
+verdict in `sid-macd-analysis/results/FINDINGS_out_of_sample.md`. Criteria authority stays STRATEGIES.md.
+
+- **ADX is direction-dependent, not one band.** LONGS positive across *every* ADX bucket, *best* at
+  high ADX (40–50 +1.71, 50+ +3.0) — rising/high ADX does NOT hurt a SID long (RVOL-like intuition
+  holds). SHORTS net-negative: hard-avoid ADX 40–50 (run-over −3.16, avg loss −13.6%), 15–30 negative.
+  Refines the "20–25 danger" note into the long/short split; 20–25 stays weakest for shorts.
+- **MACD0 distance** (normalised = (MACD−Signal)/price×100) does NOT gate longs. Shorts: below-signal
+  favourable; far-above (≥+0.25%) is the loss zone.
+- **DI+/DI− now captured** (`merge_trades.py`, backfilled all 2,618). **DI spread (DI+−DI−) is the real
+  short gate:** shorts fire in uptrends (median spread +16); spread ≥20 = run-over (−1.02). SHORT rule:
+  spread < ~10, ideally DI− leading. LONGS not gated by spread.
+- **Curated MACD0 "Goldilocks" (0.25–0.5% above signal) is IN-SAMPLE overfitting** — inverts on 1,403
+  broad OOS shorts. `macd0_pct` changed to objective signed distance (no favourable flip).
+- **Consolidated SID entry rules:** LONGS — take the oversold bounce, no ADX/MACD0/DI veto. SHORTS —
+  gate hard (DI spread < ~10, MACD0 at-or-below signal, avoid ADX 40–50); most current short signals
+  fail this, which is why the short book is net-negative as taken.
+- **Open:** wire DI-spread short gate into the brief; capture 3-bar spread *change*; consider folding
+  the short-gate rules into STRATEGIES.md (authority — not changed here).
 
 ---
 
