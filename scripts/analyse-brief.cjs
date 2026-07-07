@@ -1647,9 +1647,10 @@ if (!VERBOSE) {
       const vd     = vdDir == null ? D : (vdDir + ' ' + (vdAligned ? 'ok' : 'x'));
       const src    = normalizeSrc(r);
       // Weekly RSI + Weekly MACD removed from the brief entirely (weekly indicator deleted on TV).
-      // MACD0 distance normalised to % of price ((macd-signal)/price*100) so it is comparable across tickers.
-      const macd0Pct = (r.macd != null && r.macdSig != null && r.price) ? (r.macd - r.macdSig) / r.price * 100 : null;
-      const macd0Str = macd0Pct == null ? D : (macd0Pct >= 0 ? '+' : '') + macd0Pct.toFixed(2) + '%';
+      // MACD0 = RAW (MACD - Signal), matching the chart and the LORP brief convention (STRATEGIES.md).
+      // The %-of-price normalisation is used only inside the short-gate flags for cross-ticker comparability.
+      const macd0Raw = (r.macd != null && r.macdSig != null) ? (r.macd - r.macdSig) : null;
+      const macd0Str = macd0Raw == null ? D : (macd0Raw >= 0 ? '+' : '') + macd0Raw.toFixed(2);
       return [r.sym, sig, '$' + fmt(r.price), macd0Str, gatr, adx, di, sma200, rvol, src];
     }
 
