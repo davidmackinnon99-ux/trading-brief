@@ -35,6 +35,30 @@ exhausting, resistance / supply zone).
 
 ---
 
+## SID validated direction rules — 7 July 2026 (on 2,618 trades; see `Indicators/sid-adx-analysis/`)
+
+The 6-factor score above is the manual read. These are the DATA-VALIDATED direction rules that
+override intuition — now also flagged live in the brief (`analyse-brief.cjs` `sidShortCaution`):
+
+**LONGS — take the oversold bounce; NO veto.**
+- ADX: positive across *every* band, best at high ADX (40–50 +1.71/trade). Rising/high ADX is fine (RVOL-like).
+- MACD0 distance (normalised (MACD−Signal)/price): does NOT gate. Below-signal is normal.
+- DI spread: does NOT gate (longs fire in downtrends, median spread −16).
+
+**SHORTS — net-negative as taken; gate HARD (all three say "don't fade strength"):**
+- DI spread (DI+−DI−): require **< ~10**, ideally DI− leading. **Avoid ≥ 20** (run-over −1.02, avg loss −9). ⛔ brief.
+- ADX: **avoid 40–50** (run-over −3.16, avg loss −13.6%). 15–30 negative. ⛔ brief.
+- MACD0 side: favourable **at/below signal**; **avoid ≥ +0.25% above signal** (premature fade −0.81). ⚠️ brief.
+
+**CORRECTION:** the earlier curated "MACD0 0.25–0.5% above signal = Goldilocks" is IN-SAMPLE overfitting —
+it *inverts* on 1,403 broad out-of-sample shorts (below-signal wins). Do NOT use above-signal as
+short-favourable. See `sid-macd-analysis/results/FINDINGS_out_of_sample.md`.
+
+> These short rules are validated *gates*, not just confluence colour. Per this file's own guardrail,
+> promoting them into STRATEGIES.md (criteria authority) is a deliberate step — flagged, not done here.
+
+---
+
 ## LORP Confluence Checklist (revised)
 
 Revised from the saved checklist, which had dropped Aroon. Aroon is re-added **as context, not
