@@ -59,6 +59,14 @@ verdict in `sid-macd-analysis/results/FINDINGS_out_of_sample.md`. Criteria autho
 
 ---
 
+- **MACD0 display = RAW (MACD−Signal)** — as on the chart, LORP brief, and STRATEGIES.md. The
+  (MACD−Signal)/price×100 normalisation is used ONLY inside the cross-ticker bucket analysis and the
+  short-gate flags, never for display. SID brief MACD0 column corrected to raw (had shown %).
+- **Brief is SID-universe-scoped:** the SID scan only evaluates SID SCREENER + SID BRIEF + BTW. A
+  ticker armed on the chart but living only in another watchlist section (SBT SCANS, PULLBACK
+  SCREENER, BRIEF OUTPUT…) is never scanned as a SID candidate — the chart arms on any symbol opened.
+  To catch such setups in the SID brief, add them to a SID-universe section.
+
 ## 2. SID = trend pullback continuation (confirmed)
 Works when: clear underlying trend (SMA50/200 aligned) + temporary counter-move pushes RSI
 to OB/OS + (**ideal, NOT required**) a visible **H&S / Inv H&S** structure — flat is
