@@ -66,6 +66,11 @@ verdict in `sid-macd-analysis/results/FINDINGS_out_of_sample.md`. Criteria autho
   ticker armed on the chart but living only in another watchlist section (SBT SCANS, PULLBACK
   SCREENER, BRIEF OUTPUT…) is never scanned as a SID candidate — the chart arms on any symbol opened.
   To catch such setups in the SID brief, add them to a SID-universe section.
+- **Weekly MACD Align + Weekly RSI Gate REMOVED from the SID indicator** (Trading Systems Pro
+  v8.5.13, 2026-07-07). They were deprecated non-gating context (derived from the armed state,
+  never gated any signal — confirmed: armed shorts fired with Weekly MACD Align = 0) that only
+  cluttered the data-window export. Raw Weekly RSI value retained. There is NO weekly-alignment
+  requirement anywhere in the SID pipeline (indicator, brief, or STRATEGIES.md).
 
 ## 2. SID = trend pullback continuation (confirmed)
 Works when: clear underlying trend (SMA50/200 aligned) + temporary counter-move pushes RSI
