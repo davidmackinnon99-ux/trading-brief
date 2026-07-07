@@ -1683,6 +1683,11 @@ if (!VERBOSE) {
       const premature = rows.filter(r => r.macd != null && r.macdSig != null && r.price && ((r.macd - r.macdSig) / r.price * 100) >= 0.25);
       if (runover.length) { console.log(''); console.log(`> ⛔ SHORT run-over zone — ADX 40–50 (validated −3.16%/trade, avg loss −13.6%): ${runover.map(r => `${r.sym} (${r.adx.toFixed(1)})`).join(', ')}`); }
       if (premature.length) { console.log(''); console.log(`> ⚠️ Premature fade — MACD0 ≥ +0.25% above signal (validated −0.81%/trade): ${premature.map(r => r.sym).join(', ')}`); }
+      const diSpread = r => (r.diPlus != null && r.diMinus != null) ? (r.diPlus - r.diMinus) : null;
+      const diWide = rows.filter(r => { const sp = diSpread(r); return sp != null && sp >= 20; });
+      const diMod  = rows.filter(r => { const sp = diSpread(r); return sp != null && sp >= 10 && sp < 20; });
+      if (diWide.length) { console.log(''); console.log(`> ⛔ SHORT run-over — DI spread ≥ 20 (fading a strong uptrend, validated −1.02%/trade): ${diWide.map(r => `${r.sym} (${diSpread(r).toFixed(0)})`).join(', ')}`); }
+      if (diMod.length)  { console.log(''); console.log(`> ⚠️ Weak short — DI spread 10–20 (negative-edge zone; SID shorts want spread < ~10, ideally DI- leading): ${diMod.map(r => `${r.sym} (${diSpread(r).toFixed(0)})`).join(', ')}`); }
     }
 
     if (sidLongs.length > 0) {
