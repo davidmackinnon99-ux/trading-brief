@@ -49,8 +49,13 @@ verdict in `sid-macd-analysis/results/FINDINGS_out_of_sample.md`. Criteria autho
 - **Consolidated SID entry rules:** LONGS — take the oversold bounce, no ADX/MACD0/DI veto. SHORTS —
   gate hard (DI spread < ~10, MACD0 at-or-below signal, avoid ADX 40–50); most current short signals
   fail this, which is why the short book is net-negative as taken.
-- **Open:** wire DI-spread short gate into the brief; capture 3-bar spread *change*; consider folding
-  the short-gate rules into STRATEGIES.md (authority — not changed here).
+- **DI-spread short gate WIRED into the brief** (`analyse-brief.cjs` `sidShortCaution`): flags DI
+  spread ≥ 20 (run-over veto) and 10–20 (weak-short caution), alongside the ADX-40–50 and
+  MACD0-≥+0.25% flags. **3-bar spread change captured** (`di_spread_chg_3b` in merge_trades) — but
+  the 3-bar change ALONE does not discriminate shorts (all bands ~−0.62); the spread LEVEL is the
+  gate. `merge_trades.py` now dual-writes both repo copies (no manual cp).
+- **Open:** fold the short-gate rules into STRATEGIES.md (criteria authority — not changed here); a
+  level-conditional look at the spread change (narrowing TO a low level, per the TV-AI doc).
 
 ---
 
