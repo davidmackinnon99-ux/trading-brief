@@ -71,6 +71,7 @@ verdict in `sid-macd-analysis/results/FINDINGS_out_of_sample.md`. Criteria autho
   never gated any signal — confirmed: armed shorts fired with Weekly MACD Align = 0) that only
   cluttered the data-window export. Raw Weekly RSI value retained. There is NO weekly-alignment
   requirement anywhere in the SID pipeline (indicator, brief, or STRATEGIES.md).
+- **Repo reorganised 8 Jul 2026:** Indicators content now under `Repository/{indicators,strategies,analysis,data}` (see repo README). SID analysis paths: `Repository/analysis/sid-adx-analysis/`, `Repository/analysis/sid-macd-analysis/`, data at `Repository/data/trades/trades_all.csv`. Open trades unified into one `Repository/data/open_trades.csv` (strategy column).
 
 ## 2. SID = trend pullback continuation (confirmed)
 Works when: clear underlying trend (SMA50/200 aligned) + temporary counter-move pushes RSI
