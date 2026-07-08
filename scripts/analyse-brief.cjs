@@ -54,13 +54,15 @@
 const fs   = require('fs');
 const path = require('path');
 
-// Editable brief reminders: edit reminders/sid.md and reminders/lorp.md (plain text; <!-- --> is ignored).
-function readReminder(name) {
+// Editable brief reminders: edit reminders/sid.md / lorp.md. Each non-comment line = one reminder;
+// prefix a line with # to turn just that one off. <!-- --> blocks are ignored.
+function readReminders(name) {
   try {
-    const raw = fs.readFileSync(path.join(__dirname, '..', 'reminders', name + '.md'), 'utf8');
-    const body = raw.replace(/<!--[\s\S]*?-->/g, '').trim();
-    return body.length ? body : null;
-  } catch { return null; }
+    return fs.readFileSync(path.join(__dirname, '..', 'reminders', name + '.md'), 'utf8')
+      .replace(/<!--[\s\S]*?-->/g, '')
+      .split('\n').map(l => l.trim())
+      .filter(l => l.length && !l.startsWith('#'));
+  } catch { return []; }
 }
 
 // ── Persistent LORP Watchlist ─────────────────────────────────────
@@ -1423,7 +1425,7 @@ if (!VERBOSE) {
     }
   }
 
-  { const _r = readReminder('lorp'); if (_r) console.log(`\n\uD83D\uDCCC **Reminder:** ${_r}\n`); }
+  { const _rs = readReminders('lorp'); if (_rs.length) console.log('\n' + _rs.map(x => `\uD83D\uDCCC ${x}`).join('\n') + '\n'); }
   printLorpSection(lorpScreener, 'LORP Screener');
   printLorpSection(lorpBriefTickers, 'Watch List (carry forward)');
   // Fired LC entries that live in another watchlist section (e.g. LFST in SID SCREENER).
@@ -1633,7 +1635,7 @@ if (!VERBOSE) {
     console.log(`**⚡ SID — ${sidPass.length} signals** *(${sidLongs.length} Long · ${sidShorts.length} Short)*`);
     console.log('*SID entry signal fired — verify Gap/ATR Ratio manually before acting.*');
     console.log('*Gap/ATR = SL distance in ATRs (how far the stop sits from entry). Per STRATEGIES.md: ≥2.0 ideal (sound stop room) · <1.5 avoid (stop too tight, noise-vulnerable). Shown as an approximate starting point (~); calculate the real value manually before acting — no auto-flag, no hard reject. ATR% alone has low predictive value.*\n');
-    { const _r = readReminder('sid'); if (_r) console.log(`\n\uD83D\uDCCC **Reminder:** ${_r}\n`); }
+    { const _rs = readReminders('sid'); if (_rs.length) console.log('\n' + _rs.map(x => `\uD83D\uDCCC ${x}`).join('\n') + '\n'); }
 
     const sidHeaders = ['Ticker','Sig','Price','MACD0','Gap/ATR','ADX','DI','SMA200','RVOL','Src'];
     const sidRightAlign = new Set([2, 8]);  // Price, RVOL (MACD0 inserted at idx 3 -> RVOL shifts to 8)

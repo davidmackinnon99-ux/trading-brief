@@ -1,3 +1,3 @@
-<!-- LORP reminder for the daily brief.
-     Any text you put OUTSIDE these comment markers prints in the brief's LORP section.
-     Leave it as comments only = no reminder. -->
+<!-- LORP reminders — ONE PER LINE. Each non-comment line prints as its own reminder in the LORP section.
+     Turn a single line off by putting # at the start of it. Anything inside <!-- --> is ignored.
+     Empty (or only comments) = no reminders. Write your reminders below this block, one per line. -->
