@@ -107,6 +107,14 @@ fi
 #   OWHfyWBq = LORP        XN1LuowU = SID         78yhKuUS = REGIME USA
 #   6Qpm8oT7 = PULLBACK    6hvBVx9e = ADX BREAKOUT
 
+# ── PRE-WARM: the first real scan (LORP) always eats the cold-start (browser + heavy
+# layout still rendering). Warm it with a tiny throwaway scan (9 symbols) so the full
+# LORP/SID scans hit an already-responsive chart. Failure here is ignored.
+echo "[$(date)] Pre-warming browser on LORP layout (tiny scan)..." >> "$LOGFILE"
+TRADINGVIEW_LAYOUT_ID="OWHfyWBq" READY_REQUIRE_STUDY="Lorentzian" \
+  "$NODE" "$TV_DIR/src/cli/index.js" brief --sections "PRE MARKET CHECKLIST,PREMARKET CHECKLIST" > /dev/null 2>> "$LOGFILE" || true
+echo "[$(date)] Pre-warm complete — starting full scans" >> "$LOGFILE"
+
 # ── SCAN 1: LORP layout ───────────────────────────────────────────────────────
 # Scans the ENTIRE watchlist (no --sections) — the flat rules.json watchlist is the
 # deduped union of every section the sync ingested, so a fired LC entry is captured
