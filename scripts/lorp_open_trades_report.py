@@ -13,7 +13,7 @@ warnings.filterwarnings("ignore")   # silence urllib3/LibreSSL NotOpenSSLWarning
 import pandas as pd, numpy as np
 
 DEFAULT_OT = ("/Users/davidmackinnon/Library/Mobile Documents/com~apple~CloudDocs/"
-              "Working Files/Trading/Indicators/Repository/data/LORP Data/open_trades.csv")
+              "Working Files/Trading/Indicators/Repository/data/open_trades.csv")
 OT = sys.argv[1] if len(sys.argv) > 1 else DEFAULT_OT
 
 INIT_ATR, BE_ATR, TRAIL_ATR, STALL, MFE_MIN = 1.5, 1.0, 2.0, 3, 3.0
