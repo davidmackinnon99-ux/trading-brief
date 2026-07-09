@@ -65,6 +65,35 @@ function readReminders(name) {
   } catch { return []; }
 }
 
+// ── Per-ticker factor scores for the brief tables ─────────────────────────────
+// SID: direction-aware. Shorts carry heavy DI/ADX gates — a fail there appends ⛔.
+function sidScore(r) {
+  const macd0  = (r.macd != null && r.macdSig != null) ? (r.macd - r.macdSig) : null;
+  const spread = (r.diPlus != null && r.diMinus != null) ? (r.diPlus - r.diMinus) : null;
+  const gatr   = r.gatrRatio;
+  if (r.isLongPass) {
+    const f = [ true,                                        // RSI oversold & rising = the long signal itself
+                macd0 != null && macd0 >= 0,                 // MACD at/above signal
+                gatr != null && gatr >= 2.0,                 // Gap/ATR stop room
+                r.wrsi != null && r.wrsi <= 50 ];            // weekly RSI agrees
+    return `${f.filter(Boolean).length}/4`;
+  }
+  const fDI = spread != null && spread < 20;                 // heavy
+  const fADX = r.adx != null && !(r.adx >= 40 && r.adx < 50);// heavy
+  const fMACD = macd0 != null && macd0 <= 0;                 // MACD0 at/below signal
+  const fGatr = gatr != null && gatr >= 2.0;
+  const pass = [fDI, fADX, fMACD, fGatr].filter(Boolean).length;
+  return `${pass}/4${(!fDI || !fADX) ? ' ⛔' : ''}`;
+}
+// LORP: equal weight for now (MACD0 is the validated gate; weighting is the later rethink).
+function lorpScore(r) {
+  const f = [ (r.macd != null && r.macdSig != null) ? (r.macd >= r.macdSig) : false, // MACD0 >= signal
+              r.lorpBuySignal === true,                      // LC Buy
+              r.rvol != null && r.rvol > 1.0,                // RVOL > 1.0
+              r.vd != null && r.vd > 0.5 ];                  // Buy VD
+  return `${f.filter(Boolean).length}/4`;
+}
+
 // ── Persistent LORP Watchlist ─────────────────────────────────────
 // Tracks LORP Buy VD tickers across brief runs so they stay visible
 // through the pullback phase even after dropping out of TV Screener.
@@ -1349,10 +1378,10 @@ if (!VERBOSE) {
       : `${r.bbPct.toFixed(2)} ↓BB`
       : '—';
     const entryStr = (r.entryType ?? '—') + (r.extendedAbove === true ? ' ⚠️EXT' : '');
-    return [r.sym, `$${fmt(r.price)}`, entryStr, macd0Str, distStr, vdStr, sigStr, alsoTag(r.sym, 'LORP')];
+    return [r.sym, `$${fmt(r.price)}`, entryStr, macd0Str, distStr, vdStr, sigStr, alsoTag(r.sym, 'LORP'), lorpScore(r)];
   }
 
-  const lorpHeaders = ['Ticker', 'Price', 'Type', 'MACD0', 'Dist', 'VD', 'Sig', 'Also'];
+  const lorpHeaders = ['Ticker', 'Price', 'Type', 'MACD0', 'Dist', 'VD', 'Sig', 'Also', 'Score'];
   const lorpRightAlign = new Set([1, 4]);  // Price, Dist right-aligned; tag columns left-aligned
   // Fixed-width monospace grid (same renderer as the SID table) so columns line up under the
   // headers in any viewer, not only a markdown renderer. Context columns (Cf/ADX/RVOL/Aroon/
@@ -1637,7 +1666,7 @@ if (!VERBOSE) {
     console.log('*Gap/ATR = SL distance in ATRs (how far the stop sits from entry). Per STRATEGIES.md: ≥2.0 ideal (sound stop room) · <1.5 avoid (stop too tight, noise-vulnerable). Shown as an approximate starting point (~); calculate the real value manually before acting — no auto-flag, no hard reject. ATR% alone has low predictive value.*\n');
     { const _rs = readReminders('sid'); if (_rs.length) console.log('\n' + _rs.map(x => `\uD83D\uDCCC ${x}`).join('\n') + '\n'); }
 
-    const sidHeaders = ['Ticker','Sig','Price','MACD0','Gap/ATR','ADX','DI','SMA200','RVOL','Src'];
+    const sidHeaders = ['Ticker','Sig','Price','MACD0','Gap/ATR','ADX','DI','SMA200','RVOL','Src','Score'];
     const sidRightAlign = new Set([2, 8]);  // Price, RVOL (MACD0 inserted at idx 3 -> RVOL shifts to 8)
 
     function sidRowCells(r) {
@@ -1664,7 +1693,7 @@ if (!VERBOSE) {
       // The %-of-price normalisation is used only inside the short-gate flags for cross-ticker comparability.
       const macd0Raw = (r.macd != null && r.macdSig != null) ? (r.macd - r.macdSig) : null;
       const macd0Str = macd0Raw == null ? D : (macd0Raw >= 0 ? '+' : '') + macd0Raw.toFixed(2);
-      return [r.sym, sig, '$' + fmt(r.price), macd0Str, gatr, adx, di, sma200, rvol, src];
+      return [r.sym, sig, '$' + fmt(r.price), macd0Str, gatr, adx, di, sma200, rvol, src, sidScore(r)];
     }
 
     function printSIDTable(rows) {
