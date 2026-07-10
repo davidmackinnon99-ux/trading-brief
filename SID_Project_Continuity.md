@@ -131,3 +131,5 @@ histogram keeps converging post-entry.
   `confluence_check.py` · SID indicator: SID Trading Signals Pro v8.5.12 (Pine).
 - Historical archive: SID_Project_Continuity_9 (29 Mar) · Google Doc (legacy; stop using as
   canonical): https://docs.google.com/document/d/1Ymq2gQa2abj6GgtyYgIk71tteZiWs6b_7TD2KnNcUdM/edit
+
+- **CORRECTION (9 Jul):** the "shorts favour below-signal MACD0" finding is the BROAD short population; genuine SID OB fades (RSI>=70) are ~99% ABOVE signal, so MACD0 side is NOT a SID-short discriminator. The MACD *turn* is the trigger; gate shorts on DI spread + ADX. SID short score changed to /3 (MACD0 dropped).

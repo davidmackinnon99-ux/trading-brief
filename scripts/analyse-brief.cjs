@@ -80,10 +80,12 @@ function sidScore(r) {
   }
   const fDI = spread != null && spread < 20;                 // heavy
   const fADX = r.adx != null && !(r.adx >= 40 && r.adx < 50);// heavy
-  const fMACD = macd0 != null && macd0 <= 0;                 // MACD0 at/below signal
   const fGatr = gatr != null && gatr >= 2.0;
-  const pass = [fDI, fADX, fMACD, fGatr].filter(Boolean).length;
-  return `${pass}/4${(!fDI || !fADX) ? ' ⛔' : ''}`;
+  // MACD0 level is NOT scored for shorts: an OB-bounce short is ~always above signal (99% in the
+  // data), so the value doesn't discriminate. The MACD *turn* is the entry trigger; the real gate
+  // is trend-strength (DI spread / ADX).
+  const pass = [fDI, fADX, fGatr].filter(Boolean).length;
+  return `${pass}/3${(!fDI || !fADX) ? ' ⛔' : ''}`;
 }
 // LORP: equal weight for now (MACD0 is the validated gate; weighting is the later rethink).
 function lorpScore(r) {

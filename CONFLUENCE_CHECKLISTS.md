@@ -48,7 +48,7 @@ override intuition — now also flagged live in the brief (`analyse-brief.cjs` `
 **SHORTS — net-negative as taken; gate HARD (all three say "don't fade strength"):**
 - DI spread (DI+−DI−): require **< ~10**, ideally DI− leading. **Avoid ≥ 20** (run-over −1.02, avg loss −9). ⛔ brief.
 - ADX: **avoid 40–50** (run-over −3.16, avg loss −13.6%). 15–30 negative. ⛔ brief.
-- MACD0 side: favourable **at/below signal**; **avoid ≥ +0.25% above signal** (premature fade −0.81). ⚠️ brief.
+- MACD0: **not a short gate.** An OB-bounce short is ~always above signal (99% of OB fades); the MACD *turn* is the entry trigger, not a discriminator. Gate shorts on DI spread + ADX (trend strength), not MACD0 side.
 
 **CORRECTION:** the earlier curated "MACD0 0.25–0.5% above signal = Goldilocks" is IN-SAMPLE overfitting —
 it *inverts* on 1,403 broad out-of-sample shorts (below-signal wins). Do NOT use above-signal as
