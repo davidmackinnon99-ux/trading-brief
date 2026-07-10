@@ -16,7 +16,7 @@ antivirus approval prompts, whitelist the **processes** below (not the folders â
 - `cp mv mkdir rm ls cat head tail grep find sed wc diff tr du cut tee mdfind`
 
 **Paths touched:**
-- `~/Library/Mobile Documents/com~apple~CloudDocs/Working Files/Trading/Indicators/` (iCloud-synced)
+- `~/Indicators/` (iCloud-synced)
 - `~/tradingview-mcp-jackson/`
 - occasional reads from `~/Downloads/`
 
