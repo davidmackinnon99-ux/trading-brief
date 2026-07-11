@@ -4,3 +4,4 @@
 Dont forget the weekly RSI check & the past history as Sid uses them extensively.
 Also dont forget the market trend both in the regime filter but also on the EMA50.
 Use my personal winners watchlist first, if possible, AND use backtest results!!
+ALWAYS check the 4h chart & the MACD0 initially & then ongoing in the trade to confirm not changes
