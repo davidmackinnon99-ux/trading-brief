@@ -104,10 +104,17 @@ function sidScore(r) {
 //   BB expanding   — NEGATIVE (+0.05% expanding vs +0.93% contracting). Edge is in the coil, not
 //                    the expansion. Do not add as a positive factor.
 // Small edges on a simplified sim — triage aid, not a strong filter.
+// ADX 25-30 (added 13 Jul 2026) — the strongest LORP factor found, and the only one VALIDATED
+// OUT-OF-SAMPLE. In-band win 50% vs 38% baseline; positive median (+0.11 vs -1.07). Confirmed on
+// BOTH a ticker holdout (52% win, median edge +1.29) and a time holdout (45% win, +0.34) — every
+// subsample positive on mean AND median. (Contrast: the SID MACD0 "Goldilocks" band inverted at
+// this same test. This one strengthened.) ADX <25 = too choppy; >=40 = extended (mean negative).
+// DI spread (DI+ - DI-): tested across 7 bands, NO usable pattern for LORP — all medians negative.
 function lorpScore(r) {
-  const f = [ r.vd != null ? (r.vd > 0) : false,          // Buy VD  (strongest, robust)
-              r.aroon != null ? (r.aroon > 0) : false ];  // Aroon > 0
-  return `${f.filter(Boolean).length}/2`;
+  const f = [ r.adx != null ? (r.adx >= 25 && r.adx < 30) : false,  // ADX 25-30  (OOS-validated)
+              r.vd != null ? (r.vd > 0) : false,                    // Buy VD     (robust)
+              r.aroon != null ? (r.aroon > 0) : false ];            // Aroon > 0  (weak, consistent)
+  return `${f.filter(Boolean).length}/3`;
 }
 
 // ── Persistent LORP Watchlist ─────────────────────────────────────
