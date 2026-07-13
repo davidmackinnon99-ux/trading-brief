@@ -104,17 +104,21 @@ function sidScore(r) {
 //   BB expanding   — NEGATIVE (+0.05% expanding vs +0.93% contracting). Edge is in the coil, not
 //                    the expansion. Do not add as a positive factor.
 // Small edges on a simplified sim — triage aid, not a strong filter.
-// ADX 25-30 (added 13 Jul 2026) — the strongest LORP factor found, and the only one VALIDATED
-// OUT-OF-SAMPLE. In-band win 50% vs 38% baseline; positive median (+0.11 vs -1.07). Confirmed on
-// BOTH a ticker holdout (52% win, median edge +1.29) and a time holdout (45% win, +0.34) — every
-// subsample positive on mean AND median. (Contrast: the SID MACD0 "Goldilocks" band inverted at
-// this same test. This one strengthened.) ADX <25 = too choppy; >=40 = extended (mean negative).
-// DI spread (DI+ - DI-): tested across 7 bands, NO usable pattern for LORP — all medians negative.
+// LORP score — WITHDRAWN 13 Jul 2026. Every factor tested on 128 REAL adapter trades
+// (5 tickers, TradingView List-of-Trades exports w/ real MFE/MAE) failed:
+//   ADX 25-30 / ADX>=25 : aggregate lift +15.9pp was ONE TICKER (TGT 57.9%). AMD and CYRX
+//                         were WORSE with ADX>=25. Unproven — check the adapter's own
+//                         "Sortino ADX<25 / >=25" table rows per ticker instead.
+//   Buy VD > 0          : +1.6pp = nothing. Flips day to day. Context only, not a score.
+//   Aroon > 0           : +1.2pp = nothing — AND mis-specified: Aroon is a CONTRADICTION
+//                         check (warn when it disagrees), never a point-earning factor.
+//   RVOL declining      : REVERSED on real trades (-11.3pp).
+// The real, verified finding is the EXIT, not entry filters: winners reach a median
+// +11.7% MFE and keep only +4.65% (~40% capture); losers reach +2.9% before dying.
+// A/B trailAtrMult and useBreakeven in the adapter — do not triage on the factors above.
+// Rebuild this only after the full LORP watchlist trade lists are exported and tested.
 function lorpScore(r) {
-  const f = [ r.adx != null ? (r.adx >= 25 && r.adx < 30) : false,  // ADX 25-30  (OOS-validated)
-              r.vd != null ? (r.vd > 0) : false,                    // Buy VD     (robust)
-              r.aroon != null ? (r.aroon > 0) : false ];            // Aroon > 0  (weak, consistent)
-  return `${f.filter(Boolean).length}/3`;
+  return '—';   // no score: no factor has survived testing on real trades
 }
 
 // ── Persistent LORP Watchlist ─────────────────────────────────────
@@ -1401,7 +1405,7 @@ if (!VERBOSE) {
       : `${r.bbPct.toFixed(2)} ↓BB`
       : '—';
     const entryStr = (r.entryType ?? '—') + (r.extendedAbove === true ? ' ⚠️EXT' : '');
-    return [r.sym, `$${fmt(r.price)}`, entryStr, macd0Str, distStr, vdStr, sigStr, alsoTag(r.sym, 'LORP'), lorpScore(r)];
+    return [r.sym, `$${fmt(r.price)}`, entryStr, macd0Str, distStr, vdStr, sigStr, alsoTag(r.sym, 'LORP'), (r.aroon != null && r.aroon < 0 ? '\u26a0 Aroon' : lorpScore(r))];
   }
 
   const lorpHeaders = ['Ticker', 'Price', 'Type', 'MACD0', 'Dist', 'VD', 'Sig', 'Also', 'Score'];
