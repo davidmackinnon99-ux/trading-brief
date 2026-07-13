@@ -87,13 +87,27 @@ function sidScore(r) {
   const pass = [fDI, fADX, fGatr].filter(Boolean).length;
   return `${pass}/3${(!fDI || !fADX) ? ' ⛔' : ''}`;
 }
-// LORP: equal weight for now (MACD0 is the validated gate; weighting is the later rethink).
+// LORP score — REBUILT 13 Jul 2026 from an outcome test on 670 simulated LORP trades
+// (38 tickers, 1.5-ATR trail) rather than inherited assumptions. Factors kept only if their
+// edge SURVIVED outlier removal (drop-top-5) and had a consistent median:
+//   Buy VD > 0            mean +1.22  median +0.52  drop5 +1.31  (p=0.070, robust)
+//   Aroon > 0             mean +0.46  median +0.57  drop5 +1.07  (p=0.243, weak but consistent)
+//   RVOL declining 5b     mean +1.00  median +0.15  drop5 +1.12  (p=0.045, the only significant one)
+//     ^ NOT SCORED YET: the scan captures only current-bar RVOL (no 5-bar history).
+//       Fix = plot a "RVOL Declining" boolean on the RVOL Pine indicator so the scan reads it.
+// DROPPED (no discriminating power / negative):
+//   MACD > Signal  — true at 80% of LC Buys (near-universal, can't discriminate). Its apparent
+//                    negative edge was outlier-driven (p=0.066, collapsed on drop-top-5) — so it
+//                    is neither harmful nor useful. Remains a precondition, not a scored factor.
+//   MACD > 0       — true at 94% of LC Buys. Same story.
+//   %B > 0.5       — true at ~100%. No variation.
+//   BB expanding   — NEGATIVE (+0.05% expanding vs +0.93% contracting). Edge is in the coil, not
+//                    the expansion. Do not add as a positive factor.
+// Small edges on a simplified sim — triage aid, not a strong filter.
 function lorpScore(r) {
-  const f = [ (r.macd != null && r.macdSig != null) ? (r.macd >= r.macdSig) : false, // MACD0 >= signal
-              r.lorpBuySignal === true,                      // LC Buy
-              r.rvol != null && r.rvol > 1.0,                // RVOL > 1.0
-              r.vd != null && r.vd > 0.5 ];                  // Buy VD
-  return `${f.filter(Boolean).length}/4`;
+  const f = [ r.vd != null ? (r.vd > 0) : false,          // Buy VD  (strongest, robust)
+              r.aroon != null ? (r.aroon > 0) : false ];  // Aroon > 0
+  return `${f.filter(Boolean).length}/2`;
 }
 
 // ── Persistent LORP Watchlist ─────────────────────────────────────
