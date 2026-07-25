@@ -1909,8 +1909,7 @@ if (!VERBOSE) {
     }
   }
 
-  // ── ADX Breakout ──
-  console.log('---\n');
+  // ── ADX Breakout ── REMOVED from brief per user #8 (Jul 2026); ADX now shown in the LORP table
   {
     function printAdxContRow(r) {
       const closeStr = r.price != null ? `$${fmt(r.price)}` : '—';
@@ -1937,7 +1936,7 @@ if (!VERBOSE) {
     const hasCoiling  = adxCoiling.length  > 0;   // now: continuation candidates
     const hasExtended = adxExtended.length > 0;
 
-    if (hasCoiling || hasExtended) {
+    if (false && (hasCoiling || hasExtended)) {  // #8: ADX Breakout section suppressed
       if (hasCoiling) {
         console.log(`**⚡ ADX CONTINUATION (ADX ≥ 25) — ${adxCoiling.length} tickers**\n`);
         console.log('| Ticker | Close | ADX | DI+/DI- | Break | Also |');
