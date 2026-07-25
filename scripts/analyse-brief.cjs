@@ -841,12 +841,12 @@ const results = brief.symbols_scanned.filter(s => !EXCLUDED_TICKERS.has(s.symbol
   //   Trend:    not Pullback/Breakout · ADX>20 · MACD>0 · RVOL>0.8.  Else '—'.
   //   ("MACD>0" uses macdPos = MACD above zero line, which the LORP screener already gates on;
   //    say if you meant MACD-vs-Signal instead.)
-  const _revRecent = revDownRecentMap[s.symbol] === true || revDownNow === true;
+  const _revWindow = revDownRecentMap[s.symbol] === true || revDownNow === true;  // reversion within 4 bars up to & incl. the entry bar
   const _adx2 = adx2BackMap[s.symbol], _dip2 = diPlus2BackMap[s.symbol];
   const _adxRising = (adx != null && _adx2 != null) ? adx > _adx2 : false;
   const _dipRising = (diPlus != null && _dip2 != null) ? diPlus > _dip2 : false;
   const _macd0Pos  = (macd != null && macd > 0);
-  const _isPullback = _revRecent;
+  const _isPullback = (lorpBuySignal === true) && _revWindow;  // LC entry is PRIMARY; reversion (incl. entry bar) sub-classifies it
   const _isBreakout = !_isPullback && adx != null && adx > 25 && _adxRising
                       && rvol != null && rvol > 2 && _dipRising
                       && atrRaw != null && atrRaw > 2 && _macd0Pos;
