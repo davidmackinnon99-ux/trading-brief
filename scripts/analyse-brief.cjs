@@ -408,6 +408,43 @@ const prevSigMap     = {};   // ticker -> Set of signal markers fired in the mos
   }
 }
 
+// ── Approach B (Jul 2026): multi-brief history for LORP classification ──
+//   LC Premium is closed (can't add a Pine barssince plot), so we read its exported reversion
+//   chars from the last few SAVED scans. Reversion-Down chars are numeric indices '15' (Standard)
+//   and '16' (Strong) — the named 'Chars' key only holds the LAST char, so read by index.
+//   Pullback = reversion-Down within last 4 briefs. Breakout needs ADX & D+ rising over 2 bars
+//   -> compare today vs the 2nd prior brief found.
+const revDownRecentMap = {};
+const adx2BackMap = {}, diPlus2BackMap = {};
+{
+  const dm = briefFile.match(/brief-(\d{4}-\d{2}-\d{2})/);
+  if (dm) {
+    const cur = new Date(dm[1] + 'T12:00:00Z');
+    let found = 0;
+    for (let i = 1; i <= 10 && found < 4; i++) {
+      const pd = new Date(cur); pd.setUTCDate(pd.getUTCDate() - i);
+      const pf = path.join(briefsDir, `brief-${pd.toISOString().split('T')[0]}-lorp.json`);
+      if (!fs.existsSync(pf)) continue;
+      let pb; try { pb = loadFirstJSON(pf); } catch { continue; }
+      found++;
+      (pb.symbols_scanned || []).forEach(s => {
+        if (s.error) return;
+        const sts = s.indicators?.studies || [];
+        const lcv = getStudy(sts, 'Lorentzian Classification Premium', 'ML: Lorentzian', 'Lorentzian')?.values || {};
+        const dReg = parseNum(lcv['15']), dStr = parseNum(lcv['16']);
+        if ((dReg != null && Math.abs(dReg) > 0) || (dStr != null && Math.abs(dStr) > 0)) revDownRecentMap[s.symbol] = true;
+        if (found === 2) {
+          const av = getStudy(sts, 'ADX and DI', 'Average Directional Index', 'ADX')?.values || {};
+          const a = parseNum(getVal(av, 'ADX')), dp = parseNum(getVal(av, 'DI+', '+DI'));
+          if (a  != null) adx2BackMap[s.symbol]    = a;
+          if (dp != null) diPlus2BackMap[s.symbol] = dp;
+        }
+      });
+    }
+    process.stderr.write(`[lorp-class] history: ${found} briefs | revDown ${Object.keys(revDownRecentMap).length} | adx2back ${Object.keys(adx2BackMap).length}\n`);
+  }
+}
+
 // Load section assignments from rules.json
 const rulesPath = path.join(__dirname, '../rules.json');
 const rules = fs.existsSync(rulesPath) ? JSON.parse(fs.readFileSync(rulesPath, 'utf8')) : {};
@@ -732,6 +769,8 @@ const results = brief.symbols_scanned.filter(s => !EXCLUDED_TICKERS.has(s.symbol
   const kernelVal      = parseNum(getVal(lcSt?.values, 'Kernel Regression Estimate', 'Kernel'));
   const distFromKernel = parseNum(getVal(lcSt?.values, 'Distance from Kernel'));
   const distAboveKernel = parseNum(getVal(lcSt?.values, 'Distance Above Kernel'));
+  // reversion-now for LORP classification (Jul 2026); adx/diPlus/diMinus already read above
+  const revDownNow = (() => { const a = parseNum(lcSt?.values?.['15']), b = parseNum(lcSt?.values?.['16']); return (a != null && Math.abs(a) > 0) || (b != null && Math.abs(b) > 0); })();
   // LC envelope (indicator's own "too far" band) — flags an EXTENDED long as a look-closer cue.
   // NOT the Mean Reversion Down signal (those plotchar flags don't surface reliably in the data
   // window — vet with confluence_check.py). Kernel-layer value: repaints on history, live read only.
@@ -796,10 +835,27 @@ const results = brief.symbols_scanned.filter(s => !EXCLUDED_TICKERS.has(s.symbol
   // Pullback: 0.00–0.50 (price touching/inside kernel)
   // Trend:    0.50–1.50 (price above kernel, not extended)
   // Breakout: 1.50+     (price launching from kernel)
+  // LORP classification — REBUILT Jul 2026 (approach B, saved-brief history).
+  //   Pullback: LC reversion-Down (Standard/Strong) within last 4 briefs — OVERRIDES all else.
+  //   Breakout: ADX>25 & rising(2b) · RVOL>2 · D+ rising(2b) · raw ATR>2 · MACD>0.
+  //   Trend:    not Pullback/Breakout · ADX>20 · MACD>0 · RVOL>0.8.  Else '—'.
+  //   ("MACD>0" uses macdPos = MACD above zero line, which the LORP screener already gates on;
+  //    say if you meant MACD-vs-Signal instead.)
+  const _revRecent = revDownRecentMap[s.symbol] === true || revDownNow === true;
+  const _adx2 = adx2BackMap[s.symbol], _dip2 = diPlus2BackMap[s.symbol];
+  const _adxRising = (adx != null && _adx2 != null) ? adx > _adx2 : false;
+  const _dipRising = (diPlus != null && _dip2 != null) ? diPlus > _dip2 : false;
+  const _macd0Pos  = (macd != null && macd > 0);
+  const _isPullback = _revRecent;
+  const _isBreakout = !_isPullback && adx != null && adx > 25 && _adxRising
+                      && rvol != null && rvol > 2 && _dipRising
+                      && atrRaw != null && atrRaw > 2 && _macd0Pos;
+  const _isTrend    = !_isPullback && !_isBreakout && adx != null && adx > 20 && _macd0Pos && rvol != null && rvol > 0.8;
   const entryType = distFromKernel == null ? 'No LC data'
-    : distFromKernel < 0.50 ? 'Pullback 🔄'
-    : distFromKernel < 1.50 ? 'Trend ↗'
-    : 'Breakout 🚀';
+    : _isPullback ? 'Pullback 🔄'
+    : _isBreakout ? 'Breakout 🚀'
+    : _isTrend    ? 'Trend ↗'
+    : '—';
 
   // ════════════════════════════════════════════════════════════════
   // LORP — Screener pre-filters already applied (ATR 1-5%, MACD>0,
