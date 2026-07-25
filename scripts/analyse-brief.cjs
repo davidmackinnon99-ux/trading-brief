@@ -1363,7 +1363,7 @@ if (!VERBOSE) {
   // -1..+2 band. The band keeps near-the-cross momentum and excludes EXTENDED names (MACD0 > 2,
   // e.g. MTZ 6.08) and deep-below (< -1). Extended/out-of-band non-fired rows drop to context.
   const macd0Band = r => { const m = (r.macd != null && r.macdSig != null) ? (r.macd - r.macdSig) : null; return m != null && m >= -1 && m <= 2; };
-  const isBuyVD  = r => r.lorpBuySignal || r.entryType?.startsWith('Pullback') || (r.vd != null && r.vd > 0.5 && macd0Band(r));
+  const isBuyVD  = r => r.lorpBuySignal === true;  // #1 (Jul 2026): actionable = LC entry signal (VD no longer used as a gate)
   const filteredBuyVD  = allLorpFiltered.filter(isBuyVD).length;
   const filteredSellVD = allLorpFiltered.filter(r => !isBuyVD(r)).length;
   const totalFiltered  = filteredBuyVD + filteredSellVD;
@@ -1371,9 +1371,9 @@ if (!VERBOSE) {
   if (totalFiltered === 0) {
     console.log('**✅ LORP — 0 candidates** *(TV Screener returned no tickers passing brief filters)*\n');
   } else {
-    console.log(`**✅ LORP — ${filteredBuyVD} actionable** *(Buy VD, MACD0 −1..+2; +${filteredSellVD} Sell VD / extended = context only)*`);
+    console.log(`**✅ LORP — ${filteredBuyVD} LC entries** *(actionable; +${filteredSellVD} context = no live entry)*`);
     console.log('*Pre-filtered by TV Screener + brief filters — check chart before acting*\n');
-    console.log('*MACD0 = validated entry gate (✓ above / ⚠️ below Signal). ⚠️EXT = price above LC Upper Envelope Far (extended) — a LOOK-CLOSER cue only, NOT the reversion signal. Context columns (Cf, ADX, RVOL, Aroon, %B, ATR%, MAs, Chandelier) now live on the chart / confluence_check.py to keep the table readable. The actual Regular/Strong Mean Reversion DOWN flags export nameless and the data window cannot surface them reliably — vet those per-ticker with confluence_check.py.*\n');
+    console.log('*Type: Pullback = LC entry + Standard/Strong reversion within 4 bars (incl. entry bar) · Breakout = ADX>25 & rising · RVOL>2 · D+ rising · raw ATR>2 · MACD>0 · Trend = ADX>20 · MACD>0 · RVOL>0.8. MACD0 ✓ above / ⚠️ below Signal · ⚠️EXT = above LC Upper Envelope Far.*\n');
   }
 
   function lorpRowCells(r) {
@@ -1519,8 +1519,8 @@ if (!VERBOSE) {
     // A fired LC Buy always sits in the Buy section regardless of VD (the entry leads).
     // Pullback entries: negative VD is expected — always shown in Buy section with ↓ (PB) note.
     // Trend/Breakout non-fired rows: VD > 0.5 to sit in Buy, else dropped to Sell-context.
-    const buyTickers  = filtered.filter(r => r.lorpBuySignal || r.entryType?.startsWith('Pullback') || (r.vd != null && r.vd > 0.5 && macd0Band(r)));
-    const sellTickers = filtered.filter(r => !(r.lorpBuySignal || r.entryType?.startsWith('Pullback') || (r.vd != null && r.vd > 0.5 && macd0Band(r))));
+    const buyTickers  = filtered.filter(r => r.lorpBuySignal === true);
+    const sellTickers = filtered.filter(r => r.lorpBuySignal !== true);
 
     if (buyTickers.length > 0) {
       console.log(`*${label} — Buy VD (${buyTickers.length}):*\n`);
@@ -1558,15 +1558,7 @@ if (!VERBOSE) {
       : new Date().toISOString()).split('T')[0];
 
     // Tickers that passed Buy VD filter today (same entry-anchored logic as printLorpSection)
-    const todayBuyVD = [...lorpScreener, ...lorpBriefTickers, ...lorpFiredOther].filter(r => {
-      if (r.lorpBuySignal) return true;   // fired entry — always tracked, regardless of RVOL/VD/section
-      if (r.entryType === 'No LC data') return false;
-      if (r.rvol != null && r.rvol < 1.0) return false;
-      if (r.rvol != null && r.rvol >= 4)  return false;
-      // Aroon demoted to context only — not a hard filter for LORP watchlist
-      // Pullback entries qualify regardless of VD direction
-      return r.entryType?.startsWith('Pullback') || (r.vd != null && r.vd > 0.5);
-    });
+    const todayBuyVD = [...lorpScreener, ...lorpBriefTickers, ...lorpFiredOther].filter(r => r.lorpBuySignal === true);  // #1/#5: persistent watch tracks LC entries only, 5 trading days
     const todayBuyVDSyms = new Set(todayBuyVD.map(r => bareSym(r.sym)));
 
     const lorpWatchlist = loadLorpWatchlist();
