@@ -1461,10 +1461,10 @@ if (!VERBOSE) {
       : `${r.bbPct.toFixed(2)} ↓BB`
       : '—';
     const entryStr = (r.entryType ?? '—') + (r.extendedAbove === true ? ' ⚠️EXT' : '');
-    return [r.sym, `$${fmt(r.price)}`, entryStr, macd0Str, distStr, vdStr, sigStr, alsoTag(r.sym, 'LORP'), (r.aroon != null && r.aroon < 0 ? '\u26a0 Aroon' : lorpScore(r))];
+    return [r.sym, `$${fmt(r.price)}`, entryStr, macd0Str, distStr, adxStr, sigStr, alsoTag(r.sym, 'LORP'), (r.aroon != null && r.aroon < 0 ? '\u26a0 Aroon' : lorpScore(r))];
   }
 
-  const lorpHeaders = ['Ticker', 'Price', 'Type', 'MACD0', 'Dist', 'VD', 'Sig', 'Also', 'Score'];
+  const lorpHeaders = ['Ticker', 'Price', 'Type', 'MACD0', 'Dist', 'ADX', 'Sig', 'Also', 'Score'];
   const lorpRightAlign = new Set([1, 4]);  // Price, Dist right-aligned; tag columns left-aligned
   // Fixed-width monospace grid (same renderer as the SID table) so columns line up under the
   // headers in any viewer, not only a markdown renderer. Context columns (Cf/ADX/RVOL/Aroon/
@@ -1479,18 +1479,15 @@ if (!VERBOSE) {
   }
 
   const sortLorp = arr => [...arr].sort((a, b) => {
-    // Breakout & Trend first (the setups we act on now), Pullback last (reference).
-    const typeOrder = t => t?.startsWith('Breakout') ? 0 : t?.startsWith('Trend') ? 1 : 2;  // Pullback = 2
-    const tDiff = typeOrder(a.entryType) - typeOrder(b.entryType);
-    if (tDiff !== 0) return tDiff;
-    // Within a type: a fired LC signal floats to the top.
+    // #3 (Jul 2026): LC entry signal first, then ADX (desc), then distance-from-kernel (asc).
     const fired = r => (r.lorpBuySignal || r.lorpSellSignal) ? 0 : 1;
     const fDiff = fired(a) - fired(b);
     if (fDiff !== 0) return fDiff;
-    // Then MACD0 histogram descending — confirming / about-to-turn momentum first,
-    // deep-negative last (surfaces resuming pullbacks, sinks rolling-over ones).
-    const m = r => (r.macd != null && r.macdSig != null) ? (r.macd - r.macdSig) : -Infinity;
-    return m(b) - m(a);
+    const adxA = a.adx != null ? a.adx : -Infinity, adxB = b.adx != null ? b.adx : -Infinity;
+    if (adxB !== adxA) return adxB - adxA;
+    const dA = a.distFromKernel != null ? a.distFromKernel : Infinity;
+    const dB = b.distFromKernel != null ? b.distFromKernel : Infinity;
+    return dA - dB;
   });
 
   function printLorpSection(tickers, label) {
