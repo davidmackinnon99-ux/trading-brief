@@ -15,7 +15,7 @@ import pandas as pd, numpy as np
 DEFAULT_OT = "/Users/davidmackinnon/Indicators/data/open_trades.csv"
 OT = sys.argv[1] if len(sys.argv) > 1 else DEFAULT_OT
 
-INIT_ATR, BE_ATR, TRAIL_ATR, STALL, MFE_MIN = 1.5, 1.0, 2.0, 3, 3.0
+INIT_ATR, BE_ATR, TRAIL_ATR, STALL, MFE_MIN = 2.0, 1.0, 2.0, 3, 3.0
 
 def ema(s, p): return pd.Series(s).ewm(span=p, adjust=False).mean().values
 def atr14(h, l, c):
@@ -62,7 +62,7 @@ def grade(sym, entry):
 
 def main():
     print("\n---\n")
-    print("**📋 LORP OPEN TRADES** *(auto-graded on the MACD0 gate + 1.5-ATR trailing stop)*\n")
+    print("**📋 LORP OPEN TRADES** *(auto-graded on the MACD0 gate + 2.0-ATR trailing stop)*\n")
     if not os.path.exists(OT):
         print(f"_(open_trades.csv not found at {OT})_"); return
     d = pd.read_csv(OT); d.columns = [x.strip().lower() for x in d.columns]

@@ -233,10 +233,11 @@ async function main() {
       'SID SCREENER',
       'ADX BREAKOUT SCREENER',
       'PULLBACK SCREENER',
+      'SBT SCANS',
     ];
     // PROTECTED sections — never cleared or written. Belt-and-suspenders guard so a
     // future edit can't accidentally wipe the user's hand-maintained sections.
-    const PROTECTED_SECTIONS = ['SBT SCANS', 'BTW', 'PRE MARKET CHECKLIST'];
+    const PROTECTED_SECTIONS = ['BTW', 'PRE MARKET CHECKLIST'];  // SBT SCANS now cleared daily (user, Jul 2026)
     const protectedNorm = new Set(PROTECTED_SECTIONS.map(s => normHeader(`###${s}`)));
     const isProtected = (name) => protectedNorm.has(normHeader(`###${name}`));
 
