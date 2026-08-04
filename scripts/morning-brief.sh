@@ -13,7 +13,6 @@ OUTFILE_LORP="$BRIEFS_DIR/brief-$DATE-lorp.json"
 OUTFILE_SID="$BRIEFS_DIR/brief-$DATE-sid.json"
 OUTFILE_REGIME="$BRIEFS_DIR/brief-$DATE-regime.json"
 OUTFILE_PULLBACK="$BRIEFS_DIR/brief-$DATE-pullback.json"
-OUTFILE_ADX="$BRIEFS_DIR/brief-$DATE-adx.json"
 OUTFILE="$BRIEFS_DIR/brief-$DATE.json"
 LOGFILE="$BRIEFS_DIR/brief-$DATE.log"
 TABLES_OUT="$BRIEFS_DIR/brief-$DATE-tables.md"
@@ -105,7 +104,7 @@ fi
 # on multiple layouts — far more reliable than matching by indicator name.
 # Known layout IDs:
 #   OWHfyWBq = LORP        XN1LuowU = SID         78yhKuUS = REGIME USA
-#   6Qpm8oT7 = PULLBACK    6hvBVx9e = ADX BREAKOUT
+#   6Qpm8oT7 = PULLBACK    
 
 # ── PRE-WARM: the first real scan (LORP) always eats the cold-start (browser + heavy
 # layout still rendering). Warm it with a tiny throwaway scan (9 symbols) so the full
@@ -172,16 +171,6 @@ else
     echo "[$(date)] PULLBACK scan failed or empty — Pullback signals will be unavailable" >> "$LOGFILE"
 fi
 
-# ── SCAN 5: ADX BREAKOUT layout ───────────────────────────────────────────────
-echo "[$(date)] Scanning ADX BREAKOUT layout (6hvBVx9e)..." >> "$LOGFILE"
-TRADINGVIEW_LAYOUT_ID="6hvBVx9e" READY_REQUIRE_STUDY="ADX Breakout" \
-  "$NODE" "$TV_DIR/src/cli/index.js" brief --sections "ADX BREAKOUT SCREENER,ADX BREAKOUT BRIEF" > "$OUTFILE_ADX" 2>> "$LOGFILE"
-ADX_EXIT=$?
-if [ $ADX_EXIT -eq 0 ] && [ -s "$OUTFILE_ADX" ]; then
-    echo "[$(date)] ADX BREAKOUT scan complete" >> "$LOGFILE"
-else
-    echo "[$(date)] ADX BREAKOUT scan failed or empty — ADX Breakout section will be unavailable" >> "$LOGFILE"
-fi
 
 # Sanity check LORP scan
 if [ $BRIEF_EXIT -eq 0 ] && [ -s "$OUTFILE_LORP" ]; then
