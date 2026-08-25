@@ -769,6 +769,34 @@ const results = brief.symbols_scanned.filter(s => !EXCLUDED_TICKERS.has(s.symbol
   const kernelVal      = parseNum(getVal(lcSt?.values, 'Kernel Regression Estimate', 'Kernel'));
   const distFromKernel = parseNum(getVal(lcSt?.values, 'Distance from Kernel'));
   const distAboveKernel = parseNum(getVal(lcSt?.values, 'Distance Above Kernel'));
+
+  // ── Native LORP Backtest Stream (Stage 1, 25 Aug 2026) ──
+  // Confirmed key name 'Backtest Stream' via live Data Window screenshot (ETON, 25 Aug 2026).
+  // Native codes per LORP_Code_Streams.txt: 1 Long, -1 Short, 2 Long Exit, -2 Short Exit,
+  // 3 Upward First Pullback, -3 Downward First Pullback, 4/5 Standard/Strong Downward MR,
+  // -4/-5 Standard/Strong Upward MR. 6/-6 seen live but UNCONFIRMED — flagged, not routed.
+  // Routing (confirmed with David 25 Aug 2026): Trend table = 1/-1 only. Pullback table =
+  // 3/-3 (First Pullback) AND 4/5/-4/-5 (Mean Reversion). First column = label, not raw code.
+  const backtestStream = parseNum(getVal(lcSt?.values, 'Backtest Stream'));
+  const lorpNativeLabel =
+    backtestStream === 1  ? 'LORP Long'
+  : backtestStream === -1 ? 'LORP Short'
+  : backtestStream === 2  ? 'Long Exit'
+  : backtestStream === -2 ? 'Short Exit'
+  : backtestStream === 3  ? 'Upward First Pullback'
+  : backtestStream === -3 ? 'Downward First Pullback'
+  : backtestStream === 4  ? 'Standard Downward MR'
+  : backtestStream === 5  ? 'Strong Downward MR'
+  : backtestStream === -4 ? 'Standard Upward MR'
+  : backtestStream === -5 ? 'Strong Upward MR'
+  : (backtestStream === 6 || backtestStream === -6) ? 'Unclassified (±6)'
+  : null;
+  const lorpNativeTable =
+    (backtestStream === 1 || backtestStream === -1) ? 'Trend'
+  : (backtestStream === 3 || backtestStream === -3 || backtestStream === 4
+     || backtestStream === 5 || backtestStream === -4 || backtestStream === -5) ? 'Pullback'
+  : null;  // exits, unclassified ±6, and 0/na never populate a table row
+
   // reversion-now for LORP classification (Jul 2026); adx/diPlus/diMinus already read above
   const revDownNow = (() => { const a = parseNum(lcSt?.values?.['15']), b = parseNum(lcSt?.values?.['16']); return (a != null && Math.abs(a) > 0) || (b != null && Math.abs(b) > 0); })();
   // LC envelope (indicator's own "too far" band) — flags an EXTENDED long as a look-closer cue.
@@ -922,6 +950,8 @@ const results = brief.symbols_scanned.filter(s => !EXCLUDED_TICKERS.has(s.symbol
     // LC Premium kernel values
     kernelVal, distFromKernel, distAboveKernel, entryType,
     upperEnvFar, lowerEnvFar, extendedAbove,
+    // Native LORP Backtest Stream (Stage 1, 25 Aug 2026) — raw code, label, table routing
+    backtestStream, lorpNativeLabel, lorpNativeTable,
     // LC Premium signal keys (null = key absent / no signal on this bar)
     lcBuy, lcSell, lcStopBuy, lcStopSell, lorpBuySignal, lorpSellSignal,
     // CE signals (Buy Label / Sell Label from LC Premium)
@@ -1549,6 +1579,38 @@ if (!VERBOSE) {
     }
     console.log('');
   }
+
+  // ── Native LORP Trend / Pullback tables (Stage 1, 25 Aug 2026) ──
+  // Reads Backtest Stream directly — independent of the LC Buy/Sell entryType classification
+  // above. Trend = native codes 1/-1. Pullback = 3/-3 (First Pullback) and 4/5/-4/-5 (Mean
+  // Reversion), per David's confirmed routing. First column is the signal label, not the raw
+  // code (David's preference). Rows with lorpNativeTable === null (exits, unclassified ±6,
+  // no signal) are excluded from both tables — this is additive, does not touch entryType.
+  function lorpNativeRowCells(r) {
+    const adxStr  = r.adx  != null ? r.adx.toFixed(1)  : '—';
+    const distStr = r.distFromKernel != null ? r.distFromKernel.toFixed(2) : '—';
+    return [r.lorpNativeLabel, r.sym, `$${fmt(r.price)}`, adxStr, distStr, alsoTag(r.sym, 'LORP')];
+  }
+  const lorpNativeHeaders    = ['Signal', 'Ticker', 'Price', 'ADX', 'Dist', 'Also'];
+  const lorpNativeRightAlign = new Set([2, 3, 4]);  // Price, ADX, Dist right-aligned
+  function printLorpNativeTable(rows) {
+    const cells  = rows.map(lorpNativeRowCells);
+    const widths = lorpNativeHeaders.map((h, i) => Math.max(h.length, ...cells.map(c => String(c[i]).length)));
+    const pad    = (x, i) => { const sx = String(x); const g = Math.max(0, widths[i] - sx.length); return lorpNativeRightAlign.has(i) ? ' '.repeat(g) + sx : sx + ' '.repeat(g); };
+    console.log('| ' + lorpNativeHeaders.map((h, i) => pad(h, i)).join(' | ') + ' |');
+    console.log('|-' + widths.map(w => '-'.repeat(w)).join('-|-') + '-|');
+    cells.forEach(c => console.log('| ' + c.map((x, i) => pad(x, i)).join(' | ') + ' |'));
+  }
+  const lorpTrendRows    = lorpAll.filter(r => r.lorpNativeTable === 'Trend').sort((a, b) => a.sym.localeCompare(b.sym));
+  const lorpPullbackRows = lorpAll.filter(r => r.lorpNativeTable === 'Pullback').sort((a, b) => a.sym.localeCompare(b.sym));
+
+  console.log(`**LORP Trend (native ${'\u00b1'}1) — ${lorpTrendRows.length}:**\n`);
+  if (lorpTrendRows.length > 0) { printLorpNativeTable(lorpTrendRows); console.log(''); }
+  else console.log('*No Trend signals this run.*\n');
+
+  console.log(`**LORP Pullback (native ${'\u00b1'}3, ${'\u00b1'}4, ${'\u00b1'}5) — ${lorpPullbackRows.length}:**\n`);
+  if (lorpPullbackRows.length > 0) { printLorpNativeTable(lorpPullbackRows); console.log(''); }
+  else console.log('*No Pullback signals this run.*\n');
 
   // ── Persistent LORP Watchlist — update + output ──────────────────
   {
