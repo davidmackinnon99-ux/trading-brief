@@ -12,8 +12,6 @@ DATE=$(date +%Y-%m-%d)
 OUTFILE_LORP="$BRIEFS_DIR/brief-$DATE-lorp.json"
 OUTFILE_SID="$BRIEFS_DIR/brief-$DATE-sid.json"
 OUTFILE_REGIME="$BRIEFS_DIR/brief-$DATE-regime.json"
-OUTFILE_PULLBACK="$BRIEFS_DIR/brief-$DATE-pullback.json"
-OUTFILE_ADX="$BRIEFS_DIR/brief-$DATE-adx.json"
 OUTFILE="$BRIEFS_DIR/brief-$DATE.json"
 LOGFILE="$BRIEFS_DIR/brief-$DATE.log"
 TABLES_OUT="$BRIEFS_DIR/brief-$DATE-tables.md"
@@ -39,11 +37,10 @@ echo $$ > "$LOCKFILE"
 # Defence-in-depth behind the per-call CDP timeouts in connection.js: guarantees a
 # wedged scan can never hold the lock for hours and silently skip the next run.
 MAX_TOTAL_SECS=14400  # 240 minutes — backstop only; per-call CDP timeouts catch real hangs.
-                      # Sized for the current ~406-symbol universe: LORP + SID each scan the
-                      # FULL watchlist (~66 min each at ~10s/symbol) + REGIME/PULLBACK/ADX ≈ 160
-                      # min total. Raised 150→240 after the 406-symbol run tripped the old budget.
-                      # If the universe keeps growing, address scan throughput rather than just
-                      # raising this further (see scan_delay_ms / waitForChartReady).
+                      # Sized for the current ~739-symbol universe: LORP + SID each scan the
+                      # FULL watchlist. PULLBACK/ADX scans retired 26 Aug 2026 (see below) —
+                      # this ceiling is now generous headroom, not a tight budget; revisit if
+                      # the universe keeps growing and scan throughput becomes the bottleneck.
 ( sleep $MAX_TOTAL_SECS
   echo "[$(date)] GLOBAL WATCHDOG: brief exceeded ${MAX_TOTAL_SECS}s — killing pipeline" >> "$LOGFILE"
   osascript -e 'display notification "Brief exceeded time budget — killed" with title "Morning Brief Failed" sound name "Basso"' 2>/dev/null || true
@@ -105,7 +102,8 @@ fi
 # on multiple layouts — far more reliable than matching by indicator name.
 # Known layout IDs:
 #   OWHfyWBq = LORP        XN1LuowU = SID         78yhKuUS = REGIME USA
-#   6Qpm8oT7 = PULLBACK    6hvBVx9e = ADX BREAKOUT
+# (PULLBACK 6Qpm8oT7 and ADX BREAKOUT 6hvBVx9e scans retired 26 Aug 2026 — David:
+#  "delete all references to the old Pullback & ADX Continuation")
 
 # ── PRE-WARM: the first real scan (LORP) always eats the cold-start (browser + heavy
 # layout still rendering). Warm it with a tiny throwaway scan (9 symbols) so the full
@@ -161,27 +159,9 @@ else
     echo "[$(date)] REGIME scan failed or empty — Pullback regime gate will be unavailable" >> "$LOGFILE"
 fi
 
-# ── SCAN 4: PULLBACK layout ───────────────────────────────────────────────────
-echo "[$(date)] Scanning PULLBACK layout (6Qpm8oT7)..." >> "$LOGFILE"
-TRADINGVIEW_LAYOUT_ID="6Qpm8oT7" READY_REQUIRE_STUDY="EMA21 Trend Setup" \
-  "$NODE" "$TV_DIR/src/cli/index.js" brief --sections "PULLBACK SCREENER,PULLBACK BRIEF" > "$OUTFILE_PULLBACK" 2>> "$LOGFILE"
-PULLBACK_EXIT=$?
-if [ $PULLBACK_EXIT -eq 0 ] && [ -s "$OUTFILE_PULLBACK" ]; then
-    echo "[$(date)] PULLBACK scan complete" >> "$LOGFILE"
-else
-    echo "[$(date)] PULLBACK scan failed or empty — Pullback signals will be unavailable" >> "$LOGFILE"
-fi
-
-# ── SCAN 5: ADX BREAKOUT layout ───────────────────────────────────────────────
-echo "[$(date)] Scanning ADX BREAKOUT layout (6hvBVx9e)..." >> "$LOGFILE"
-TRADINGVIEW_LAYOUT_ID="6hvBVx9e" READY_REQUIRE_STUDY="ADX Breakout" \
-  "$NODE" "$TV_DIR/src/cli/index.js" brief --sections "ADX BREAKOUT SCREENER,ADX BREAKOUT BRIEF" > "$OUTFILE_ADX" 2>> "$LOGFILE"
-ADX_EXIT=$?
-if [ $ADX_EXIT -eq 0 ] && [ -s "$OUTFILE_ADX" ]; then
-    echo "[$(date)] ADX BREAKOUT scan complete" >> "$LOGFILE"
-else
-    echo "[$(date)] ADX BREAKOUT scan failed or empty — ADX Breakout section will be unavailable" >> "$LOGFILE"
-fi
+# ── PULLBACK and ADX BREAKOUT scans retired 26 Aug 2026 (David: "delete all
+# references to the old Pullback & ADX Continuation" — Pullback folded into LORP's
+# native Trend/Pullback tables; ADX shown in the LORP table already per #8 Jul 2026).
 
 # Sanity check LORP scan
 if [ $BRIEF_EXIT -eq 0 ] && [ -s "$OUTFILE_LORP" ]; then
@@ -199,7 +179,7 @@ if [ $BRIEF_EXIT -eq 0 ] && [ -s "$OUTFILE_LORP" ]; then
     # Auto-analyse: pass both JSON files to produce combined tables
     CSV_OUT="$BRIEFS_DIR/brief-$DATE-data.csv"
     echo "[$(date)] Generating tables..." >> "$LOGFILE"
-    "$NODE" "$TV_DIR/scripts/analyse-brief.cjs" "$OUTFILE_LORP" "$OUTFILE_SID" "$OUTFILE_REGIME" "$OUTFILE_PULLBACK" "$OUTFILE_ADX" > "$TABLES_OUT" 2>> "$LOGFILE"
+    "$NODE" "$TV_DIR/scripts/analyse-brief.cjs" "$OUTFILE_LORP" "$OUTFILE_SID" "$OUTFILE_REGIME" > "$TABLES_OUT" 2>> "$LOGFILE"
     # ── LORP open-trade monitor — append to the brief body so it's emailed with the brief ──
     # Grades the LORP rows in open_trades.csv (health verdict + suggested stop) via yfinance.
     echo "[$(date)] Appending LORP open-trade monitor..." >> "$LOGFILE"
@@ -221,8 +201,7 @@ if [ $BRIEF_EXIT -eq 0 ] && [ -s "$OUTFILE_LORP" ]; then
         # Extract key counts for the notification
         LORP_COUNT=$(grep -o "LORP — [0-9]* candidates" "$TABLES_OUT" | grep -o "[0-9]*" | head -1 || echo "?")
         SID_COUNT=$(grep -o "SID — [0-9]* signals" "$TABLES_OUT" | grep -o "[0-9]*" | head -1 || echo "0")
-        PB_COUNT=$(grep -o "PULLBACK SCREENER  —  [0-9]* tickers" "$TABLES_OUT" | grep -o "[0-9]*" | head -1 || echo "0")
-        NOTIFY_MSG="LORP ${LORP_COUNT} · SID ${SID_COUNT} · PB ${PB_COUNT}"
+        NOTIFY_MSG="LORP ${LORP_COUNT} · SID ${SID_COUNT}"
 
         # Send macOS notification — appears in Notification Centre, no approval needed
         osascript -e "display notification \"${NOTIFY_MSG}\" with title \"Morning Brief Ready\" subtitle \"$(date '+%a %d %b %Y')\" sound name \"Glass\"" 2>/dev/null || true
