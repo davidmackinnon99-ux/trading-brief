@@ -289,6 +289,8 @@ if (sidBriefFile && fs.existsSync(sidBriefFile)) {
 let spyAboveEMA21 = null;
 let spyPrice = null;
 let spyEMA21 = null;
+let spyRegimeSource = 'ema21';  // 'ema21' or 'bigbeluga' — which method actually resolved the regime
+let spyTrendVal = null;         // set only when spyRegimeSource === 'bigbeluga'
 
 function extractSPY(briefData) {
   return briefData?.symbols_scanned?.find(s =>
@@ -340,7 +342,21 @@ if (spyScan && !spyScan.error) {
     spyAboveEMA21 = spyPrice > spyEMA21;
     process.stderr.write(`[regime] SPY=$${spyPrice.toFixed(2)} EMA21=$${spyEMA21.toFixed(2)} → ${spyAboveEMA21 ? 'BULLISH ✓' : 'BEARISH ⚠️'}\n`);
   } else {
-    process.stderr.write(`[regime] SPY found but EMA21 not available (price=${spyPrice}, ema21=${spyEMA21})\n`);
+    // Fallback: Regime Filter [BigBeluga] — actual REGIME USA layout indicator as of 26 Aug
+    // 2026 (EMA21 Trend Setup / EMA 8-20-50 Rainbow are no longer present). Exposes a
+    // "Trend Value" oscillating around a "Zero Line" (0.0000) — bullish when Trend Value
+    // is above the Zero Line, same convention as the price-vs-EMA21 check above.
+    const bigBelugaSt = studies.find(s => s.name.toLowerCase().includes('regime filter'));
+    const trendVal = parseNum(getVal(bigBelugaSt?.values, 'Trend Value'));
+    const zeroLine  = parseNum(getVal(bigBelugaSt?.values, 'Zero Line')) ?? 0;
+    if (spyPrice != null && trendVal != null) {
+      spyAboveEMA21 = trendVal > zeroLine;
+      spyRegimeSource = 'bigbeluga';
+      spyTrendVal = trendVal;
+      process.stderr.write(`[regime] SPY=$${spyPrice.toFixed(2)} BigBeluga TrendValue=${trendVal.toFixed(2)} → ${spyAboveEMA21 ? 'BULLISH ✓' : 'BEARISH ⚠️'} (fallback: EMA21 Trend Setup not on REGIME USA layout)\n`);
+    } else {
+      process.stderr.write(`[regime] SPY found but neither EMA21 nor Regime Filter [BigBeluga] available (price=${spyPrice}, ema21=${spyEMA21}, trendVal=${trendVal})\n`);
+    }
   }
 } else {
   process.stderr.write(`[regime] SPY not found in any scan — add SPY to PULLBACK SCREENER watchlist section\n`);
@@ -1403,7 +1419,7 @@ if (!VERBOSE) {
   } else {
     console.log(`**✅ LORP — ${filteredBuyVD} LC entries** *(actionable; +${filteredSellVD} context = no live entry)*`);
     console.log('*Pre-filtered by TV Screener + brief filters — check chart before acting*\n');
-    console.log('*Type: Pullback = LC entry + Standard/Strong reversion within 4 bars (incl. entry bar) · Breakout = ADX>25 & rising · RVOL>2 · D+ rising · raw ATR>2 · MACD>0 · Trend = ADX>20 · MACD>0 · RVOL>0.8. MACD0 ✓ above / ⚠️ below Signal · ⚠️EXT = above LC Upper Envelope Far.*\n');
+    console.log('*Type: Pullback = LC entry + Standard/Strong reversion within 4 bars (incl. entry bar) · Breakout = ADX>25 & rising · RVOL>2 · D+ rising · raw ATR>2 · MACD>0 · Trend = ADX>20 · MACD>0 · RVOL>0.8. MACD0 ✓ above / below Signal · EXT = above LC Upper Envelope Far.*\n');
   }
 
   function lorpRowCells(r) {
@@ -1418,9 +1434,11 @@ if (!VERBOSE) {
     const rvolStr  = r.rvol   != null ? r.rvol.toFixed(1) : '—';
     const aroonStr = r.aroon != null ? r.aroon.toFixed(0) : '—';
     // MACD0 (MACD vs Signal histogram) — the validated LORP entry gate (flag, not filter).
-    // Shows ✓ above / ⚠️ below, with histogram value so a narrowing (converging) gap is visible.
+    // Shows ✓ above / (no marker) below, with histogram value so a narrowing (converging)
+    // gap is visible. David (26 Aug 2026): dropped the ⚠️ on negative values — Pullback
+    // rows are EXPECTED to be negative here, so a warning glyph was noise, not signal.
     const macd0Str = (r.macd != null && r.macdSig != null)
-      ? (r.macd >= r.macdSig ? `✓ ${(r.macd - r.macdSig).toFixed(2)}` : `⚠️ ${(r.macd - r.macdSig).toFixed(2)}`)
+      ? (r.macd >= r.macdSig ? `✓ ${(r.macd - r.macdSig).toFixed(2)}` : `${(r.macd - r.macdSig).toFixed(2)}`)
       : '—';
     // Cf = context-alignment tally (0–N). NOT validated as predictive (26-trade study:
     // only MACD0 separated winners/losers). Supporting "is everything pointing the same
@@ -1490,7 +1508,9 @@ if (!VERBOSE) {
       : r.bbPct >= 0.0 ? `${r.bbPct.toFixed(2)} ⚠️`
       : `${r.bbPct.toFixed(2)} ↓BB`
       : '—';
-    const entryStr = (r.entryType ?? '—') + (r.extendedAbove === true ? ' ⚠️EXT' : '');
+    // David (26 Aug 2026): dropped the ⚠️ — extended-above is expected context for
+    // Pullback rows too, treating it as a warning was noise, not signal.
+    const entryStr = (r.entryType ?? '—') + (r.extendedAbove === true ? ' EXT' : '');
     return [r.sym, `$${fmt(r.price)}`, entryStr, macd0Str, distStr, adxStr, sigStr, alsoTag(r.sym, 'LORP'), (r.aroon != null && r.aroon < 0 ? '\u26a0 Aroon' : lorpScore(r))];
   }
 
@@ -1546,20 +1566,23 @@ if (!VERBOSE) {
       return true;
     });
 
-    // A fired LC Buy always sits in the Buy section regardless of VD (the entry leads).
-    // Pullback entries: negative VD is expected — always shown in Buy section with ↓ (PB) note.
-    // Trend/Breakout non-fired rows: VD > 0.5 to sit in Buy, else dropped to Sell-context.
-    const buyTickers  = filtered.filter(r => r.lorpBuySignal === true);
-    const sellTickers = filtered.filter(r => r.lorpBuySignal !== true);
+    // David (26 Aug 2026): replaced the Buy VD / Sell VD split with Trend / Pullback,
+    // reusing the entryType field already computed per-row (Pullback/Trend/Breakout,
+    // see the Type legend above). Breakout folds into the Trend stream — both are
+    // momentum-continuation, as opposed to Pullback's mean-reversion character.
+    // Rows with no specific type ("—") also fall into Trend as a residual bucket,
+    // matching how they previously fell into the old catch-all Sell VD list.
+    const pullbackTickers = filtered.filter(r => r.entryType?.startsWith('Pullback'));
+    const trendTickers    = filtered.filter(r => !r.entryType?.startsWith('Pullback'));
 
-    if (buyTickers.length > 0) {
-      console.log(`*${label} — Buy VD (${buyTickers.length}):*\n`);
-      printLorpTable(sortLorp(buyTickers));
+    if (trendTickers.length > 0) {
+      console.log(`*${label} — Trend (${trendTickers.length}):*\n`);
+      printLorpTable(sortLorp(trendTickers));
       console.log('');
     }
-    if (sellTickers.length > 0) {
-      console.log(`*${label} — Sell VD ⚠️ (${sellTickers.length}, context only):*\n`);
-      printLorpTable(sortLorp(sellTickers));
+    if (pullbackTickers.length > 0) {
+      console.log(`*${label} — Pullback (${pullbackTickers.length}):*\n`);
+      printLorpTable(sortLorp(pullbackTickers));
       console.log('');
     }
   }
@@ -1871,7 +1894,6 @@ if (!VERBOSE) {
       console.log(`*Long candidates (${sidLongs.length}):*\n`);
       printSIDTable(sidLongs);
       adxCaution(sidLongs);
-      gpCaution(sidLongs);
       console.log('');
     }
 
@@ -1880,21 +1902,23 @@ if (!VERBOSE) {
       printSIDTable(sidShorts);
       adxCaution(sidShorts);
       sidShortCaution(sidShorts);
-      gpCaution(sidShorts);
       console.log('');
     }
   }
   // ── SPY Regime Gate ──
   console.log('---\n');
   const regimeStr = spyAboveEMA21 === true
-    ? `✅ SPY Regime: BULLISH — SPY $${spyPrice?.toFixed(2)} above EMA21 $${spyEMA21?.toFixed(2)}`
+    ? (spyRegimeSource === 'bigbeluga'
+        ? `✅ SPY Regime: BULLISH — BigBeluga Trend Value ${spyTrendVal?.toFixed(2)} above zero`
+        : `✅ SPY Regime: BULLISH — SPY $${spyPrice?.toFixed(2)} above EMA21 $${spyEMA21?.toFixed(2)}`)
     : spyAboveEMA21 === false
-    ? `⚠️ SPY Regime: BEARISH — SPY $${spyPrice?.toFixed(2)} below EMA21 $${spyEMA21?.toFixed(2)} — Pullback entries not recommended`
+    ? (spyRegimeSource === 'bigbeluga'
+        ? `⚠️ SPY Regime: BEARISH — BigBeluga Trend Value ${spyTrendVal?.toFixed(2)} below zero — Pullback entries not recommended`
+        : `⚠️ SPY Regime: BEARISH — SPY $${spyPrice?.toFixed(2)} below EMA21 $${spyEMA21?.toFixed(2)} — Pullback entries not recommended`)
     : '⚠️ SPY Regime: unknown (REGIME scan not available)';
   console.log(`*${regimeStr}*\n`);
 
-  // ── Pullback Section ──
-  console.log('---\n');
+  // ── Pullback Section (output retired 26 Aug 2026 — see wrapped block below) ──
 
   // Stage counts
   const stage3 = pullbackUnique.filter(r => r.stageInfo.stage === 3);
@@ -1923,6 +1947,10 @@ if (!VERBOSE) {
 
   const pbHeader2 = `${'═'.repeat(44)}\n📈 PULLBACK SCREENER  —  ${pbSorted.length} tickers shown (${stage0.length} WATCH hidden)\n    Stage 3 🟢 BREAKOUT: ${stage3Breakout.length}  |  🔵 IN-BAND: ${stage3InBand.length}  |  Stage 2 🟠 EMA21: ${stage2.length}  |  Stage 1 🟡 PB: ${stage1.length}\n    Entries require price ≥ EMA21 (no negative %). ADX 20–40 filter applied upstream.\n    ⚑ LuxAlgo HTF Divergence: manual chart check required.${pbIndicatorWarn}\n${'═'.repeat(44)}`;
 
+  // ── Pullback section retired (David, 26 Aug 2026): "delete all references to the
+  // old Pullback & ADX Continuation" — folded into LORP Trend/Pullback tables instead.
+  // Wrapped rather than deleted, matching the existing ADX Continuation precedent below.
+  if (false) {
   if (pbSorted.length === 0) {
     const watchNote = stage0.length > 0 ? ` *(${stage0.length} WATCH-only hidden)*` : '';
     console.log(`**📈 PULLBACK** — No Stage 1–3 candidates${watchNote}\n`);
@@ -1962,6 +1990,7 @@ if (!VERBOSE) {
       console.log(`*⛔ GP Zone invalidated (suppressed): ${pbInvalidatedGP.map(r => r.sym).join(' · ')}*\n`);
     }
   }
+  } // end retired Pullback section (David, 26 Aug 2026)
 
   // ── ADX Breakout ── REMOVED from brief per user #8 (Jul 2026); ADX now shown in the LORP table
   {
@@ -2038,35 +2067,16 @@ if (!VERBOSE) {
   console.log('*LORP: Pre-filtered by TV Screener (ATR<5%, MACD>0, EMA21>EMA34, Vol>500K, RelVol>1.0, Price>EMA34, Aroon Down<30%, RSI 45-75)*  ');
   console.log('*Brief filters: RVOL>1.0, RVOL<4, Aroon>0 & rising, VD>0.5, No LC data excluded*');
   console.log('*Type: Pullback 🔄 = Dist<0.5 · Trend ↗ = Dist 0.5–1.5 · Breakout 🚀 = Dist>1.5 · WRB ✓ = wide range bar in prior bars · ✗ = none*  ');
-  console.log('*Pullback v2.0: Stage 3=ENTRY (up_arrow/in-band) · Stage 2=EMA21 (pb_flag+≤3% above EMA21) · Stage 1=PB (pb_flag) · Hard gates: band inverted/GP zone*  ');
   console.log('');
   console.log('📐 **CONFLUENCE FACTORS BY STRATEGY**\n');
   console.log('**LORP:** Distance from Kernel (Pullback 🔄 <0.5 · Trend ↗ 0.5–1.5 · Breakout 🚀 >1.5)  ');
-  console.log('         🟢 LC Premium Buy/StopBuy signal · Buy VD ✓ · RVOL >1.0 · Aroon >0 & rising · WRB prior bars · ATR% <5%  ');
-  console.log('         Sell VD ⚠️ shown for context only — not entry signals  ');
+  console.log('         🟢 LC Premium Buy/StopBuy signal · RVOL >1.0 · Aroon >0 & rising · WRB prior bars · ATR% <5%  ');
   console.log('         Sig = FRESH fires only — markers already in the prior brief are filtered as carried-over · ·Nc = N held-over markers suppressed\n');
   console.log('**SID:**  Long: RSI crossed below 30 (OS touch) · RSI rising · MACD ↑ 1 bar  ');
   console.log('          Short: RSI crossed above 70 (OB touch) · RSI falling · MACD ↓ 1 bar  ');
   console.log('          SMA200 tier (HIGH CONVICTION ≥5% away) · ADX (<20 coiling ✓ · 20-25 NML ⚠️ · 25-40 trending)  ');
   console.log('          Gap/ATR ≥2.0 ideal (stop room) · <1.5 avoid (stop too tight) · Src: SID·LORP·BTW·PB·BO·CAP  ');
-  console.log('          ATR% risk · Gap/ATR = SL distance in ATRs (per STRATEGIES.md: ≥2.0 ideal · <1.5 avoid) · VD (ref)  ');
-  console.log('          🟡 GP: NEAR / 🟢 GP: IN — zone proximity reference only\n');
-  console.log('**PULLBACK v2.0:** Entry trigger: Stage 3 🟢 ENTRY · Stage 2 🟠 EMA21 · Stage 1 🟡 PB  ');
-  console.log('                   ADX + EMA21 Trend Setup (Booker Method) · SlingShotSystem bands  ');
-  console.log('                   Hard gates: Band inverted → suppressed · Inside GP Zone → suppressed  ');
-  console.log('                   ⚑ LuxAlgo HTF Divergence: manual chart check required\n');
-  console.log('**ADX CONTINUATION:** Screen: ADX ≥25 (trending) · DI+ > DI- (long) / DI- > DI+ (short) · close beyond Box · 25–40 cap via TV Screener  ');
-  console.log('                  Entry trigger: price breaks above Box Upper (Long) OR below Box Lower (Short)  ');
-  console.log('                  VD is reference only — a BUY entry can have positive or negative VD  ');
-  console.log('                  Quality: ✅ Up = Booker Quality Up · ↓ Down = Booker Quality Down · — = no signal  ');
-  console.log('                  🟡 GP: NEAR / 🟢 GP: IN — zone proximity reference only\n');
-  console.log('                  Chart checklist before acting:  ');
-  console.log('                  · Price breaking above Box Upper?  ');
-  console.log('                  · Breakout bar a WRB?  ');
-  console.log('                  · ADX visibly rising?  ');
-  console.log('                  · DI+ crossing above or already above DI-?  ');
-  console.log('                  · Supply zone overhead that could reject breakout?\n');
-  console.log('*⚠️ GP zone flags require GP Zone Exporter on all layouts + columns exported in CSV*');
+  console.log('          ATR% risk · Gap/ATR = SL distance in ATRs (per STRATEGIES.md: ≥2.0 ideal · <1.5 avoid) · VD (ref)\n');
 
   // ── CSV Export ──
   // Save alongside the LORP JSON but with standardised name for email attachment
@@ -2198,20 +2208,15 @@ if (!VERBOSE) {
     .filter(r => !r.error && (r.isLongPass || r.isShortPass))
     .map(r => r.sym);
 
-  // Both coiling (BBWP ≤5) and extended (BBWP ≥98) pushed to Brief Output
-  const adxBriefTickers = adxCoilingAll.map(r => r.sym);
+  // ADX Continuation and Pullback retired (David, 26 Aug 2026) — no longer contribute to
+  // Brief Output. Kept as unused local computations elsewhere in the file rather than
+  // deleted outright, matching how the print sections themselves were retired above.
 
-  const pullbackBriefTickers = pullbackAll
-    .filter(r => r.stageInfo && r.stageInfo.stage >= 1)
-    .map(r => r.sym);
-
-  // Merge all four strategy outputs into a single deduplicated, sorted list
+  // Merge LORP + SID outputs into a single deduplicated, sorted list
   const briefOutputTickers = [
     ...new Set([
       ...lorpBriefImport,
       ...sidBriefTickers.map(s => bareSym(s)),
-      ...adxBriefTickers.map(s => bareSym(s)),
-      ...pullbackBriefTickers.map(s => bareSym(s)),
     ]),
   ].sort();
 
@@ -2231,7 +2236,7 @@ if (!VERBOSE) {
 
   // Also append to tables output
   if (lorpBriefImport.length > 0) {
-    const importNote = `\n---\n\n**📋 Brief Output — ${briefOutputTickers.length} tickers** *(LORP Buy VD · SID · ADX · Pullback — pushed to watchlist)*\n\n${briefOutputTickers.join(' · ')}\n`;
+    const importNote = `\n---\n\n**📋 Brief Output — ${briefOutputTickers.length} tickers** *(LORP · SID — pushed to watchlist)*\n\n${briefOutputTickers.join(' · ')}\n`;
     process.stdout.write(importNote);
   }
 
