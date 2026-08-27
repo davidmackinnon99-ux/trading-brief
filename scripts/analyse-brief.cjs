@@ -1464,7 +1464,10 @@ if (!VERBOSE) {
       if (_fresh(code)) sigParts.push(label);
       else carriedOver++;
     };
-    addSig(r.lorpBuySignal,                                     'LC',   '🟢 LC');
+    // David (27 Aug 2026): a native +1 code IS a fired LC entry — show 🟢 LC for it too,
+    // not just the separately-tracked lorpBuySignal flag (they should usually coincide,
+    // but the native code is the authoritative signal per the Trend/Pullback tables).
+    addSig(r.lorpBuySignal || r.backtestStream === 1,           'LC',   '🟢 LC');
     addSig(r.lorpSellSignal,                                    'LCs',  '🔴 LC');
     addSig(r.aroonLong  !== null,                              'A_L',  '🟢 A');
     addSig(r.aroonShort !== null,                              'A_S',  '🔴 A');
@@ -1541,7 +1544,7 @@ if (!VERBOSE) {
   });
 
   function printLorpSection(tickers, label) {
-    if (tickers.length === 0) return;
+    if (tickers.length === 0 && label !== 'LORP Screener') return;
 
     // ── Brief-level filters (applied after TV Screener) ──────────
     // 2. Exclude No LC data
@@ -1572,8 +1575,21 @@ if (!VERBOSE) {
     // momentum-continuation, as opposed to Pullback's mean-reversion character.
     // Rows with no specific type ("—") also fall into Trend as a residual bucket,
     // matching how they previously fell into the old catch-all Sell VD list.
-    const pullbackTickers = filtered.filter(r => r.entryType?.startsWith('Pullback'));
-    const trendTickers    = filtered.filter(r => !r.entryType?.startsWith('Pullback'));
+    let pullbackTickers = filtered.filter(r => r.entryType?.startsWith('Pullback'));
+    let trendTickers    = filtered.filter(r => !r.entryType?.startsWith('Pullback'));
+
+    // David (27 Aug 2026): "combine" the old entryType-based Trend/Pullback tables with
+    // the native-code Trend/Pullback tables — one section each, not two competing ones.
+    // Folded into the main "LORP Screener" section only (the other two calls — Watch List
+    // carry-forward and Fired-entry-other-section — keep their own narrower populations,
+    // so this doesn't duplicate rows across sections). Any lorpAll row with a genuine
+    // native Trend/Pullback code that isn't already present here gets unioned in.
+    if (label === 'LORP Screener') {
+      const alreadyShown = new Set(filtered.map(r => r.sym));
+      const nativeOnly = lorpAll.filter(r => r.lorpNativeTable && !alreadyShown.has(r.sym));
+      trendTickers    = [...trendTickers,    ...nativeOnly.filter(r => r.lorpNativeTable === 'Trend')];
+      pullbackTickers = [...pullbackTickers, ...nativeOnly.filter(r => r.lorpNativeTable === 'Pullback')];
+    }
 
     if (trendTickers.length > 0) {
       console.log(`*${label} — Trend (${trendTickers.length}):*\n`);
@@ -1603,37 +1619,10 @@ if (!VERBOSE) {
     console.log('');
   }
 
-  // ── Native LORP Trend / Pullback tables (Stage 1, 25 Aug 2026) ──
-  // Reads Backtest Stream directly — independent of the LC Buy/Sell entryType classification
-  // above. Trend = native codes 1/-1. Pullback = 3/-3 (First Pullback) and 4/5/-4/-5 (Mean
-  // Reversion), per David's confirmed routing. First column is the signal label, not the raw
-  // code (David's preference). Rows with lorpNativeTable === null (exits, unclassified ±6,
-  // no signal) are excluded from both tables — this is additive, does not touch entryType.
-  function lorpNativeRowCells(r) {
-    const adxStr  = r.adx  != null ? r.adx.toFixed(1)  : '—';
-    const distStr = r.distFromKernel != null ? r.distFromKernel.toFixed(2) : '—';
-    return [r.lorpNativeLabel, r.sym, `$${fmt(r.price)}`, adxStr, distStr, alsoTag(r.sym, 'LORP')];
-  }
-  const lorpNativeHeaders    = ['Signal', 'Ticker', 'Price', 'ADX', 'Dist', 'Also'];
-  const lorpNativeRightAlign = new Set([2, 3, 4]);  // Price, ADX, Dist right-aligned
-  function printLorpNativeTable(rows) {
-    const cells  = rows.map(lorpNativeRowCells);
-    const widths = lorpNativeHeaders.map((h, i) => Math.max(h.length, ...cells.map(c => String(c[i]).length)));
-    const pad    = (x, i) => { const sx = String(x); const g = Math.max(0, widths[i] - sx.length); return lorpNativeRightAlign.has(i) ? ' '.repeat(g) + sx : sx + ' '.repeat(g); };
-    console.log('| ' + lorpNativeHeaders.map((h, i) => pad(h, i)).join(' | ') + ' |');
-    console.log('|-' + widths.map(w => '-'.repeat(w)).join('-|-') + '-|');
-    cells.forEach(c => console.log('| ' + c.map((x, i) => pad(x, i)).join(' | ') + ' |'));
-  }
-  const lorpTrendRows    = lorpAll.filter(r => r.lorpNativeTable === 'Trend').sort((a, b) => a.sym.localeCompare(b.sym));
+  // David (27 Aug 2026): separate native-code Trend/Pullback tables retired — folded into
+  // the "LORP Screener" section above (see printLorpSection). lorpPullbackRows kept as the
+  // authoritative native-Pullback set feeding Brief Output below ("watched as a set").
   const lorpPullbackRows = lorpAll.filter(r => r.lorpNativeTable === 'Pullback').sort((a, b) => a.sym.localeCompare(b.sym));
-
-  console.log(`**LORP Trend (native ${'\u00b1'}1) — ${lorpTrendRows.length}:**\n`);
-  if (lorpTrendRows.length > 0) { printLorpNativeTable(lorpTrendRows); console.log(''); }
-  else console.log('*No Trend signals this run.*\n');
-
-  console.log(`**LORP Pullback (native ${'\u00b1'}3, ${'\u00b1'}4, ${'\u00b1'}5) — ${lorpPullbackRows.length}:**\n`);
-  if (lorpPullbackRows.length > 0) { printLorpNativeTable(lorpPullbackRows); console.log(''); }
-  else console.log('*No Pullback signals this run.*\n');
 
   // ── Persistent LORP Watchlist — update + output ──────────────────
   {
@@ -1752,7 +1741,18 @@ if (!VERBOSE) {
     Object.defineProperty(globalThis, '_lorpWatchlist', { value: lorpWatchlist, configurable: true });
   }
 
-  // ── SID Market Breadth (ETF vs Stock OB/OS counts) ──
+  // ── SID Market Breadth (ETF vs Stock OB/OS counts) — retired 27 Aug 2026 ──
+  // David: "not needed as it shows in the tables below" (same counts derivable from the
+  // Long/Short candidate tables). Wrapped rather than deleted, matching this file's own
+  // convention for retired sections (see the Pullback section above).
+  // NOTE: baseTicker() is declared OUTSIDE this if(false), not inside — other code
+  // (SID table's normalizeSrc) depends on it. Sloppy-mode Annex B function hoisting
+  // only assigns the function value when its block actually executes, so a function
+  // declared inside a dead `if (false)` branch becomes callable-but-undefined
+  // elsewhere in the file. Cost me a crash once already; leaving this note so nobody
+  // re-nests it in a future retirement.
+  function baseTicker(sym) { return sym.includes(':') ? sym.split(':')[1] : sym; }
+  if (false) {
   console.log('---\n');
   {
     const sidScanned = sidResults.filter(r => !r.error && (r.wrsi != null || r.sidArmedLong != null || r.sidArmedShort != null || r.adx != null));
@@ -1796,6 +1796,7 @@ if (!VERBOSE) {
     if (etfOS.length > 0) console.log(`*ETF Long Entry:  ${etfOS.map(r => baseTicker(r.sym)).join(' · ')}*`);
     console.log('');
   }
+  } // end retired SID Market Breadth (David, 27 Aug 2026)
 
   // ── SID ──
   console.log('---\n');
@@ -2193,7 +2194,11 @@ if (!VERBOSE) {
         .map(([sym]) => sym)
         .filter(sym => !lorpBriefScreenerSyms.includes(sym))
     : [];
-  const lorpBriefImport = [...lorpBriefScreenerSyms, ...lorpWatchlistActive].sort();
+  // David (27 Aug 2026): native-Pullback tickers (fired ±3/±4/±5 codes, may not have
+  // a separate lorpBuySignal/positive-VD flag) now feed Brief Output too — "these will
+  // be watched as a set" alongside the LC-entry-driven tickers above.
+  const lorpNativePullbackSyms = lorpPullbackRows.map(r => bareSym(r.sym));
+  const lorpBriefImport = [...new Set([...lorpBriefScreenerSyms, ...lorpWatchlistActive, ...lorpNativePullbackSyms])].sort();
 
   const importPath = briefFile.replace('.json', '-brief-import.txt');
   fsSync.writeFileSync(importPath, lorpBriefImport.join('\n') + '\n', 'utf8');
