@@ -1478,6 +1478,11 @@ if (!VERBOSE) {
     addSig(r.capStrongDemand > 0,                              'SD',   '💪 SD');
     addSig(r.capClimaxSupply > 0,                              'CS',   '🔥 CS');
     addSig(r.capStrongSupply > 0,                              'SS',   '💪 SS');
+    // David (28 Aug 2026): mirrors the exact Trend classification already built into
+    // the "ADX and DI for v4 Wilder Table" Pine indicator itself (ADX>20 and DI gap>=5
+    // in either direction) — same thresholds, same source study, just read here too.
+    addSig(r.adx != null && r.adx > 20 && r.diPlus  != null && r.diMinus != null && (r.diPlus  - r.diMinus) >= 5, 'ADX_U', '🟢 ADX');
+    addSig(r.adx != null && r.adx > 20 && r.diPlus  != null && r.diMinus != null && (r.diMinus - r.diPlus)  >= 5, 'ADX_D', '🔴 ADX');
     let sigStr = sigParts.length ? sigParts.join(' ') : '—';
     if (carriedOver > 0) sigStr += `${sigParts.length ? ' ' : ''}·${carriedOver}c`;  // ·Nc = N carried-over (held from prior brief)
     const distStr  = r.distFromKernel != null ? r.distFromKernel.toFixed(2) : '—';
