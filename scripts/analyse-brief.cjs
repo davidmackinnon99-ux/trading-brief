@@ -284,83 +284,10 @@ if (sidBriefFile && fs.existsSync(sidBriefFile)) {
   }
 }
 
-// Load REGIME brief and extract SPY EMA21 regime gate
-// Falls back to main brief if SPY is in the main scan
-let spyAboveEMA21 = null;
-let spyPrice = null;
-let spyEMA21 = null;
-let spyRegimeSource = 'ema21';  // 'ema21' or 'bigbeluga' — which method actually resolved the regime
-let spyTrendVal = null;         // set only when spyRegimeSource === 'bigbeluga'
-
-function extractSPY(briefData) {
-  return briefData?.symbols_scanned?.find(s =>
-    s.symbol === 'SPY' || s.symbol === 'AMEX:SPY' ||
-    s.symbol === 'BATS:SPY' || s.symbol === 'NYSE:SPY' ||
-    s.symbol === 'ARCA:SPY' ||
-    (s.symbol?.endsWith(':SPY') && s.symbol?.length <= 8)
-  );
-}
-
-// Try regime brief first, then fall back to main brief
-let spyScan = null;
-if (regimeBriefFile && fs.existsSync(regimeBriefFile)) {
-  try {
-    const regimeBrief = loadFirstJSON(regimeBriefFile);
-    spyScan = extractSPY(regimeBrief);
-    if (!spyScan) process.stderr.write(`[regime] SPY not found in regime scan — trying main brief\n`);
-  } catch(e) {
-    process.stderr.write(`[warn] Could not load REGIME brief: ${e.message}\n`);
-  }
-}
-if (!spyScan) {
-  spyScan = extractSPY(brief);
-  if (spyScan) process.stderr.write(`[regime] SPY found in main brief (fallback)\n`);
-}
-
-if (spyScan && !spyScan.error) {
-  spyPrice = spyScan.quote?.last;
-  const studies = spyScan.indicators?.studies || [];
-  const ema21St = studies.find(s =>
-    s.name.toLowerCase().includes('ema21') ||
-    s.name.toLowerCase().includes('ema 21') ||
-    s.name.toLowerCase().includes('trend setup')
-  );
-  const lorpMASt = studies.find(s =>
-    s.name.toLowerCase().includes('lorp moving') ||
-    s.name.toLowerCase().includes('lorp ma')
-  );
-  // Fallback: EMA 8/20/50 Rainbow Areas (present on REGIME USA layout) — use EMA 20 as proxy for EMA21
-  const ema8_20_50St = studies.find(s =>
-    s.name.toLowerCase().includes('ema 8/20/50') ||
-    s.name.toLowerCase().includes('ema 8 20 50') ||
-    s.name.toLowerCase().includes('rainbow')
-  );
-  spyEMA21 = parseNum(getVal(ema21St?.values, 'EMA 21', 'EMA21', 'EMA_21'))
-          ?? parseNum(getVal(lorpMASt?.values, 'MA #1', 'MA#1', 'MA 1'))
-          ?? parseNum(getVal(ema8_20_50St?.values, 'EMA 20', 'EMA20'));
-  if (spyPrice != null && spyEMA21 != null) {
-    spyAboveEMA21 = spyPrice > spyEMA21;
-    process.stderr.write(`[regime] SPY=$${spyPrice.toFixed(2)} EMA21=$${spyEMA21.toFixed(2)} → ${spyAboveEMA21 ? 'BULLISH ✓' : 'BEARISH ⚠️'}\n`);
-  } else {
-    // Fallback: Regime Filter [BigBeluga] — actual REGIME USA layout indicator as of 26 Aug
-    // 2026 (EMA21 Trend Setup / EMA 8-20-50 Rainbow are no longer present). Exposes a
-    // "Trend Value" oscillating around a "Zero Line" (0.0000) — bullish when Trend Value
-    // is above the Zero Line, same convention as the price-vs-EMA21 check above.
-    const bigBelugaSt = studies.find(s => s.name.toLowerCase().includes('regime filter'));
-    const trendVal = parseNum(getVal(bigBelugaSt?.values, 'Trend Value'));
-    const zeroLine  = parseNum(getVal(bigBelugaSt?.values, 'Zero Line')) ?? 0;
-    if (spyPrice != null && trendVal != null) {
-      spyAboveEMA21 = trendVal > zeroLine;
-      spyRegimeSource = 'bigbeluga';
-      spyTrendVal = trendVal;
-      process.stderr.write(`[regime] SPY=$${spyPrice.toFixed(2)} BigBeluga TrendValue=${trendVal.toFixed(2)} → ${spyAboveEMA21 ? 'BULLISH ✓' : 'BEARISH ⚠️'} (fallback: EMA21 Trend Setup not on REGIME USA layout)\n`);
-    } else {
-      process.stderr.write(`[regime] SPY found but neither EMA21 nor Regime Filter [BigBeluga] available (price=${spyPrice}, ema21=${spyEMA21}, trendVal=${trendVal})\n`);
-    }
-  }
-} else {
-  process.stderr.write(`[regime] SPY not found in any scan — add SPY to PULLBACK SCREENER watchlist section\n`);
-}
+// SPY Regime Gate removed 28 Aug 2026 (David) — "still not correct, reading the same
+// as yesterday, & I always check first anyway." Never got the field mapping reliably
+// right across two attempts (EMA21 Trend Setup, then Regime Filter [BigBeluga]); not
+// worth further debugging time. Full deletion, not wrapped — this one never worked.
 
 // Load previous brief for ADX slope (↑/↓ direction arrow in ADX Breakout section)
 // Looks back up to 7 calendar days for the most recent prior main brief file.
@@ -514,6 +441,14 @@ const sidResults = sidBrief ? sidBrief.symbols_scanned.filter(s => !EXCLUDED_TIC
   // Prefer v8.5 for confluence data; fall back to v10.5 for entry signals if v8.5 not yet loaded.
   const sidV85St = getStudy(studies, 'SID Trading Signals Pro', 'SID Trading Signals', 'SID v8.5', 'SID-C', 'SID Confluence');
   const sidCSt   = sidV85St; // v8.5.10 is the sole source — entry signals + all confluence data
+  // David (28 Aug 2026): SMA50 isn't exported by the indicator (sidCSt) at all — only
+  // "SMA200" is. Reading it from the strategy study instead, via its own exact key
+  // ('SMA50 Value'). Deliberately NOT using getVal's fuzzy fallback for this — that
+  // fallback does bidirectional substring matching (k.includes(vkl) || vkl.includes(k)),
+  // which matched plain numeric keys like '0' against the search term 'sma50' (since
+  // 'sma50' contains the digit '0'), producing a nonsense 543% reading on JLL. Exact
+  // key access on the correct study avoids the bug entirely rather than dodging it.
+  const sidStrategySt = getStudy(studies, 'SID Strategy');
   const rvolSt  = getStudy(studies, 'RVOL + Volume Z-Score', 'RVOL Ratio', 'RVOL-Z', 'RVOL Z', 'RVOL');
   const vdSt    = getStudy(studies, 'Volume Delta');
   const atrSt   = getStudy(studies, 'Average True Range Stop Loss', 'ATR Stop Loss', 'ATR%');
@@ -535,6 +470,9 @@ const sidResults = sidBrief ? sidBrief.symbols_scanned.filter(s => !EXCLUDED_TIC
   // (dropped in favour of ADX + DI+/DI-).
   const wrsi          = parseNum(getVal(sidCSt?.values, 'Weekly RSI'));
   const sma200        = parseNum(getVal(sidCSt?.values, 'SMA200'));
+  // David (28 Aug 2026): same pattern as SMA200, but read directly from sidStrategySt's
+  // exact 'SMA50 Value' key (not getVal's fuzzy fallback — see the comment above).
+  const sma50         = parseNum(sidStrategySt?.values?.['SMA50 Value']);
   const adxVal        = parseNum(getVal(sidCSt?.values, 'ADX'));
   const diPlusSid     = parseNum(getVal(sidCSt?.values, 'DI+', '+DI', 'DI Plus'));
   const diMinusSid    = parseNum(getVal(sidCSt?.values, 'DI-', '-DI', 'DI Minus'));
@@ -572,6 +510,9 @@ const sidResults = sidBrief ? sidBrief.symbols_scanned.filter(s => !EXCLUDED_TIC
   // SMA200 position
   const aboveSMA200 = (price != null && sma200 != null) ? price > sma200 : null;
   const sma200Pct   = pct(price, sma200);
+  // SMA50 position (28 Aug 2026, same pattern as SMA200)
+  const aboveSMA50 = (price != null && sma50 != null) ? price > sma50 : null;
+  const sma50Pct   = pct(price, sma50);
 
   // Signal passes on entry firing alone. Raw Weekly RSI exposed for a manual by-eye direction
   // check; the computed Weekly RSI Gate & Weekly MACD Align were removed (unreliable). Aroon → ADX+DI.
@@ -588,6 +529,7 @@ const sidResults = sidBrief ? sidBrief.symbols_scanned.filter(s => !EXCLUDED_TIC
     sym: s.symbol, price, isLongPass, isShortPass, isArmed,
     sidArmedLong, sidArmedShort, sidLongExit, sidShortExit,
     wrsi, sma200, aboveSMA200, sma200Pct,
+    sma50, aboveSMA50, sma50Pct,
     adx, diPlus, diMinus, atrPct, gatrRatio, rvol, vd, vdPos,
     macd: macdSid, macdSig: macdSigSid,
     inSIDScreener, inSIDBrief, inBTW,
@@ -716,6 +658,7 @@ const results = brief.symbols_scanned.filter(s => !EXCLUDED_TICKERS.has(s.symbol
   // New indicators on LORP layout (added May 2026)
   const capSt   = getStudy(studies, 'CAP Tools Supplement');           // Climax/Strong Demand+Supply flags
   const chandSt = getStudy(studies, 'Chandelier Exit');                // Long Stop level
+  const wtSt    = getStudy(studies, 'WaveTrend 3D');                  // Bullish/Bearish Cross dots (28 Aug 2026)
   // (LORP Confluence v1.4 + Volumatic VIDYA retired from brief 2026-06-05 — LORP-C
   //  duplicated factors the brief reads individually; VIDYA is visual-only on chart.)
 
@@ -746,6 +689,11 @@ const results = brief.symbols_scanned.filter(s => !EXCLUDED_TICKERS.has(s.symbol
   const aroonShortChart = parseNum(_arVals['Short (Chart)']);  // BC — always present, > 0 when fired
   const aroonLong  = Object.prototype.hasOwnProperty.call(_arVals, 'Long')  ? 1 : null;  // BF — key absent unless signal fires
   const aroonShort = Object.prototype.hasOwnProperty.call(_arVals, 'Short') ? 1 : null;  // BG — key absent unless signal fires
+  // WaveTrend 3D — dot markers. Same presence-based pattern as Aroon above: key only
+  // exists in the export on the bar the cross actually fires (28 Aug 2026, David).
+  const _wtVals    = wtSt?.values ?? {};
+  const wtBullCross = Object.prototype.hasOwnProperty.call(_wtVals, 'Bullish Cross') ? 1 : null;
+  const wtBearCross = Object.prototype.hasOwnProperty.call(_wtVals, 'Bearish Cross') ? 1 : null;
   const vd      = parseVD(getVal(vdSt?.values, 'Volume Delta', 'Vol Delta', 'Delta', 'delta'));
   // ATR%: Average True Range Stop Loss Finder v2.4
   const atrPct  = parseNum(getVal(atrSt?.values, 'ATR% raw (buffer ref)', 'ATR%', 'ATR %', 'atr%', 'ATR Percent', 'atr percent'));
@@ -881,7 +829,7 @@ const results = brief.symbols_scanned.filter(s => !EXCLUDED_TICKERS.has(s.symbol
   // Breakout: 1.50+     (price launching from kernel)
   // LORP classification — REBUILT Jul 2026 (approach B, saved-brief history).
   //   Pullback: LC reversion-Down (Standard/Strong) within last 4 briefs — OVERRIDES all else.
-  //   Breakout: ADX>25 & rising(2b) · RVOL>2 · D+ rising(2b) · raw ATR>2 · MACD>0.
+  //   Breakout: ADX>25 & rising(2b) · RVOL>1.2 · D+ rising(2b) · raw ATR>2 · MACD>0.
   //   Trend:    not Pullback/Breakout · ADX>20 · MACD>0 · RVOL>0.8.  Else '—'.
   //   ("MACD>0" uses macdPos = MACD above zero line, which the LORP screener already gates on;
   //    say if you meant MACD-vs-Signal instead.)
@@ -891,8 +839,11 @@ const results = brief.symbols_scanned.filter(s => !EXCLUDED_TICKERS.has(s.symbol
   const _dipRising = (diPlus != null && _dip2 != null) ? diPlus > _dip2 : false;
   const _macd0Pos  = (macd != null && macd > 0);
   const _isPullback = (lorpBuySignal === true) && _revWindow;  // LC entry is PRIMARY; reversion (incl. entry bar) sub-classifies it
+  // David (28 Aug 2026): RVOL threshold loosened 2 -> 1.2. Note: this is the Breakout
+  // classification's RVOL gate — the only RVOL>2 threshold anywhere in this file.
+  // Breakout folds into the Trend stream (not Pullback) in the current table split.
   const _isBreakout = !_isPullback && adx != null && adx > 25 && _adxRising
-                      && rvol != null && rvol > 2 && _dipRising
+                      && rvol != null && rvol > 1.2 && _dipRising
                       && atrRaw != null && atrRaw > 2 && _macd0Pos;
   const _isTrend    = !_isPullback && !_isBreakout && adx != null && adx > 20 && _macd0Pos && rvol != null && rvol > 0.8;
   const entryType = distFromKernel == null ? 'No LC data'
@@ -979,6 +930,8 @@ const results = brief.symbols_scanned.filter(s => !EXCLUDED_TICKERS.has(s.symbol
     cciPreEntryLong, cciConfirmLong, cciPreEntryShort, cciConfirmShort,
     // Aroon [BigBeluga] signal columns
     aroonLong, aroonShort, aroonLongChart, aroonShortChart,
+    // WaveTrend 3D dot markers
+    wtBullCross, wtBearCross,
     // GP Zone flag (null if indicator not on LORP chart)
     gpFlag, gpTop, gpBot,
     // Pocket Pivot
@@ -1303,6 +1256,14 @@ function alsoTag(sym, excludeStrategy) {
   return tags.length ? tags.join(' ') : '—';
 }
 
+// David (28 Aug 2026): moved here from near the SID section (~line 1700). Function
+// hoisting assigns the value only when execution REACHES that line — the old spot ran
+// after the LORP table already needed it (LORP prints before SID in the script), so
+// baseTicker was still `undefined` when normalizeSrc() called it. True top-level,
+// before first use, fixes it regardless of print order. (Second time this exact class
+// of bug has bitten this file — see the SID Market Breadth retirement note too.)
+function baseTicker(sym) { return sym.includes(':') ? sym.split(':')[1] : sym; }
+
 function normalizeSrc(r) {
   if (r.inBTW) return 'BTW';
   if (r.inSIDScreener || r.inSIDBrief) return 'SID';
@@ -1419,7 +1380,7 @@ if (!VERBOSE) {
   } else {
     console.log(`**✅ LORP — ${filteredBuyVD} LC entries** *(actionable; +${filteredSellVD} context = no live entry)*`);
     console.log('*Pre-filtered by TV Screener + brief filters — check chart before acting*\n');
-    console.log('*Type: Pullback = LC entry + Standard/Strong reversion within 4 bars (incl. entry bar) · Breakout = ADX>25 & rising · RVOL>2 · D+ rising · raw ATR>2 · MACD>0 · Trend = ADX>20 · MACD>0 · RVOL>0.8. MACD0 ✓ above / below Signal · EXT = above LC Upper Envelope Far.*\n');
+    console.log('*Type: Pullback = LC entry + Standard/Strong reversion within 4 bars (incl. entry bar) · Breakout = ADX>25 & rising · RVOL>1.2 · D+ rising · raw ATR>2 · MACD>0 · Trend = ADX>20 · MACD>0 · RVOL>0.8. MACD0 ✓ above / below Signal · EXT = above LC Upper Envelope Far.*\n');
   }
 
   function lorpRowCells(r) {
@@ -1483,6 +1444,9 @@ if (!VERBOSE) {
     // in either direction) — same thresholds, same source study, just read here too.
     addSig(r.adx != null && r.adx > 20 && r.diPlus  != null && r.diMinus != null && (r.diPlus  - r.diMinus) >= 5, 'ADX_U', '🟢 ADX');
     addSig(r.adx != null && r.adx > 20 && r.diPlus  != null && r.diMinus != null && (r.diMinus - r.diPlus)  >= 5, 'ADX_D', '🔴 ADX');
+    // David (28 Aug 2026): WaveTrend 3D's own Bullish/Bearish Cross dot markers.
+    addSig(r.wtBullCross !== null, 'WT_U', '🟢 WT');
+    addSig(r.wtBearCross !== null, 'WT_D', '🔴 WT');
     let sigStr = sigParts.length ? sigParts.join(' ') : '—';
     if (carriedOver > 0) sigStr += `${sigParts.length ? ' ' : ''}·${carriedOver}c`;  // ·Nc = N carried-over (held from prior brief)
     const distStr  = r.distFromKernel != null ? r.distFromKernel.toFixed(2) : '—';
@@ -1519,10 +1483,12 @@ if (!VERBOSE) {
     // David (26 Aug 2026): dropped the ⚠️ — extended-above is expected context for
     // Pullback rows too, treating it as a warning was noise, not signal.
     const entryStr = (r.entryType ?? '—') + (r.extendedAbove === true ? ' EXT' : '');
-    return [r.sym, `$${fmt(r.price)}`, entryStr, macd0Str, distStr, adxStr, sigStr, alsoTag(r.sym, 'LORP'), (r.aroon != null && r.aroon < 0 ? '\u26a0 Aroon' : lorpScore(r))];
+    // David (28 Aug 2026): Also column removed, Src column added (matches SID table's
+    // source-watchlist-section tag via normalizeSrc, defined near alsoTag above).
+    return [r.sym, `$${fmt(r.price)}`, entryStr, macd0Str, distStr, adxStr, sigStr, normalizeSrc(r), (r.aroon != null && r.aroon < 0 ? '\u26a0 Aroon' : lorpScore(r))];
   }
 
-  const lorpHeaders = ['Ticker', 'Price', 'Type', 'MACD0', 'Dist', 'ADX', 'Sig', 'Also', 'Score'];
+  const lorpHeaders = ['Ticker', 'Price', 'Type', 'MACD0', 'Dist', 'ADX', 'Sig', 'Src', 'Score'];
   const lorpRightAlign = new Set([1, 4]);  // Price, Dist right-aligned; tag columns left-aligned
   // Fixed-width monospace grid (same renderer as the SID table) so columns line up under the
   // headers in any viewer, not only a markdown renderer. Context columns (Cf/ADX/RVOL/Aroon/
@@ -1750,13 +1716,11 @@ if (!VERBOSE) {
   // David: "not needed as it shows in the tables below" (same counts derivable from the
   // Long/Short candidate tables). Wrapped rather than deleted, matching this file's own
   // convention for retired sections (see the Pullback section above).
-  // NOTE: baseTicker() is declared OUTSIDE this if(false), not inside — other code
-  // (SID table's normalizeSrc) depends on it. Sloppy-mode Annex B function hoisting
-  // only assigns the function value when its block actually executes, so a function
-  // declared inside a dead `if (false)` branch becomes callable-but-undefined
-  // elsewhere in the file. Cost me a crash once already; leaving this note so nobody
-  // re-nests it in a future retirement.
-  function baseTicker(sym) { return sym.includes(':') ? sym.split(':')[1] : sym; }
+  // NOTE (28 Aug 2026): baseTicker() moved to true top-level scope, near normalizeSrc()
+  // (~line 1250) — it's needed there now too, and needs to exist BEFORE that point in
+  // execution order, not just outside any dead block. See the comment at its new
+  // location for the full story; this is the second time this class of bug has bitten
+  // this file, so it's staying documented in both places.
   if (false) {
   console.log('---\n');
   {
@@ -1829,14 +1793,18 @@ if (!VERBOSE) {
     console.log('*Gap/ATR = SL distance in ATRs (how far the stop sits from entry). Per STRATEGIES.md: ≥2.0 ideal (sound stop room) · <1.5 avoid (stop too tight, noise-vulnerable). Shown as an approximate starting point (~); calculate the real value manually before acting — no auto-flag, no hard reject. ATR% alone has low predictive value.*\n');
     { const _rs = readReminders('sid'); if (_rs.length) console.log('\n' + _rs.map(x => `\uD83D\uDCCC ${x}`).join('\n') + '\n'); }
 
-    const sidHeaders = ['Ticker','Sig','Price','MACD0','Gap/ATR','ADX','DI','SMA200','RVOL','Src','Score'];
-    const sidRightAlign = new Set([2, 8]);  // Price, RVOL (MACD0 inserted at idx 3 -> RVOL shifts to 8)
+    const sidHeaders = ['Ticker','Sig','Price','MACD0','Gap/ATR','ADX','DI','SMA200','SMA50','RVOL','Src','Score'];
+    const sidRightAlign = new Set([2, 9]);  // Price, RVOL (SMA50 inserted at idx 8 -> RVOL shifts to 9)
 
     function sidRowCells(r) {
       const D = '-';
       const sig    = r.isLongPass ? '🟢 Long' : '🔴 Short';  // fired SID entry signal (🟢 long / 🔴 short)
       const sma200 = r.aboveSMA200 === true  ? ('Abv ' + (r.sma200Pct != null ? '+' + r.sma200Pct.toFixed(1) + '%' : '')).trim()
                    : r.aboveSMA200 === false ? ('Blw ' + (r.sma200Pct != null ? r.sma200Pct.toFixed(1) + '%' : '')).trim()
+                   : D;
+      // David (28 Aug 2026): SMA50 column, same formatting pattern as SMA200.
+      const sma50  = r.aboveSMA50 === true  ? ('Abv ' + (r.sma50Pct != null ? '+' + r.sma50Pct.toFixed(1) + '%' : '')).trim()
+                   : r.aboveSMA50 === false ? ('Blw ' + (r.sma50Pct != null ? r.sma50Pct.toFixed(1) + '%' : '')).trim()
                    : D;
       const di     = (r.diPlus != null && r.diMinus != null) ? `${r.diPlus.toFixed(0)}/${r.diMinus.toFixed(0)}` : D;
       const adx    = r.adx == null ? D
@@ -1856,7 +1824,7 @@ if (!VERBOSE) {
       // The %-of-price normalisation is used only inside the short-gate flags for cross-ticker comparability.
       const macd0Raw = (r.macd != null && r.macdSig != null) ? (r.macd - r.macdSig) : null;
       const macd0Str = macd0Raw == null ? D : (macd0Raw >= 0 ? '+' : '') + macd0Raw.toFixed(2);
-      return [r.sym, sig, '$' + fmt(r.price), macd0Str, gatr, adx, di, sma200, rvol, src, sidScore(r)];
+      return [r.sym, sig, '$' + fmt(r.price), macd0Str, gatr, adx, di, sma200, sma50, rvol, src, sidScore(r)];
     }
 
     function printSIDTable(rows) {
@@ -1911,18 +1879,7 @@ if (!VERBOSE) {
       console.log('');
     }
   }
-  // ── SPY Regime Gate ──
-  console.log('---\n');
-  const regimeStr = spyAboveEMA21 === true
-    ? (spyRegimeSource === 'bigbeluga'
-        ? `✅ SPY Regime: BULLISH — BigBeluga Trend Value ${spyTrendVal?.toFixed(2)} above zero`
-        : `✅ SPY Regime: BULLISH — SPY $${spyPrice?.toFixed(2)} above EMA21 $${spyEMA21?.toFixed(2)}`)
-    : spyAboveEMA21 === false
-    ? (spyRegimeSource === 'bigbeluga'
-        ? `⚠️ SPY Regime: BEARISH — BigBeluga Trend Value ${spyTrendVal?.toFixed(2)} below zero — Pullback entries not recommended`
-        : `⚠️ SPY Regime: BEARISH — SPY $${spyPrice?.toFixed(2)} below EMA21 $${spyEMA21?.toFixed(2)} — Pullback entries not recommended`)
-    : '⚠️ SPY Regime: unknown (REGIME scan not available)';
-  console.log(`*${regimeStr}*\n`);
+  // SPY Regime Gate removed 28 Aug 2026 — see extraction removal note near top of file.
 
   // ── Pullback Section (output retired 26 Aug 2026 — see wrapped block below) ──
 
