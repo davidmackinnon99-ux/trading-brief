@@ -30,10 +30,6 @@ const SECTIONS = [
   'SID SCREENER',
   'SID BRIEF',            // Carry-forward from prior SID scans
   'BTW',
-  'PULLBACK SCREENER',
-  'PULLBACK BRIEF',       // Carry-forward from prior Pullback scans
-  'ADX BREAKOUT SCREENER',
-  'ADX BREAKOUT BRIEF',   // Carry-forward from prior ADX Breakout scans
   'PREMARKET CHECKLIST',  // Contains SPY for regime gate
   'PRE MARKET CHECKLIST', // Alternative name for regime gate
 ];

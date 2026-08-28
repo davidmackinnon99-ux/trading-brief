@@ -231,8 +231,6 @@ async function main() {
     const SCREENER_SECTIONS = [
       'LORP SCREENER',
       'SID SCREENER',
-      'ADX BREAKOUT SCREENER',
-      'PULLBACK SCREENER',
       'SBT SCANS',
     ];
     // PROTECTED sections — never cleared or written. Belt-and-suspenders guard so a
