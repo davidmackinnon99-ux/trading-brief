@@ -1430,10 +1430,11 @@ if (!VERBOSE) {
     // but the native code is the authoritative signal per the Trend/Pullback tables).
     addSig(r.lorpBuySignal || r.backtestStream === 1,           'LC',   '🟢 LC');
     addSig(r.lorpSellSignal,                                    'LCs',  '🔴 LC');
-    addSig(r.aroonLong  !== null,                              'A_L',  '🟢 A');
-    addSig(r.aroonShort !== null,                              'A_S',  '🔴 A');
-    addSig(r.aroonLongChart  != null && r.aroonLongChart  > 0, 'AC_L', '🟢 AC');
-    addSig(r.aroonShortChart != null && r.aroonShortChart > 0, 'AC_S', '🔴 AC');
+    // Aroon [BigBeluga] Sig markers removed (David, 4 Sep 2026) — Aroon being removed
+    // from the LORP chart entirely, per the WT3D+OBV/ADX-vs-Aroon confirmation test.
+    // Aroon fields (r.aroon, r.aroonLong etc.) are left in place elsewhere in this file
+    // since they already degrade gracefully to null/blank once the study is gone from
+    // the chart — no crash risk, so not worth the surgery of removing them everywhere.
     addSig(r.pocketPivot === true,                             'PP',   '★ PP');
     addSig(r.capClimaxDemand > 0,                              'CD',   '🔥 CD');
     addSig(r.capStrongDemand > 0,                              'SD',   '💪 SD');
@@ -1485,7 +1486,10 @@ if (!VERBOSE) {
     const entryStr = (r.entryType ?? '—') + (r.extendedAbove === true ? ' EXT' : '');
     // David (28 Aug 2026): Also column removed, Src column added (matches SID table's
     // source-watchlist-section tag via normalizeSrc, defined near alsoTag above).
-    return [r.sym, `$${fmt(r.price)}`, entryStr, macd0Str, distStr, adxStr, sigStr, normalizeSrc(r), (r.aroon != null && r.aroon < 0 ? '\u26a0 Aroon' : lorpScore(r))];
+    // David (4 Sep 2026): dropped the "⚠ Aroon" override — Aroon being removed from the
+    // LORP chart entirely, so r.aroon is always null going forward and this branch would
+    // never fire anyway. Explicit removal here rather than relying on that silently.
+    return [r.sym, `$${fmt(r.price)}`, entryStr, macd0Str, distStr, adxStr, sigStr, normalizeSrc(r), lorpScore(r)];
   }
 
   const lorpHeaders = ['Ticker', 'Price', 'Type', 'MACD0', 'Dist', 'ADX', 'Sig', 'Src', 'Score'];
@@ -2028,12 +2032,12 @@ if (!VERBOSE) {
   console.log('---\n');
   console.log('*⚠️ Preliminary screen only — confirm on chart before acting*  ');
   console.log('*LORP: Pre-filtered by TV Screener (ATR<5%, MACD>0, EMA21>EMA34, Vol>500K, RelVol>1.0, Price>EMA34, Aroon Down<30%, RSI 45-75)*  ');
-  console.log('*Brief filters: RVOL>1.0, RVOL<4, Aroon>0 & rising, VD>0.5, No LC data excluded*');
+  console.log('*Brief filters: RVOL>1.0, RVOL<4, VD>0.5, No LC data excluded*');
   console.log('*Type: Pullback 🔄 = Dist<0.5 · Trend ↗ = Dist 0.5–1.5 · Breakout 🚀 = Dist>1.5 · WRB ✓ = wide range bar in prior bars · ✗ = none*  ');
   console.log('');
   console.log('📐 **CONFLUENCE FACTORS BY STRATEGY**\n');
   console.log('**LORP:** Distance from Kernel (Pullback 🔄 <0.5 · Trend ↗ 0.5–1.5 · Breakout 🚀 >1.5)  ');
-  console.log('         🟢 LC Premium Buy/StopBuy signal · RVOL >1.0 · Aroon >0 & rising · WRB prior bars · ATR% <5%  ');
+  console.log('         🟢 LC Premium Buy/StopBuy signal · RVOL >1.0 · WRB prior bars · ATR% <5%  ');
   console.log('         Sig = FRESH fires only — markers already in the prior brief are filtered as carried-over · ·Nc = N held-over markers suppressed\n');
   console.log('**SID:**  Long: RSI crossed below 30 (OS touch) · RSI rising · MACD ↑ 1 bar  ');
   console.log('          Short: RSI crossed above 70 (OB touch) · RSI falling · MACD ↓ 1 bar  ');
