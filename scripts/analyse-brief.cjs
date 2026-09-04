@@ -1788,7 +1788,7 @@ if (!VERBOSE) {
     console.log('**⚡ SID — no SID scan data** *(SID layout not scanned)*\n');
   } else if (!sidIndicatorFound && sidBrief) {
     console.log('**⚡ SID — ⚠️ SID indicator not found in data window**\n');
-    console.log('*Add "SID Trading Signals Pro" (v10.5.4.15+) to the SID layout and enable its data window outputs.*\n');
+    console.log('*Add "SID Trading Signals Pro" (v8.5.17+) to the SID layout and enable its data window outputs.*\n');
   } else if (sidPass.length === 0) {
     console.log('**⚡ SID — 0 signals** *(no entry signals fired today)*\n');
   } else {
