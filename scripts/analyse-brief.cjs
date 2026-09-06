@@ -1483,7 +1483,12 @@ if (!VERBOSE) {
       : '—';
     // David (26 Aug 2026): dropped the ⚠️ — extended-above is expected context for
     // Pullback rows too, treating it as a warning was noise, not signal.
-    const entryStr = (r.entryType ?? '—') + (r.extendedAbove === true ? ' EXT' : '');
+    // David (6 Sep 2026): for Pullback-table rows, show which specific reversion type
+    // applies (Standard/Strong Upward/Downward MR, Upward/Downward First Pullback) using
+    // the native code label, rather than the generic Dist-based "Trend/Pullback" text —
+    // the generic label doesn't distinguish which reversion condition actually fired.
+    const entryStr = (r.lorpNativeTable === 'Pullback' && r.lorpNativeLabel ? r.lorpNativeLabel : (r.entryType ?? '—'))
+      + (r.extendedAbove === true ? ' EXT' : '');
     // David (28 Aug 2026): Also column removed, Src column added (matches SID table's
     // source-watchlist-section tag via normalizeSrc, defined near alsoTag above).
     // David (4 Sep 2026): dropped the "⚠ Aroon" override — Aroon being removed from the
