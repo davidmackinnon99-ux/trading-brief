@@ -1870,13 +1870,32 @@ if (!VERBOSE) {
       const diWide = rows.filter(r => { const sp = diSpread(r); return sp != null && sp >= 20; });
       const diMod  = rows.filter(r => { const sp = diSpread(r); return sp != null && sp >= 10 && sp < 20; });
       if (diWide.length) { console.log(''); console.log(`> ⛔ SHORT run-over — DI spread ≥ 20 (fading a strong uptrend, validated −1.02%/trade): ${diWide.map(r => `${r.sym} (${diSpread(r).toFixed(0)})`).join(', ')}`); }
-      if (diMod.length)  { console.log(''); console.log(`> ⚠️ Weak short — DI spread 10–20 (negative-edge zone; SID shorts want spread < ~10, ideally DI- leading): ${diMod.map(r => `${r.sym} (${diSpread(r).toFixed(0)})`).join(', ')}`); }
+      if (diMod.length)  { console.log(''); console.log(`> ⚠️ Weak short — DI spread 10–20 (negative-edge zone; SID shorts want spread < ~10, ideally a small POSITIVE spread of 0–10, not deeply negative): ${diMod.map(r => `${r.sym} (${diSpread(r).toFixed(0)})`).join(', ')}`); }
+    }
+
+    // David (8 Sep 2026): long-side equivalent of sidShortCaution, added after realising
+    // the brief had zero DI-Gap guidance for longs despite the validated favourable zone
+    // (SID Strategy Pine indicator input defaults, 12 Aug 2026 analysis): DI gap -20 to -5
+    // is favourable for longs — i.e. DI- still moderately ahead of DI+, NOT DI+ > DI- as
+    // "the general view" would suggest. A positive gap means the downtrend has already
+    // fully reverted by the time RSI touches oversold — the early-reversal window SID is
+    // designed to catch has likely already passed. A gap more extreme than -20 means the
+    // downtrend is still dominant, too early/dangerous to catch. No specific %/trade figures
+    // are quoted here (unlike the short-side warnings) since that granular backtest wasn't
+    // run for the long side — this reflects the favourable ZONE only, not validated P&L.
+    function sidLongCaution(rows) {
+      const diGap = r => (r.diPlus != null && r.diMinus != null) ? (r.diPlus - r.diMinus) : null;
+      const tooLate = rows.filter(r => { const g = diGap(r); return g != null && g > -5; });
+      const tooEarly = rows.filter(r => { const g = diGap(r); return g != null && g < -20; });
+      if (tooLate.length)  { console.log(''); console.log(`> ⚠️ DI gap > -5 (outside favourable -20/-5 zone) — downtrend may have already reverted before this RSI touch, early-reversal window likely passed: ${tooLate.map(r => `${r.sym} (${diGap(r).toFixed(0)})`).join(', ')}`); }
+      if (tooEarly.length) { console.log(''); console.log(`> ⚠️ DI gap < -20 (outside favourable -20/-5 zone) — downtrend still strongly dominant, may be too early to catch the reversal: ${tooEarly.map(r => `${r.sym} (${diGap(r).toFixed(0)})`).join(', ')}`); }
     }
 
     if (sidLongs.length > 0) {
       console.log(`*Long candidates (${sidLongs.length}):*\n`);
       printSIDTable(sidLongs);
       adxCaution(sidLongs);
+      sidLongCaution(sidLongs);
       console.log('');
     }
 
