@@ -1494,11 +1494,13 @@ if (!VERBOSE) {
     // David (4 Sep 2026): dropped the "⚠ Aroon" override — Aroon being removed from the
     // LORP chart entirely, so r.aroon is always null going forward and this branch would
     // never fire anyway. Explicit removal here rather than relying on that silently.
-    return [r.sym, `$${fmt(r.price)}`, entryStr, macd0Str, distStr, adxStr, sigStr, normalizeSrc(r), lorpScore(r)];
+    // David (9 Sep 2026): Sig moved to the front of the row, matching SID's layout
+    // (Ticker, Sig, Price, ...) instead of sitting after ADX.
+    return [r.sym, sigStr, `$${fmt(r.price)}`, entryStr, macd0Str, distStr, adxStr, normalizeSrc(r), lorpScore(r)];
   }
 
-  const lorpHeaders = ['Ticker', 'Price', 'Type', 'MACD0', 'Dist', 'ADX', 'Sig', 'Src', 'Score'];
-  const lorpRightAlign = new Set([1, 4]);  // Price, Dist right-aligned; tag columns left-aligned
+  const lorpHeaders = ['Ticker', 'Sig', 'Price', 'Type', 'MACD0', 'Dist', 'ADX', 'Src', 'Score'];
+  const lorpRightAlign = new Set([2, 5]);  // Price, Dist right-aligned (shifted after Sig moved to index 1); tag columns left-aligned
   // Fixed-width monospace grid (same renderer as the SID table) so columns line up under the
   // headers in any viewer, not only a markdown renderer. Context columns (Cf/ADX/RVOL/Aroon/
   // %B/ATR%/MAs/Chandelier) moved off the table — read them on the chart or via confluence_check.py.
@@ -1555,8 +1557,13 @@ if (!VERBOSE) {
     // momentum-continuation, as opposed to Pullback's mean-reversion character.
     // Rows with no specific type ("—") also fall into Trend as a residual bucket,
     // matching how they previously fell into the old catch-all Sell VD list.
+    // David (9 Sep 2026): Trend table was showing every RVOL-passed, non-Pullback-classified
+    // row (~64 tickers on a normal day) — the old entryType/Dist-based residual bucket, not
+    // an actual signal filter. Intent was always "only tickers that fired a genuine LORP
+    // entry" (the same 🟢/🔴 LC marker shown in Sig). Restricted accordingly. Pullback logic
+    // deliberately left untouched — David confirmed that side is working as intended.
     let pullbackTickers = filtered.filter(r => r.entryType?.startsWith('Pullback'));
-    let trendTickers    = filtered.filter(r => !r.entryType?.startsWith('Pullback'));
+    let trendTickers    = filtered.filter(r => r.lorpBuySignal || r.lorpSellSignal);
 
     // David (27 Aug 2026): "combine" the old entryType-based Trend/Pullback tables with
     // the native-code Trend/Pullback tables — one section each, not two competing ones.
