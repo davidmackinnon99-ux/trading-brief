@@ -1987,12 +1987,11 @@ if (!VERBOSE) {
   console.log('*Pullback v2.0: Stage 3=ENTRY (up_arrow/in-band) · Stage 2=EMA21 (pb_flag+≤3% above EMA21) · Stage 1=PB (pb_flag) · Hard gates: band inverted/GP zone*  ');
   console.log('');
   console.log('📐 **CONFLUENCE FACTORS BY STRATEGY**\n');
-  console.log('**LORP:** Distance from Kernel (Pullback 🔄 <0.5 · Trend ↗ 0.5–1.5 · Breakout 🚀 >1.5)  ');
   console.log('**LORP:** 🟢 LC Premium Buy/StopBuy signal · Buy VD ✓ · RVOL >1.0 · Aroon >0 & rising · WRB prior bars · ATR% <5%  ');
   console.log('         Sell VD ⚠️ shown for context only — not entry signals  ');
   console.log('         Sig = FRESH fires only — markers already in the prior brief are filtered as carried-over · ·Nc = N held-over markers suppressed\n');
-  console.log('**SID:**  Long: RSI crossed below 30 (OS touch) · RSI rising · MACD ↑ 1 bar  ');
-  console.log('          Short: RSI crossed above 70 (OB touch) · RSI falling · MACD ↓ 1 bar  ');
+  console.log('**SID:**  Long: RSI crossed below 30 (OS touch) · RSI rising ');
+  console.log('          Short: RSI crossed above 70 (OB touch) · RSI falling ');
   console.log('          SMA200 tier (HIGH CONVICTION ≥5% away) · ADX (<20 coiling ✓ · 20-25 NML ⚠️ · 25-40 trending)  ');
   console.log('          Gap/ATR ≥2.0 ideal (stop room) · <1.5 avoid (stop too tight) · Src: SID·LORP·BTW·PB·BO·CAP  ');
   console.log('          ATR% risk · Gap/ATR = SL distance in ATRs (per STRATEGIES.md: ≥2.0 ideal · <1.5 avoid) · VD (ref)  ');
