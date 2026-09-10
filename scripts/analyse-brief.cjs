@@ -1988,7 +1988,7 @@ if (!VERBOSE) {
   console.log('');
   console.log('📐 **CONFLUENCE FACTORS BY STRATEGY**\n');
   console.log('**LORP:** Distance from Kernel (Pullback 🔄 <0.5 · Trend ↗ 0.5–1.5 · Breakout 🚀 >1.5)  ');
-  console.log('         🟢 LC Premium Buy/StopBuy signal · Buy VD ✓ · RVOL >1.0 · Aroon >0 & rising · WRB prior bars · ATR% <5%  ');
+  console.log('**LORP:** 🟢 LC Premium Buy/StopBuy signal · Buy VD ✓ · RVOL >1.0 · Aroon >0 & rising · WRB prior bars · ATR% <5%  ');
   console.log('         Sell VD ⚠️ shown for context only — not entry signals  ');
   console.log('         Sig = FRESH fires only — markers already in the prior brief are filtered as carried-over · ·Nc = N held-over markers suppressed\n');
   console.log('**SID:**  Long: RSI crossed below 30 (OS touch) · RSI rising · MACD ↑ 1 bar  ');
