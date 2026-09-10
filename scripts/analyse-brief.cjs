@@ -1269,9 +1269,9 @@ function normalizeSrc(r) {
   if (r.inSIDScreener || r.inSIDBrief) return 'SID';
   const sec = (tickerSection[baseTicker(r.sym)] || '').toUpperCase();
   if (sec.includes('LORP')) return 'LORP';
-  if (sec.includes('PULLBACK') || sec === 'PB') return 'PB';
-  if (sec.includes('BREAKOUT') || sec.includes('ADX') || sec === 'BO') return 'BO';
-  if (sec.includes('CAP')) return 'CAP';
+  // PB/BO/CAP branches removed (David, 10 Sep 2026) — corresponded to watchlist sections
+  // (standalone Pullback/ADX Breakout scans, CAP) retired months ago; dead code paths that
+  // no longer actually trigger.
   if (sec.includes('SID')) return 'SID';
   if (sec.includes('BTW')) return 'BTW';
   return sec ? sec.split(' ')[0] : 'OTHER';
@@ -1308,11 +1308,11 @@ function lorpT2Breakdown(r) {
     factors.push(r.macd > r.macdSig ? 'MACD ✓' : 'MACD ✗');
   }
   if (r.rvol != null && r.vdPos != null) {
-    factors.push((r.rvol >= 1.0 && r.vdPos === true) ? 'Vol ✓' : 'Vol ✗');
+    factors.push((r.rvol >= 0.8 && r.vdPos === true) ? 'Vol ✓' : 'Vol ✗');
   }
-  if (r.wrbInPrior != null) {
-    factors.push(r.wrbInPrior ? 'WRB ✓' : 'WRB ✗');
-  }
+  // WRB removed as a confluence factor (David, 10 Sep 2026): "almost irrelevant... not a factor."
+  // r.wrbInPrior is left computed elsewhere (still shown as a raw context column) but no longer
+  // contributes to this factor breakdown.
   return factors.length ? factors.join(' · ') : 'breakdown n/a';
 }
 
@@ -1443,8 +1443,11 @@ if (!VERBOSE) {
     // David (28 Aug 2026): mirrors the exact Trend classification already built into
     // the "ADX and DI for v4 Wilder Table" Pine indicator itself (ADX>20 and DI gap>=5
     // in either direction) — same thresholds, same source study, just read here too.
-    addSig(r.adx != null && r.adx > 20 && r.diPlus  != null && r.diMinus != null && (r.diPlus  - r.diMinus) >= 5, 'ADX_U', '🟢 ADX');
-    addSig(r.adx != null && r.adx > 20 && r.diPlus  != null && r.diMinus != null && (r.diMinus - r.diPlus)  >= 5, 'ADX_D', '🔴 ADX');
+    // David (10 Sep 2026): ADX threshold 20->25 for consistency with what he considers a
+    // genuine "trending" LORP ticker (e.g. BRO was showing the marker below 25, which he
+    // flagged as inconsistent).
+    addSig(r.adx != null && r.adx > 25 && r.diPlus  != null && r.diMinus != null && (r.diPlus  - r.diMinus) >= 5, 'ADX_U', '🟢 ADX');
+    addSig(r.adx != null && r.adx > 25 && r.diPlus  != null && r.diMinus != null && (r.diMinus - r.diPlus)  >= 5, 'ADX_D', '🔴 ADX');
     // David (28 Aug 2026): WaveTrend 3D's own Bullish/Bearish Cross dot markers.
     addSig(r.wtBullCross !== null, 'WT_U', '🟢 WT');
     addSig(r.wtBearCross !== null, 'WT_D', '🔴 WT');
@@ -1496,10 +1499,17 @@ if (!VERBOSE) {
     // never fire anyway. Explicit removal here rather than relying on that silently.
     // David (9 Sep 2026): Sig moved to the front of the row, matching SID's layout
     // (Ticker, Sig, Price, ...) instead of sitting after ADX.
-    return [r.sym, sigStr, `$${fmt(r.price)}`, entryStr, macd0Str, distStr, adxStr, normalizeSrc(r), lorpScore(r)];
+    // David (10 Sep 2026): Score column removed entirely — lorpScore() has returned '—'
+    // unconditionally since 13 Jul 2026 (every factor tested against 128 real adapter
+    // trades failed; see the withdrawal note above). Confirmed dead, not worth keeping.
+    // David (10 Sep 2026): DI+/DI- values now displayed for LORP too (matches SID's existing
+    // "DI" column format) — previously only the raw ADX number was shown, DI+/DI- were used
+    // internally for the 🟢/🔴 ADX marker but never surfaced as their own data.
+    const diStr = (r.diPlus != null && r.diMinus != null) ? `${r.diPlus.toFixed(0)}/${r.diMinus.toFixed(0)}` : '—';
+    return [r.sym, sigStr, `$${fmt(r.price)}`, entryStr, macd0Str, distStr, adxStr, diStr, normalizeSrc(r)];
   }
 
-  const lorpHeaders = ['Ticker', 'Sig', 'Price', 'Type', 'MACD0', 'Dist', 'ADX', 'Src', 'Score'];
+  const lorpHeaders = ['Ticker', 'Sig', 'Price', 'Type', 'MACD0', 'Dist', 'ADX', 'DI', 'Src'];
   const lorpRightAlign = new Set([2, 5]);  // Price, Dist right-aligned (shifted after Sig moved to index 1); tag columns left-aligned
   // Fixed-width monospace grid (same renderer as the SID table) so columns line up under the
   // headers in any viewer, not only a markdown renderer. Context columns (Cf/ADX/RVOL/Aroon/
@@ -1544,7 +1554,10 @@ if (!VERBOSE) {
       // annotate. (Pre-fix, AVLV's fired Buy @ $90.79 was dropped here for RVOL 0.53 < 1.0.)
       if (r.lorpBuySignal || r.lorpSellSignal) return true;
       if (r.entryType === 'No LC data')                                               { process.stderr.write(`[LORP rejected] ${r.sym}: No LC data  Buy=${buy} Sell=${sell} RVOL=${rvol} Aroon=${aroon} VD=${vd}\n`); return false; }
-      if (r.rvol != null && r.rvol < 1.0)                                             { process.stderr.write(`[LORP rejected] ${r.sym}: RVOL too low  Buy=${buy} Sell=${sell} RVOL=${rvol} Aroon=${aroon} VD=${vd}\n`); return false; }
+      // David (10 Sep 2026): RVOL floor 1.0->0.8 for consistency - note this doesn't actually
+      // affect Trend rows (they bypass this filter entirely via the fired-signal precedence
+      // above), only Pullback/other non-signal rows.
+      if (r.rvol != null && r.rvol < 0.8)                                             { process.stderr.write(`[LORP rejected] ${r.sym}: RVOL too low  Buy=${buy} Sell=${sell} RVOL=${rvol} Aroon=${aroon} VD=${vd}\n`); return false; }
       if (r.rvol != null && r.rvol >= 4)                                              { process.stderr.write(`[LORP rejected] ${r.sym}: RVOL too high  Buy=${buy} Sell=${sell} RVOL=${rvol} Aroon=${aroon} VD=${vd}\n`); return false; }
       // Aroon demoted to context only — not a hard filter for LORP
       // WRB requirement removed — WRB shown as context column only
@@ -1612,32 +1625,39 @@ if (!VERBOSE) {
   const lorpPullbackRows = lorpAll.filter(r => r.lorpNativeTable === 'Pullback').sort((a, b) => a.sym.localeCompare(b.sym));
 
   // ── Persistent LORP Watchlist — update + output ──────────────────
+  // David (10 Sep 2026): repurposed from tracking LC entries (Trend) to tracking Pullback/
+  // reversion signals instead. Trend entries should be shown once and never repeated (#5,
+  // confirmed) — no persistence layer feeds Trend at all anymore. Pullback tickers persist
+  // up to 5 trading days since reversions take time to develop (#1, "happy with 5" as a max).
+  // Old watchlist entries from the prior (LC-entry) scheme will self-expire within 5 days
+  // since they won't match today's Pullback classification — no manual reset needed.
   {
     // Today's brief date
     const briefDateStr = (brief.generated_at
       ? new Date(brief.generated_at).toISOString()
       : new Date().toISOString()).split('T')[0];
 
-    // Tickers that passed Buy VD filter today (same entry-anchored logic as printLorpSection)
-    const todayBuyVD = [...lorpScreener, ...lorpBriefTickers, ...lorpFiredOther].filter(r => r.lorpBuySignal === true);  // #1/#5: persistent watch tracks LC entries only, 5 trading days
-    const todayBuyVDSyms = new Set(todayBuyVD.map(r => bareSym(r.sym)));
+    const todayPullback = lorpAll.filter(r => r.lorpNativeTable === 'Pullback');
+    const todayPullbackSyms = new Set(todayPullback.map(r => bareSym(r.sym)));
 
     const lorpWatchlist = loadLorpWatchlist();
 
-    // Step 1: Add/refresh Buy VD tickers seen today
-    for (const r of todayBuyVD) {
+    // Step 1: Add/refresh Pullback tickers seen today
+    for (const r of todayPullback) {
       const sym = bareSym(r.sym);
       if (!lorpWatchlist[sym] || lorpWatchlist[sym].status !== 'active') {
         lorpWatchlist[sym] = {
-          first_seen:     briefDateStr,
-          last_seen:      briefDateStr,
-          lorp_buy_date:  briefDateStr,
-          lorp_buy_price: r.price,
-          status:         'active',
+          first_seen:      briefDateStr,
+          last_seen:       briefDateStr,
+          pb_first_date:   briefDateStr,
+          pb_first_price:  r.price,
+          pb_native_label: r.lorpNativeLabel || null,
+          status:          'active',
         };
-        process.stderr.write(`[watchlist] Added: ${sym} @ $${r.price?.toFixed(2)} on ${briefDateStr}\n`);
+        process.stderr.write(`[watchlist] Added: ${sym} @ $${r.price?.toFixed(2)} on ${briefDateStr} (${r.lorpNativeLabel || 'Pullback'})\n`);
       } else {
         lorpWatchlist[sym].last_seen = briefDateStr;
+        if (r.lorpNativeLabel) lorpWatchlist[sym].pb_native_label = r.lorpNativeLabel;
       }
     }
 
@@ -1647,30 +1667,17 @@ if (!VERBOSE) {
     // Step 2: Check active entries for exit / expiry
     for (const [sym, entry] of Object.entries(lorpWatchlist)) {
       if (entry.status !== 'active') continue;
-      // Find current scan data for this ticker (match on bare symbol)
       const r = lorpAll.find(t => bareSym(t.sym) === sym);
-      if (r) {
-        entry.last_seen = briefDateStr;
-        // Exit: StopBuy fired (column AX in Automator CSV)
-        if (r.lcStopBuy != null && r.lcStopBuy > 0) {
-          entry.status = 'exited';
-          process.stderr.write(`[watchlist] Exited: ${sym} — StopBuy fired on ${briefDateStr}\n`);
-          continue;
-        }
-      }
-      // Evict: name has dropped out of LORP SCREENER entirely — the watch can't track
-      // an untrackable name (no scan data), so drop it rather than show a dead "not in
-      // scan" row. Keyed off screener membership (not scan presence) so a transient scan
-      // timeout on a still-curated name does NOT wrongly evict it.
+      if (r) entry.last_seen = briefDateStr;
+      // Evict: name has dropped out of LORP SCREENER entirely
       if (!screenerBareSet.has(sym)) {
         entry.status = 'dropped';
         process.stderr.write(`[watchlist] Dropped: ${sym} — no longer in LORP SCREENER on ${briefDateStr}\n`);
         continue;
       }
-      // Expire: 5 trading bars since first_seen with no Buy VD signal today
-      // (if it hasn't re-fired within a week it won't, or it'll resurface via another section)
+      // Expire: 5 trading bars since first_seen with no Pullback classification today
       const bars = countTradingDays(entry.first_seen, briefDateStr);
-      if (bars > 5 && !todayBuyVDSyms.has(sym)) {
+      if (bars > 5 && !todayPullbackSyms.has(sym)) {
         entry.status = 'expired';
         process.stderr.write(`[watchlist] Expired: ${sym} — ${bars} bars since ${entry.first_seen}\n`);
       }
@@ -1686,31 +1693,25 @@ if (!VERBOSE) {
 
     if (activeWatch.length > 0) {
       console.log('---\n');
-      console.log(`**📋 LORP PERSISTENT WATCH — ${activeWatch.length} tickers**`);
-      console.log('*Tracks tickers through pullback phase regardless of TV Screener filters*\n');
-      console.log('| Ticker | Price | Days | Buy Date | Buy $ | MACD X | CE | Status |');
-      console.log('|--------|-------|------|----------|-------|--------|----|--------|');
+      console.log(`**📋 LORP PULLBACK WATCH — ${activeWatch.length} tickers**`);
+      console.log('*Tracks reversion tickers for up to 5 trading days while the pullback develops*\n');
+      console.log('| Ticker | Price | Days | First Seen | Entry $ | Type | Status |');
+      console.log('|--------|-------|------|------------|---------|------|--------|');
 
       for (const [sym, entry] of activeWatch) {
         const r = lorpAll.find(t => bareSym(t.sym) === sym);
 
         const priceStr  = r?.price != null ? `$${fmt(r.price)}` : '—';
         const days      = countTradingDays(entry.first_seen, briefDateStr);
-        const buyDate   = entry.lorp_buy_date
-          ? new Date(entry.lorp_buy_date + 'T00:00:00')
+        const seenDate  = entry.first_seen
+          ? new Date(entry.first_seen + 'T00:00:00')
               .toLocaleDateString('en-AU', { day: '2-digit', month: 'short' })
           : '—';
-        const buyPrice  = entry.lorp_buy_price != null ? `$${entry.lorp_buy_price.toFixed(2)}` : '—';
+        const entryPrice = entry.pb_first_price != null ? `$${entry.pb_first_price.toFixed(2)}` : '—';
+        const typeStr     = entry.pb_native_label || r?.lorpNativeLabel || '—';
+        const statusStr   = r ? 'Active' : 'Active ⚠ not in scan';
 
-        // MACD Cross proxy: MACD positive AND above signal line
-        const macdXStr  = (r?.macd != null && r.macd > 0 &&
-                           r?.macdSig != null && r.macd > r.macdSig) ? '✓' : '—';
-        // CE Buy: Buy Label active from LC Premium (Buy fired, Sell not fired)
-        const ceBuyStr  = r?.ceBuyActive ? '✓' : '—';
-        // Status note: warn if ticker is not in today's scan
-        const statusStr = r ? 'Active' : 'Active ⚠ not in scan';
-
-        console.log(`| ${sym} | ${priceStr} | ${days} | ${buyDate} | ${buyPrice} | ${macdXStr} | ${ceBuyStr} | ${statusStr} |`);
+        console.log(`| ${sym} | ${priceStr} | ${days} | ${seenDate} | ${entryPrice} | ${typeStr} | ${statusStr} |`);
       }
       console.log('');
 
@@ -2063,17 +2064,17 @@ if (!VERBOSE) {
   console.log('---\n');
   console.log('*⚠️ Preliminary screen only — confirm on chart before acting*  ');
   console.log('*LORP: Pre-filtered by TV Screener (ATR<5%, MACD>0, EMA21>EMA34, Vol>500K, RelVol>1.0, Price>EMA34, Aroon Down<30%, RSI 45-75)*  ');
-  console.log('*Brief filters: RVOL>1.0, RVOL<4, VD>0.5, No LC data excluded*');
+  console.log('*Brief filters: RVOL>0.8, RVOL<4, VD>0.5, No LC data excluded*');
   console.log('*Type: Pullback 🔄 = Dist<0.5 · Trend ↗ = Dist 0.5–1.5 · Breakout 🚀 = Dist>1.5 · WRB ✓ = wide range bar in prior bars · ✗ = none*  ');
   console.log('');
   console.log('📐 **CONFLUENCE FACTORS BY STRATEGY**\n');
   console.log('**LORP:** Distance from Kernel (Pullback 🔄 <0.5 · Trend ↗ 0.5–1.5 · Breakout 🚀 >1.5)  ');
-  console.log('         🟢 LC Premium Buy/StopBuy signal · RVOL >1.0 · WRB prior bars · ATR% <5%  ');
+  console.log('         🟢 LC Premium Buy/StopBuy signal · RVOL >0.8 · ATR% <5%  ');
   console.log('         Sig = FRESH fires only — markers already in the prior brief are filtered as carried-over · ·Nc = N held-over markers suppressed\n');
-  console.log('**SID:**  Long: RSI crossed below 30 (OS touch) · RSI rising · MACD ↑ 1 bar  ');
-  console.log('          Short: RSI crossed above 70 (OB touch) · RSI falling · MACD ↓ 1 bar  ');
+  console.log('**SID:**  Long: RSI crossed below 30 (OS touch) · RSI rising  ');
+  console.log('          Short: RSI crossed above 70 (OB touch) · RSI falling  ');
   console.log('          SMA200 tier (HIGH CONVICTION ≥5% away) · ADX (<20 coiling ✓ · 20-25 NML ⚠️ · 25-40 trending)  ');
-  console.log('          Gap/ATR ≥2.0 ideal (stop room) · <1.5 avoid (stop too tight) · Src: SID·LORP·BTW·PB·BO·CAP  ');
+  console.log('          Gap/ATR ≥2.0 ideal (stop room) · <1.5 avoid (stop too tight) · Src: SID·LORP·BTW  ');
   console.log('          ATR% risk · Gap/ATR = SL distance in ATRs (per STRATEGIES.md: ≥2.0 ideal · <1.5 avoid) · VD (ref)\n');
 
   // ── CSV Export ──
