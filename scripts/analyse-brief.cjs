@@ -2239,11 +2239,29 @@ if (!VERBOSE) {
     ]),
   ].sort();
 
+  // David (13 Sep 2026): fix for the 9 Sep "ASX/invalid" bug. Root cause: this sidecar
+  // was writing BARE tickers (no exchange prefix); push-watchlist.cjs's
+  // resolveExchangePrefix can only recover a prefix by finding the ticker somewhere ELSE
+  // in the current TV watchlist, which fails for a ticker that's brand new to the
+  // watchlist — exactly the case for fresh LORP Pullback/reversion candidates (MLYS, PBR,
+  // RHI, SHG on 9 Sep). None were actually ASX-listed; they just had nowhere to borrow a
+  // prefix from, fell back to bare, and sync-watchlist.cjs's isValidTicker regex (which
+  // requires EXCHANGE:TICKER) then rejected them and mislabelled them "ASX/invalid".
+  // Fix: never lose the prefix in the first place. Today's scans (lorpAll, sidResults)
+  // already carry fully-qualified symbols before bareSym() strips them for display —
+  // build a lookup back to that qualified form for the sidecar TV actually consumes.
+  // The printed footer and brief-import.txt stay bare (unchanged, for readability).
+  const qualifiedSymOf = new Map();
+  for (const r of [...lorpAll, ...sidResults]) {
+    if (r && r.sym) qualifiedSymOf.set(bareSym(r.sym), r.sym);
+  }
+  const briefOutputTickersQualified = briefOutputTickers.map(sym => qualifiedSymOf.get(sym) || sym);
+
   const watchlistUpdates = {
     date: briefDate,
     generated_at: new Date().toISOString(),
     sections: {
-      'Brief Output': briefOutputTickers,
+      'Brief Output': briefOutputTickersQualified,
     },
   };
 
