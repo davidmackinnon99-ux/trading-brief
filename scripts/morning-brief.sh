@@ -159,6 +159,60 @@ else
     echo "[$(date)] REGIME scan failed or empty — Pullback regime gate will be unavailable" >> "$LOGFILE"
 fi
 
+# ── SCAN 4: SECTOR ETF ROTATION (vs SPY) ──────────────────────────────────────
+# David (13 Sep 2026): tag each SID/LORP ticker Supported/Neutral/Unsupported by
+# comparing its SPDR sector ETF's % move to SPY's over the same lookback window,
+# direction-aware against the ticker's Long/Short signal (analyse-brief.cjs does the
+# comparison — this step only gathers the raw numbers). Mechanism (tv symbol + tv
+# ohlcv -s) manually validated on 13 Sep 2026: XLK -0.51% vs SPY -0.62% over 4 bars.
+# Best-effort: any failure here just leaves sector tags showing 'n/a' in the brief —
+# never blocks or fails the rest of the pipeline.
+OUTFILE_SECTORS="$BRIEFS_DIR/brief-$DATE-sectors.json"
+SECTOR_LOOKBACK_BARS=4
+SECTOR_TICKERS="SPY XLC XLE XLK XLF XLV XLY XLP XLI XLB XLU XLRE"
+echo "[$(date)] Scanning sector ETF rotation vs SPY..." >> "$LOGFILE"
+SECTOR_TMP_DIR=$(mktemp -d)
+for TICKER in $SECTOR_TICKERS; do
+    "$NODE" "$TV_DIR/src/cli/index.js" symbol "AMEX:$TICKER" > /dev/null 2>> "$LOGFILE"
+    sleep 2
+    "$NODE" "$TV_DIR/src/cli/index.js" ohlcv -n "$SECTOR_LOOKBACK_BARS" -s > "$SECTOR_TMP_DIR/$TICKER.json" 2>> "$LOGFILE"
+done
+python3 - "$SECTOR_TMP_DIR" "$OUTFILE_SECTORS" "$SECTOR_LOOKBACK_BARS" <<'PYEOF2' >> "$LOGFILE" 2>&1
+import json, os, sys, datetime
+tmp_dir, out_file, lookback = sys.argv[1], sys.argv[2], int(sys.argv[3])
+etfs = {}
+spy = None
+for fname in os.listdir(tmp_dir):
+    if not fname.endswith('.json'):
+        continue
+    ticker = fname[:-5]
+    try:
+        with open(os.path.join(tmp_dir, fname)) as f:
+            data = json.load(f)
+        raw = data.get('change_pct')
+        pct = float(str(raw).rstrip('%')) if raw is not None else None
+    except Exception:
+        pct = None
+    if pct is None:
+        print(f"[sector] {ticker}: no usable change_pct (skipped)")
+        continue
+    if ticker == 'SPY':
+        spy = pct
+    else:
+        etfs[ticker] = pct
+out = {
+    'generated_at': datetime.datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ'),
+    'lookback_bars': lookback,
+    'spy_change_pct': spy,
+    'etfs': etfs,
+}
+with open(out_file, 'w') as f:
+    json.dump(out, f, indent=2)
+print(f"[sector] wrote {len(etfs)} ETFs + SPY={spy} to {out_file}")
+PYEOF2
+rm -rf "$SECTOR_TMP_DIR"
+echo "[$(date)] Sector ETF rotation scan complete" >> "$LOGFILE"
+
 # ── PULLBACK and ADX BREAKOUT scans retired 26 Aug 2026 (David: "delete all
 # references to the old Pullback & ADX Continuation" — Pullback folded into LORP's
 # native Trend/Pullback tables; ADX shown in the LORP table already per #8 Jul 2026).
@@ -179,7 +233,7 @@ if [ $BRIEF_EXIT -eq 0 ] && [ -s "$OUTFILE_LORP" ]; then
     # Auto-analyse: pass both JSON files to produce combined tables
     CSV_OUT="$BRIEFS_DIR/brief-$DATE-data.csv"
     echo "[$(date)] Generating tables..." >> "$LOGFILE"
-    "$NODE" "$TV_DIR/scripts/analyse-brief.cjs" "$OUTFILE_LORP" "$OUTFILE_SID" "$OUTFILE_REGIME" > "$TABLES_OUT" 2>> "$LOGFILE"
+    "$NODE" "$TV_DIR/scripts/analyse-brief.cjs" "$OUTFILE_LORP" "$OUTFILE_SID" "$OUTFILE_REGIME" "" "" "$OUTFILE_SECTORS" > "$TABLES_OUT" 2>> "$LOGFILE"
     # ── LORP open-trade monitor removed 27 Aug 2026 (David) — open_trades.csv was a
     # manually-maintained file nobody was updating (AJG entry dated 6/7/2026, ~3 months
     # stale; YUM/AMGN dated 10/7/2026, a future date). David monitors positions directly

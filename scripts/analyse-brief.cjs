@@ -169,6 +169,78 @@ function countTradingDays(fromDateStr, toDateStr) {
 // Strip exchange prefix: "NASDAQ:AAPL" → "AAPL"
 function bareSym(sym) { return sym.includes(':') ? sym.split(':')[1] : sym; }
 
+// ── Sector/Industry support tagging (David, 13 Sep 2026) ──────────────────
+// Compares each ticker's own sector against live sector-ETF-vs-SPY rotation to tag
+// every LORP/SID row Supported/Neutral/Unsupported for its signal direction. Two
+// best-effort inputs, neither of which can ever crash the brief on failure:
+//   1. sector-map.json (repo root) - manually-curated ticker -> sector/industry,
+//      built from stockanalysis.com. Ticker missing here -> tag omitted ('n/a'),
+//      never guessed. Add entries as new tickers show up.
+//   2. brief-<date>-sectors.json (produced by morning-brief.sh's SECTOR ETF ROTATION
+//      scan) - today's % change for SPY + the 11 SPDR sector ETFs over the same
+//      lookback window, via the same tv symbol/ohlcv mechanism used everywhere else.
+//      Missing/partial file -> tag omitted, brief still runs.
+const SECTOR_ETF_MAP = {
+  'communication services': 'XLC',
+  'energy': 'XLE',
+  'technology': 'XLK',
+  'information technology': 'XLK',
+  'financials': 'XLF',
+  'financial services': 'XLF',
+  'healthcare': 'XLV',
+  'health care': 'XLV',
+  'consumer discretionary': 'XLY',
+  'consumer cyclical': 'XLY',
+  'consumer staples': 'XLP',
+  'consumer defensive': 'XLP',
+  'industrials': 'XLI',
+  'materials': 'XLB',
+  'basic materials': 'XLB',
+  'utilities': 'XLU',
+  'real estate': 'XLRE',
+};
+const normalizeSectorName = s => (s || '').toLowerCase().trim().replace(/\s+/g, ' ');
+
+function loadJsonSafe(p) {
+  try { return JSON.parse(fs.readFileSync(p, 'utf8')); } catch (_) { return null; }
+}
+const sectorMapRaw = loadJsonSafe(path.join(__dirname, '..', 'sector-map.json')) || {};
+const sectorMap = {};
+for (const [sym, info] of Object.entries(sectorMapRaw)) {
+  if (sym.startsWith('_')) continue;
+  sectorMap[sym] = info;
+}
+
+// SECTOR_REL_THRESHOLD: how far a sector ETF must diverge from SPY (percentage
+// points, over the scan's lookback window) before it counts as actually rotating
+// rather than just noise. Starting value -- tune once this has run for a while.
+const SECTOR_REL_THRESHOLD = 0.3;
+
+let sectorEtfData = null; // populated below once sectorsBriefFile is resolved
+function sectorRelPct(sectorName) {
+  if (!sectorEtfData) return null;
+  const etf = SECTOR_ETF_MAP[normalizeSectorName(sectorName)];
+  if (!etf) return null;
+  const etfPct = sectorEtfData.etfs ? sectorEtfData.etfs[etf] : null;
+  const spyPct = sectorEtfData.spy_change_pct;
+  if (etfPct == null || spyPct == null) return null;
+  return etfPct - spyPct;
+}
+function sectorSupportTag(bareSymbol, direction) {
+  if (!direction) return null;
+  const info = sectorMap[bareSymbol];
+  if (!info || !info.sector) return null;
+  const rel = sectorRelPct(info.sector);
+  if (rel == null) return null;
+  if (direction === 'long')  return rel >  SECTOR_REL_THRESHOLD ? 'Supported' : rel < -SECTOR_REL_THRESHOLD ? 'Unsupported' : 'Neutral';
+  if (direction === 'short') return rel < -SECTOR_REL_THRESHOLD ? 'Supported' : rel >  SECTOR_REL_THRESHOLD ? 'Unsupported' : 'Neutral';
+  return null;
+}
+function sectorTagDisplay(bareSymbol, direction) {
+  const tag = sectorSupportTag(bareSymbol, direction);
+  return tag === 'Supported' ? '\uD83D\uDFE2 Supported' : tag === 'Unsupported' ? '\uD83D\uDD34 Unsupported' : tag === 'Neutral' ? '\u26AA Neutral' : 'n/a';
+}
+
 // ── Flags ────────────────────────────────────────────────────────
 // --debug : dump all raw study names + value keys for first symbol, then exit
 // --keys  : alias for --debug
@@ -248,6 +320,25 @@ if (!adxBriefFile) {
     const candidate = path.join(briefsDir, `brief-${dateMatch[1]}-adx.json`);
     if (fs.existsSync(candidate)) adxBriefFile = candidate;
   }
+}
+
+// Sector ETF rotation file (David, 13 Sep 2026 sector/industry support feature) —
+// produced by morning-brief.sh's SECTOR ETF ROTATION scan. Slot 5, after the two
+// retired-but-still-parsed pullback/adx slots, so old invocations without it just
+// keep working (sectorEtfData stays null -> tags show 'n/a', nothing else changes).
+let sectorsBriefFile = nonFlagArgs[5];
+if (!sectorsBriefFile) {
+  const dateMatch = briefFile.match(/brief-(\d{4}-\d{2}-\d{2})/);
+  if (dateMatch) {
+    const candidate = path.join(briefsDir, `brief-${dateMatch[1]}-sectors.json`);
+    if (fs.existsSync(candidate)) sectorsBriefFile = candidate;
+  }
+}
+if (sectorsBriefFile && fs.existsSync(sectorsBriefFile)) {
+  sectorEtfData = loadJsonSafe(sectorsBriefFile);
+  if (!sectorEtfData) process.stderr.write(`[sector] failed to parse ${sectorsBriefFile} — sector tags will show 'n/a'\n`);
+} else {
+  process.stderr.write(`[sector] no sectors file found for today — sector tags will show 'n/a'\n`);
 }
 
 // Safe JSON loader — extracts the FIRST complete JSON object from the file.
@@ -1506,10 +1597,12 @@ if (!VERBOSE) {
     // "DI" column format) — previously only the raw ADX number was shown, DI+/DI- were used
     // internally for the 🟢/🔴 ADX marker but never surfaced as their own data.
     const diStr = (r.diPlus != null && r.diMinus != null) ? `${r.diPlus.toFixed(0)}/${r.diMinus.toFixed(0)}` : '—';
-    return [r.sym, sigStr, `$${fmt(r.price)}`, entryStr, macd0Str, distStr, adxStr, diStr, normalizeSrc(r)];
+    const lorpDirection = r.backtestStream > 0 ? 'long' : r.backtestStream < 0 ? 'short' : null;
+    const sectorStr = sectorTagDisplay(bareSym(r.sym), lorpDirection);
+    return [r.sym, sigStr, `$${fmt(r.price)}`, entryStr, macd0Str, distStr, adxStr, diStr, normalizeSrc(r), sectorStr];
   }
 
-  const lorpHeaders = ['Ticker', 'Sig', 'Price', 'Type', 'MACD0', 'Dist', 'ADX', 'DI', 'Src'];
+  const lorpHeaders = ['Ticker', 'Sig', 'Price', 'Type', 'MACD0', 'Dist', 'ADX', 'DI', 'Src', 'Sector'];
   const lorpRightAlign = new Set([2, 5]);  // Price, Dist right-aligned (shifted after Sig moved to index 1); tag columns left-aligned
   // Fixed-width monospace grid (same renderer as the SID table) so columns line up under the
   // headers in any viewer, not only a markdown renderer. Context columns (Cf/ADX/RVOL/Aroon/
@@ -1819,7 +1912,7 @@ if (!VERBOSE) {
     console.log('*Gap/ATR = SL distance in ATRs (how far the stop sits from entry). Per STRATEGIES.md: ≥2.0 ideal (sound stop room) · <1.5 avoid (stop too tight, noise-vulnerable). Shown as an approximate starting point (~); calculate the real value manually before acting — no auto-flag, no hard reject. ATR% alone has low predictive value.*\n');
     { const _rs = readReminders('sid'); if (_rs.length) console.log('\n' + _rs.map(x => `\uD83D\uDCCC ${x}`).join('\n') + '\n'); }
 
-    const sidHeaders = ['Ticker','Sig','Price','MACD0','Gap/ATR','ADX','DI','SMA200','SMA50','RVOL','Src','Score'];
+    const sidHeaders = ['Ticker','Sig','Price','MACD0','Gap/ATR','ADX','DI','SMA200','SMA50','RVOL','Src','Score','Sector'];
     const sidRightAlign = new Set([2, 9]);  // Price, RVOL (SMA50 inserted at idx 8 -> RVOL shifts to 9)
 
     function sidRowCells(r) {
@@ -1850,7 +1943,9 @@ if (!VERBOSE) {
       // The %-of-price normalisation is used only inside the short-gate flags for cross-ticker comparability.
       const macd0Raw = (r.macd != null && r.macdSig != null) ? (r.macd - r.macdSig) : null;
       const macd0Str = macd0Raw == null ? D : (macd0Raw >= 0 ? '+' : '') + macd0Raw.toFixed(2);
-      return [r.sym, sig, '$' + fmt(r.price), macd0Str, gatr, adx, di, sma200, sma50, rvol, src, sidScore(r)];
+      const sidDirection = r.isLongPass ? 'long' : 'short';
+      const sectorStr = sectorTagDisplay(bareSym(r.sym), sidDirection);
+      return [r.sym, sig, '$' + fmt(r.price), macd0Str, gatr, adx, di, sma200, sma50, rvol, src, sidScore(r), sectorStr];
     }
 
     function printSIDTable(rows) {
