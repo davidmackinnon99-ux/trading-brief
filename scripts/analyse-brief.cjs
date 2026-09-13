@@ -2077,8 +2077,7 @@ if (!VERBOSE) {
   console.log('*Type: Pullback 🔄 = Dist<0.5 · Trend ↗ = Dist 0.5–1.5 · Breakout 🚀 = Dist>1.5 · WRB ✓ = wide range bar in prior bars · ✗ = none*  ');
   console.log('');
   console.log('📐 **CONFLUENCE FACTORS BY STRATEGY**\n');
-  console.log('**LORP:** Distance from Kernel (Pullback 🔄 <0.5 · Trend ↗ 0.5–1.5 · Breakout 🚀 >1.5)  ');
-  console.log('         🟢 LC Premium Buy/StopBuy signal · RVOL >0.8 · ATR% <5%  ');
+  console.log('**LORP:** 🟢 LC Premium Buy/StopBuy signal · RVOL >0.8 · ATR% <5%  ');
   console.log('         Sig = FRESH fires only — markers already in the prior brief are filtered as carried-over · ·Nc = N held-over markers suppressed\n');
   console.log('**SID:**  Long: RSI crossed below 30 (OS touch) · RSI rising  ');
   console.log('          Short: RSI crossed above 70 (OB touch) · RSI falling  ');
