@@ -1675,6 +1675,15 @@ if (!VERBOSE) {
         process.stderr.write(`[watchlist] Dropped: ${sym} — no longer in LORP SCREENER on ${briefDateStr}\n`);
         continue;
       }
+      // Fired: an LC entry has fired for this ticker — David (13 Sep 2026): once a
+      // Pullback fires an actual entry it's his call to act on or not, immediately,
+      // not something to keep carrying forward. Evict right away, not on the 5-day
+      // expiry timer (which is for reversions that never fire at all).
+      if (r && (r.lorpBuySignal || r.lorpSellSignal)) {
+        entry.status = 'fired';
+        process.stderr.write(`[watchlist] Fired: ${sym} — LC entry fired on ${briefDateStr}, removed from watch\n`);
+        continue;
+      }
       // Expire: 5 trading bars since first_seen with no Pullback classification today
       const bars = countTradingDays(entry.first_seen, briefDateStr);
       if (bars > 5 && !todayPullbackSyms.has(sym)) {
@@ -2180,23 +2189,31 @@ if (!VERBOSE) {
   process.stderr.write(`[csv] Written to ${csvPath}\n`);
 
   // ── LORP BRIEF Import File ──
-  // Combines today's Buy VD screener tickers with active persistent watchlist tickers.
-  // Active watchlist tickers are included so they get scanned on the next brief run
-  // even if they've dropped out of the TV Screener.
-  const lorpBriefScreenerSyms = lorpScreener
-    .filter(r => r.vdPos === true)
-    .map(r => bareSym(r.sym));
+  // David (13 Sep 2026): Rebuilt to match David's actual instruction — Brief Output
+  // for LORP carries ONLY tickers still waiting on a reversion signal that have not
+  // yet fired an actual LC entry. The old lorpBriefScreenerSyms gate (any LORP-screener
+  // ticker with positive Buy VD, regardless of signal) is removed: it was pulling in
+  // ~40+ tickers/day that never appeared in the printed Trend/Pullback tables — the same
+  // bloat pattern fixed for the Trend table's own display on 9 Sep 2026, but never
+  // mirrored into this list. Once a ticker fires an LC entry it belongs in Trend and is
+  // David's call to act on or not — it stops being carried forward as a "watch."
+  const firedTodaySet = new Set(
+    lorpAll.filter(r => r.lorpBuySignal || r.lorpSellSignal).map(r => bareSym(r.sym))
+  );
+  // Today's native-Pullback (reversion-only, not-yet-fired) tickers.
+  const lorpNativePullbackSyms = lorpPullbackRows
+    .map(r => bareSym(r.sym))
+    .filter(sym => !firedTodaySet.has(sym));
+  // Persistent watchlist tickers still active AND not fired since — included so a
+  // reversion being watched keeps getting scanned even if it briefly drops out of
+  // today's native-Pullback classification, without carrying anything that has fired.
   const lorpWatchlistActive = globalThis._lorpWatchlist
     ? Object.entries(globalThis._lorpWatchlist)
-        .filter(([, e]) => e.status === 'active')
+        .filter(([sym, e]) => e.status === 'active' && !firedTodaySet.has(sym))
         .map(([sym]) => sym)
-        .filter(sym => !lorpBriefScreenerSyms.includes(sym))
+        .filter(sym => !lorpNativePullbackSyms.includes(sym))
     : [];
-  // David (27 Aug 2026): native-Pullback tickers (fired ±3/±4/±5 codes, may not have
-  // a separate lorpBuySignal/positive-VD flag) now feed Brief Output too — "these will
-  // be watched as a set" alongside the LC-entry-driven tickers above.
-  const lorpNativePullbackSyms = lorpPullbackRows.map(r => bareSym(r.sym));
-  const lorpBriefImport = [...new Set([...lorpBriefScreenerSyms, ...lorpWatchlistActive, ...lorpNativePullbackSyms])].sort();
+  const lorpBriefImport = [...new Set([...lorpWatchlistActive, ...lorpNativePullbackSyms])].sort();
 
   const importPath = briefFile.replace('.json', '-brief-import.txt');
   fsSync.writeFileSync(importPath, lorpBriefImport.join('\n') + '\n', 'utf8');
