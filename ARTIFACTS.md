@@ -23,6 +23,7 @@ script plus its data is.
 | Confluence Checklists | `CONFLUENCE_CHECKLISTS.md` | Manual chart-side SID + LORP confluence scoring checklists (from TV AI) | Hand-maintained; gated by STRATEGIES.md |
 | LORP verdict tool | `scripts/confluence_check.py` | PASS/FLAG/CAUTION/AVOID verdict; LORP = MACD0 up AND LC Buy | Script |
 | SID factor grading | `scripts/sid_factor_grade.py` | Per-trade factor snapshot (MACD, MACD0, Gap/ATR, wRSI, ADX/DI, RVOL) | Script (yfinance) |
+| SID RSI/MACD feasibility screen | `scripts/sid_rsi_macd_screen.py` | Standalone RSI(14)/MACD(12,26,9) from raw OHLCV bars; validates the SID OB/OS-to-cross timing rule (zone touch within 10 candles of the MACD/signal cross) | Script |
 
 ## Continuity / project-state docs
 
