@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SID Method — Confluence Factor Analysis</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=IBM+Plex+Mono:wght@300;400;600&family=IBM+Plex+Sans:ital,wght@0,300;0,400;0,600;1,300&display=swap" rel="stylesheet">
+<style>
+  :root{--bg:#0a0c0f;--surface:#111318;--border:#1e2229;--border2:#2a2f3a;--text:#c8cdd8;--muted:#5a6070;--head:#e8ecf5;--green:#3de89e;--red:#f05555;--amber:#f5b942;--blue:#4da6ff;--purple:#b06cff;--mono:'IBM Plex Mono',monospace;--sans:'IBM Plex Sans',sans-serif;--display:'Bebas Neue',sans-serif;}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:13.5px;line-height:1.6;}
+  body::before{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");pointer-events:none;z-index:0;opacity:0.4;}
+  .wrap{position:relative;z-index:1;max-width:1080px;margin:0 auto;padding:48px 32px 80px;}
+  .report-header{border-bottom:1px solid var(--border2);padding-bottom:32px;margin-bottom:48px;}
+  .report-label{font-family:var(--mono);font-size:10px;letter-spacing:0.2em;color:var(--muted);text-transform:uppercase;margin-bottom:12px;}
+  .report-title{font-family:var(--display);font-size:clamp(42px,7vw,72px);letter-spacing:0.03em;color:var(--head);line-height:1;margin-bottom:8px;}
+  .report-title span{color:var(--green);}
+  .report-subtitle{font-family:var(--mono);font-size:11px;color:var(--muted);letter-spacing:0.12em;}
+  .meta-row{display:flex;gap:32px;flex-wrap:wrap;margin-top:24px;}
+  .meta-item{display:flex;flex-direction:column;gap:2px;}
+  .meta-key{font-family:var(--mono);font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:0.15em;}
+  .meta-val{font-family:var(--mono);font-size:13px;color:var(--head);font-weight:600;}
+  .section{margin-bottom:56px;}
+  .section-header{display:flex;align-items:baseline;gap:16px;margin-bottom:20px;}
+  .section-num{font-family:var(--display);font-size:48px;color:var(--border2);line-height:1;min-width:40px;}
+  .section-title{font-family:var(--display);font-size:22px;letter-spacing:0.06em;color:var(--head);text-transform:uppercase;}
+  .section-tag{font-family:var(--mono);font-size:9px;letter-spacing:0.15em;color:var(--muted);text-transform:uppercase;margin-left:8px;}
+  .section-body{font-size:13px;color:var(--text);line-height:1.75;max-width:780px;}
+  .section-body p{margin-bottom:10px;}
+  .section-body strong{color:var(--head);font-weight:600;}
+  .section-body em{color:var(--amber);font-style:normal;}
+  .callout{border-left:3px solid var(--green);background:rgba(61,232,158,0.04);padding:14px 18px;margin:16px 0;font-family:var(--mono);font-size:12px;line-height:1.7;color:var(--text);}
+  .callout.warn{border-color:var(--amber);background:rgba(245,185,66,0.04);}
+  .callout.bad{border-color:var(--red);background:rgba(240,85,85,0.04);}
+  .callout.info{border-color:var(--blue);background:rgba(77,166,255,0.04);}
+  .callout-label{font-size:9px;letter-spacing:0.2em;text-transform:uppercase;margin-bottom:4px;}
+  .callout-label.good{color:var(--green);}.callout-label.warn{color:var(--amber);}.callout-label.bad{color:var(--red);}.callout-label.info{color:var(--blue);}
+  .tbl-wrap{overflow-x:auto;margin:20px 0;}
+  table{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:12px;}
+  thead tr{border-bottom:2px solid var(--border2);}
+  thead th{text-align:left;padding:8px 14px;font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-weight:400;white-space:nowrap;}
+  thead th.r{text-align:right;}
+  tbody tr{border-bottom:1px solid var(--border);transition:background 0.12s;}
+  tbody tr:hover{background:rgba(255,255,255,0.025);}
+  tbody tr.highlight{background:rgba(61,232,158,0.05);}
+  tbody tr.subhighlight{background:rgba(77,166,255,0.04);}
+  tbody tr.dimmed{opacity:0.55;}
+  tbody tr.warn-row{background:rgba(245,185,66,0.04);}
+  tbody td{padding:8px 14px;color:var(--text);white-space:nowrap;}
+  tbody td.r{text-align:right;}tbody td.label{color:var(--head);font-weight:600;}
+  .val-pos{color:var(--green);}.val-neg{color:var(--red);}.val-neu{color:var(--amber);}.val-dim{color:var(--muted);}
+  .badge{display:inline-block;padding:2px 7px;border-radius:2px;font-size:9px;letter-spacing:0.12em;text-transform:uppercase;font-weight:600;}
+  .badge-green{background:rgba(61,232,158,0.15);color:var(--green);}
+  .badge-red{background:rgba(240,85,85,0.15);color:var(--red);}
+  .badge-amber{background:rgba(245,185,66,0.15);color:var(--amber);}
+  .badge-blue{background:rgba(77,166,255,0.15);color:var(--blue);}
+  .stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1px;background:var(--border);border:1px solid var(--border);margin:20px 0;}
+  .stat-card{background:var(--surface);padding:16px 18px;display:flex;flex-direction:column;gap:4px;}
+  .stat-card .sk{font-family:var(--mono);font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:0.15em;}
+  .stat-card .sv{font-family:var(--display);font-size:28px;line-height:1;color:var(--head);}
+  .stat-card .sd{font-family:var(--mono);font-size:10px;color:var(--muted);}
+  .stat-card.good .sv{color:var(--green);}.stat-card.warn .sv{color:var(--amber);}.stat-card.bad .sv{color:var(--red);}
+  .divider{height:1px;background:var(--border);margin:40px 0;position:relative;}
+  .divider::after{content:'◆';position:absolute;left:50%;top:-8px;transform:translateX(-50%);color:var(--border2);font-size:10px;}
+  .toc{background:var(--surface);border:1px solid var(--border2);padding:24px 28px;margin-bottom:48px;}
+  .toc-title{font-family:var(--mono);font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);margin-bottom:14px;}
+  .toc-list{list-style:none;}
+  .toc-list li{padding:4px 0;border-bottom:1px solid var(--border);display:flex;align-items:baseline;gap:12px;font-family:var(--mono);font-size:11px;}
+  .toc-list li:last-child{border-bottom:none;}
+  .toc-num{color:var(--muted);min-width:20px;}
+  .toc-label{color:var(--text);}
+  .toc-tag{color:var(--muted);margin-left:auto;font-size:9px;letter-spacing:0.1em;}
+  .footnote{font-family:var(--mono);font-size:10px;color:var(--muted);line-height:1.6;margin-top:16px;border-top:1px solid var(--border);padding-top:16px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+<div class="report-header">
+  <div class="report-label">S I D M E T H O D &nbsp;·&nbsp; Q U A N T I T A T I V E A N A L Y S I S &nbsp;·&nbsp; B T W U N I V E R S E</div>
+  <div class="report-title">CONFLUENCE<br><span>FACTOR ANALYSIS</span></div>
+  <div class="report-subtitle">M A R C H &nbsp; 2 0 2 6 &nbsp;·&nbsp; C O N F I D E N T I A L</div>
+  <div class="meta-row">
+    <div class="meta-item"><div class="meta-key">Universe</div><div class="meta-val">99 Tickers</div></div>
+    <div class="meta-item"><div class="meta-key">Total Signals</div><div class="meta-val">2,932</div></div>
+    <div class="meta-item"><div class="meta-key">Period</div><div class="meta-val">2010 – Mar 2026</div></div>
+    <div class="meta-item"><div class="meta-key">Regime Filter</div><div class="meta-val">ON</div></div>
+    <div class="meta-item"><div class="meta-key">Strategy</div><div class="meta-val">OB/OS Bounce · RSI+MACD</div></div>
+  </div>
+</div>
+
+<div class="toc">
+  <div class="toc-title">Contents</div>
+  <ul class="toc-list">
+    <li><span class="toc-num">01</span><span class="toc-label">Executive Summary</span><span class="toc-tag">Overview</span></li>
+    <li><span class="toc-num">02</span><span class="toc-label">Baseline Performance — Long vs Short Split</span><span class="toc-tag">Core Data</span></li>
+    <li><span class="toc-num">03</span><span class="toc-label">Regime Filter — Primary Quality Gate</span><span class="toc-tag">Key Finding</span></li>
+    <li><span class="toc-num">04</span><span class="toc-label">ADX — Trend Strength at Entry</span><span class="toc-tag">Factor Analysis</span></li>
+    <li><span class="toc-num">05</span><span class="toc-label">MACD Histogram at Entry</span><span class="toc-tag">Factor Analysis</span></li>
+    <li><span class="toc-num">06</span><span class="toc-label">Bars from OS/OB Touch to Entry</span><span class="toc-tag">Factor Analysis</span></li>
+    <li><span class="toc-num">07</span><span class="toc-label">RSI Reversal During Trade</span><span class="toc-tag">Loss Predictor</span></li>
+    <li><span class="toc-num">08</span><span class="toc-label">Short Trades — Regime Context</span><span class="toc-tag">Short Analysis</span></li>
+    <li><span class="toc-num">09</span><span class="toc-label">Pre-2020 vs 2020-Present</span><span class="toc-tag">Temporal Analysis</span></li>
+    <li><span class="toc-num">10</span><span class="toc-label">Sector Analysis</span><span class="toc-tag">Universe Breakdown</span></li>
+    <li><span class="toc-num">11</span><span class="toc-label">Strong Performers</span><span class="toc-tag">Watchlist Guidance</span></li>
+    <li><span class="toc-num">12</span><span class="toc-label">Confluence Framework Summary</span><span class="toc-tag">Recommendations</span></li>
+  </ul>
+</div>
+
+<div class="divider"></div>
+<section class="section" id="s01">
+  <div class="section-header"><span class="section-num">01</span><span class="section-title">Executive Summary</span></div>
+  <div class="section-body">
+    <p>This report presents a quantitative analysis of confluence factors for the SID Method — an Overbought/Oversold (OB/OS) bounce strategy using RSI extremes with MACD directional confirmation, targeting RSI-50 as its exit. The analysis covers 2,932 automated signals across a 99-ticker universe spanning 15+ years of daily data.</p>
+    <p>The <strong>overall long trade win rate of 61.3%</strong> (full history) with average profit factor of <strong>1.98</strong> demonstrates clear positive expectancy when regime alignment is applied. Post-2020, longs average <strong>55.5% WR</strong> — reflecting the higher-volatility environment of recent years.</p>
+    <p>The critical finding is the primacy of the <strong>Bearish/Bullish Regime Filter</strong>: restricting long entries to periods when SMA50 &gt; SMA200 is the most powerful single quality discriminator in the dataset. Trades taken against the regime represent <em>Very Low Odds</em> and are excluded from the filtered universe.</p>
+  </div>
+  <div class="stat-grid">
+    <div class="stat-card good"><div class="sk">Long WR — Full History</div><div class="sv">61.3%</div><div class="sd">89 tickers · regime filter ON</div></div>
+    <div class="stat-card good"><div class="sk">Long PF — Full History</div><div class="sv">1.98</div><div class="sd">Avg profit factor</div></div>
+    <div class="stat-card warn"><div class="sk">Long WR — Post-2020</div><div class="sv">55.5%</div><div class="sd">86 tickers · Jan 2020–Mar 2026</div></div>
+    <div class="stat-card bad"><div class="sk">Short WR — Post-2020</div><div class="sv">47.0%</div><div class="sd">Bear regime only</div></div>
+    <div class="stat-card"><div class="sk">Pre-2020 Long WR</div><div class="sv">64.7%</div><div class="sd">81 tickers both periods</div></div>
+    <div class="stat-card"><div class="sk">Universe</div><div class="sv">99</div><div class="sd">Tickers · 2010–2026</div></div>
+  </div>
+  <div class="callout bad">
+    <div class="callout-label bad">Critical Directional Imbalance</div>
+    Long (OS) trades carry positive expectancy at <strong>55.5% WR</strong> post-2020. Short (OB) trades average <strong>47.0% WR</strong> — a gap of <strong>8.5%</strong>. Without regime alignment and additional filtering, short trades are structurally weaker and require more supporting confluence. The gap narrows significantly in confirmed bear regime periods.
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<section class="section" id="s02">
+  <div class="section-header"><span class="section-num">02</span><span class="section-title">Baseline Performance</span><span class="section-tag">Long vs Short Split</span></div>
+  <div class="section-body"><p>Results across the full 99-ticker universe, split by direction and time period. All figures apply the Bearish/Bullish Regime Filter.</p></div>
+  <div class="tbl-wrap"><table>
+    <thead><tr><th>Direction</th><th class="r">Period</th><th class="r">Tickers</th><th class="r">Avg WR%</th><th class="r">Avg PF</th><th>Assessment</th></tr></thead>
+    <tbody>
+      <tr class="highlight"><td class="label">Long (OS)</td><td class="r">Full History</td><td class="r">89</td><td class="r val-pos">61.3%</td><td class="r val-pos">1.98</td><td><span class="badge badge-green">Primary Strategy</span></td></tr>
+      <tr class="highlight"><td class="label">Long (OS)</td><td class="r">Post-2020</td><td class="r">86</td><td class="r val-pos">55.5%</td><td class="r val-pos">2.42</td><td><span class="badge badge-green">Primary Strategy</span></td></tr>
+      <tr class="warn-row"><td class="label">Short (OB)</td><td class="r">Full History</td><td class="r">91</td><td class="r val-neu">48.8%</td><td class="r val-neu">1.98</td><td><span class="badge badge-amber">Bear Regime Only</span></td></tr>
+      <tr class="warn-row"><td class="label">Short (OB)</td><td class="r">Post-2020</td><td class="r">89</td><td class="r val-neg">47.0%</td><td class="r val-neg">1.43</td><td><span class="badge badge-amber">Higher Threshold Required</span></td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<div class="divider"></div>
+
+<section class="section" id="s03">
+  <div class="section-header"><span class="section-num">03</span><span class="section-title">Regime Filter</span><span class="section-tag">Primary Quality Gate</span></div>
+  <div class="section-body">
+    <p>The Bearish/Bullish Regime Filter is the primary and most powerful quality discriminator in the dataset. <strong>Longs are only taken when SMA50 &gt; SMA200</strong> (bullish regime), and <strong>shorts only when SMA50 &lt; SMA200</strong> (bearish regime). Trades against the prevailing regime are classified as <em>Very Low Odds</em> and excluded.</p>
+    <p>The SMA band framework provides further granularity for entries that pass the regime filter:</p>
+  </div>
+  <div class="tbl-wrap"><table>
+    <thead><tr><th>Band</th><th>Condition (Long)</th><th class="r">Avg WR%</th><th>Status</th></tr></thead>
+    <tbody>
+      <tr class="dimmed"><td>Very Low Odds</td><td>SMA50 &lt; SMA200 (bear regime)</td><td class="r val-neg">Excluded</td><td><span class="badge badge-red">Hard Filter — No Entries</span></td></tr>
+      <tr><td>Lower Odds</td><td>Price below SMA200, SMA50 &gt; SMA200</td><td class="r val-neu">58.2%</td><td><span class="badge badge-amber">Allowed — Lower Quality</span></td></tr>
+      <tr class="highlight"><td class="label">Trade Band</td><td>Price between SMA50 and SMA200</td><td class="r val-pos">65.6%</td><td><span class="badge badge-green">Preferred Quality</span></td></tr>
+      <tr class="dimmed"><td>HC (High Conviction)</td><td>Price above SMA50</td><td class="r val-dim">~0 entries</td><td><span class="badge badge-blue">Not Possible at OS Entry</span></td></tr>
+    </tbody>
+  </table></div>
+  <div class="callout">
+    <div class="callout-label good">Key Structural Finding</div>
+    An OS entry condition inherently means price has been falling — placing it below SMA50 by definition. The <strong>Trade Band</strong> (between SMA50 and SMA200) is therefore the highest achievable quality tier for long entries, producing <strong>65.6% WR</strong> vs <strong>58.2% WR</strong> in the Lower Odds band.
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<section class="section" id="s04">
+  <div class="section-header"><span class="section-num">04</span><span class="section-title">ADX — Trend Strength</span><span class="section-tag">Factor Analysis</span></div>
+  <div class="section-body"><p>ADX measures trend strength regardless of direction. The optimal range for SID entries is <strong>ADX 25–40</strong>. The uniquely weak band is <strong>20–25</strong> — the transition zone where the strategy performs worst across the full universe.</p></div>
+  <div class="tbl-wrap"><table>
+    <thead><tr><th>ADX Band</th><th class="r">Avg WR%</th><th>Interpretation</th><th>Rule</th></tr></thead>
+    <tbody>
+      <tr class="dimmed"><td>20–25</td><td class="r val-neg">68.5%</td><td>Transition zone — worst performing band</td><td><span class="badge badge-red">Avoid / Reduce Size</span></td></tr>
+      <tr class="highlight"><td class="label">25–30</td><td class="r val-pos">70.3%</td><td>Clear trend, manageable momentum</td><td><span class="badge badge-green">Preferred</span></td></tr>
+      <tr class="highlight"><td class="label">30–40</td><td class="r val-pos">61.7%</td><td>Strong trend — ideal for OB/OS bounce</td><td><span class="badge badge-green">Preferred</span></td></tr>
+      <tr><td>&gt;40</td><td class="r val-neu">65.0%</td><td>Very strong trend — higher stop risk</td><td><span class="badge badge-amber">Neutral / Monitor</span></td></tr>
+    </tbody>
+  </table></div>
+  <div class="callout warn">
+    <div class="callout-label warn">The 20–25 Transition Zone</div>
+    ADX 20–25 is the single worst-performing band. Trend strength is ambiguous — enough ADX to look like a trending market but insufficient to sustain the move required for a clean OB/OS bounce. <strong>Practical rule: prefer ADX 25–40. Treat ADX &lt;25 with caution.</strong>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<section class="section" id="s05">
+  <div class="section-header"><span class="section-num">05</span><span class="section-title">MACD Histogram at Entry</span><span class="section-tag">Factor Analysis</span></div>
+  <div class="section-body"><p>The MACD histogram (MACD Line minus Signal Line) at entry provides a quality signal. All long entries have a <strong>negative histogram</strong> by definition. The magnitude matters:</p></div>
+  <div class="tbl-wrap"><table>
+    <thead><tr><th>Histogram Band</th><th class="r">Avg WR%</th><th>Interpretation</th><th>Quality</th></tr></thead>
+    <tbody>
+      <tr><td>Very negative (&lt; −1.0)</td><td class="r val-neu">61.8%</td><td>Extreme MACD divergence from signal</td><td><span class="badge badge-amber">Weaker</span></td></tr>
+      <tr class="highlight"><td class="label">Moderately negative (−1.0 to −0.3) ★</td><td class="r val-pos">63.7%</td><td>Clear bearish MACD, not at extreme</td><td><span class="badge badge-green">Best Band</span></td></tr>
+      <tr><td>Lightly negative (−0.3 to 0)</td><td class="r val-neu">53.9%</td><td>MACD near signal line</td><td><span class="badge badge-amber">Marginal</span></td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<div class="divider"></div>
+
+<section class="section" id="s06">
+  <div class="section-header"><span class="section-num">06</span><span class="section-title">Bars from OS/OB Touch to Entry</span><span class="section-tag">Factor Analysis</span></div>
+  <div class="section-body"><p>The number of bars between RSI first entering the OS/OB zone and the actual entry signal impacts both win rate and stop loss distance.</p></div>
+  <div class="tbl-wrap"><table>
+    <thead><tr><th>Bars to Entry</th><th class="r">Avg WR%</th><th>SL Implication</th><th>Assessment</th></tr></thead>
+    <tbody>
+      <tr class="warn-row"><td>Fast: 0–1 bars</td><td class="r val-neu">55.7%</td><td>Tight SL — higher stop-out risk</td><td><span class="badge badge-amber">Higher Risk</span></td></tr>
+      <tr class="highlight"><td class="label">Mid: 2–4 bars ★ Optimal</td><td class="r val-pos">63.8%</td><td>Balanced — SL widens naturally</td><td><span class="badge badge-green">Preferred</span></td></tr>
+      <tr><td>Slow: 5+ bars</td><td class="r val-neu">61.6%</td><td>Wider SL but price far from OS</td><td><span class="badge badge-amber">Monitor</span></td></tr>
+    </tbody>
+  </table></div>
+  <div class="callout">
+    <div class="callout-label good">SL Distance is the Primary Stop Predictor</div>
+    Stop loss distance is a stronger predictor of hard stop hits than any other single factor. Trades with SL &lt;3% from entry have a stop hit rate exceeding 70%. Trades with SL &gt;8% have a stop hit rate below 40%. The 2–4 bar window provides the best balance between confirmation and natural SL room.
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<section class="section" id="s07">
+  <div class="section-header"><span class="section-num">07</span><span class="section-title">RSI Reversal During Trade</span><span class="section-tag">Loss Predictor</span></div>
+  <div class="section-body"><p>When RSI re-enters the OS zone during an active long trade — indicating the bounce has failed — this is the strongest exit signal identified in the dataset.</p></div>
+  <div class="tbl-wrap"><table>
+    <thead><tr><th>Condition</th><th class="r">Avg WR%</th><th class="r">WR Gap</th><th>Action</th></tr></thead>
+    <tbody>
+      <tr class="dimmed"><td>RSI re-enters OS zone during trade</td><td class="r val-neg">36.1%</td><td class="r val-neg">−34.6%</td><td><span class="badge badge-red">Exit Immediately</span></td></tr>
+      <tr class="highlight"><td class="label">No re-entry — clean bounce</td><td class="r val-pos">70.7%</td><td class="r val-pos">+34.6%</td><td><span class="badge badge-green">Hold to RSI-50 Exit</span></td></tr>
+    </tbody>
+  </table></div>
+  <div class="callout bad">
+    <div class="callout-label bad">Strongest Exit Signal in the Dataset</div>
+    A <strong>34.6% WR difference</strong> between trades with and without RSI re-entry makes this the most powerful exit signal identified. When RSI crosses back into OS territory during a long trade, the bounce has failed and the position should be exited. Using a minor 2-bar RSI wobble as an exit rule is not supported — it frequently exits trades that would have succeeded.
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<section class="section" id="s08">
+  <div class="section-header"><span class="section-num">08</span><span class="section-title">Short Trades</span><span class="section-tag">Regime Context</span></div>
+  <div class="section-body"><p>Short (OB) trades are structurally weaker than longs across the full universe. With the Bearish/Bullish Regime Filter applied, shorts are restricted to confirmed bear regime periods, which meaningfully improves their quality.</p></div>
+  <div class="tbl-wrap"><table>
+    <thead><tr><th>Regime</th><th>Condition</th><th class="r">Post-2020 WR%</th><th>Verdict</th></tr></thead>
+    <tbody>
+      <tr class="dimmed"><td>Bull Regime</td><td>SMA50 &gt; SMA200</td><td class="r val-neg">Excluded by filter</td><td><span class="badge badge-red">Correctly Excluded</span></td></tr>
+      <tr class="highlight"><td class="label">Bear Regime</td><td>SMA50 &lt; SMA200</td><td class="r val-pos">55.1%</td><td><span class="badge badge-green">Viable with Confluence</span></td></tr>
+    </tbody>
+  </table></div>
+  <div class="section-body" style="margin-top:16px;"><p><strong>Short performance by sector (post-2020, bear regime):</strong></p></div>
+  <div class="tbl-wrap"><table>
+    <thead><tr><th>Sector</th><th class="r">Tickers</th><th class="r">Avg Short WR%</th><th>Verdict</th></tr></thead>
+    <tbody><tr class="highlight"><td class="label">Real Estate</td><td class="r">4</td><td class="r val-pos">62.1%</td><td><span class="badge badge-green">Viable</span></td></tr>
+<tr class="highlight"><td class="label">Healthcare</td><td class="r">5</td><td class="r val-pos">60.1%</td><td><span class="badge badge-green">Viable</span></td></tr>
+<tr class="highlight"><td class="label">Communication</td><td class="r">2</td><td class="r val-pos">58.4%</td><td><span class="badge badge-green">Viable</span></td></tr>
+<tr class="warn-row"><td class="label">Consumer Cyclical</td><td class="r">16</td><td class="r val-neu">50.1%</td><td><span class="badge badge-amber">Marginal</span></td></tr>
+<tr class="warn-row"><td class="label">Financials</td><td class="r">7</td><td class="r val-neu">49.7%</td><td><span class="badge badge-amber">Marginal</span></td></tr>
+<tr class="warn-row"><td class="label">ETF</td><td class="r">19</td><td class="r val-neu">46.6%</td><td><span class="badge badge-amber">Marginal</span></td></tr>
+<tr class="dimmed"><td class="label">Consumer Defensive</td><td class="r">11</td><td class="r val-neg">44.2%</td><td><span class="badge badge-red">Avoid</span></td></tr>
+<tr class="dimmed"><td class="label">Utilities</td><td class="r">3</td><td class="r val-neg">43.4%</td><td><span class="badge badge-red">Avoid</span></td></tr>
+<tr class="dimmed"><td class="label">Materials</td><td class="r">2</td><td class="r val-neg">43.3%</td><td><span class="badge badge-red">Avoid</span></td></tr>
+<tr class="dimmed"><td class="label">Energy</td><td class="r">4</td><td class="r val-neg">42.5%</td><td><span class="badge badge-red">Avoid</span></td></tr>
+<tr class="dimmed"><td class="label">Industrials</td><td class="r">6</td><td class="r val-neg">39.7%</td><td><span class="badge badge-red">Avoid</span></td></tr>
+<tr class="dimmed"><td class="label">Technology</td><td class="r">9</td><td class="r val-neg">37.4%</td><td><span class="badge badge-red">Avoid</span></td></tr>
+<tr class="dimmed"><td class="label">Unknown</td><td class="r">1</td><td class="r val-neg">33.3%</td><td><span class="badge badge-red">Avoid</span></td></tr>
+</tbody>
+  </table></div>
+  <div class="callout warn">
+    <div class="callout-label warn">Short Trade Recommendation</div>
+    Short trades require more supporting confluence than longs. Apply the regime filter strictly (bear regime only), target viable sectors, use lower position sizing, and require ADX &gt;25 to confirm trend strength in the short direction. Avoid shorts on Technology, Consumer Defensive and broad ETFs outside of confirmed extended bear markets.
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<section class="section" id="s09">
+  <div class="section-header"><span class="section-num">09</span><span class="section-title">Pre-2020 vs 2020-Present</span><span class="section-tag">Temporal Analysis</span></div>
+  <div class="section-body"><p>The post-2020 environment presents different characteristics — COVID volatility, aggressive Fed tightening, powerful bull markets and sharp corrections have compressed the margin above break-even.</p></div>
+  <div class="tbl-wrap"><table>
+    <thead><tr><th>Period</th><th class="r">Tickers</th><th class="r">Avg Long WR%</th><th class="r">Improved</th><th class="r">Declined</th></tr></thead>
+    <tbody>
+      <tr class="highlight"><td class="label">Pre-2020</td><td class="r">81</td><td class="r val-pos">64.7%</td><td class="r">—</td><td class="r">—</td></tr>
+      <tr><td>Post-2020 (Jan 2020–Mar 2026)</td><td class="r">81</td><td class="r val-neu">56.3%</td><td class="r val-pos">29</td><td class="r val-neg">47</td></tr>
+    </tbody>
+  </table></div>
+  <div class="callout warn">
+    <div class="callout-label warn">Calibrate to the Current Environment</div>
+    The <strong>8.4% WR decline</strong> post-2020 is consistent across the universe. Full history figures (61.3% WR) provide the long-run expectation; post-2020 (55.5% WR) is more representative of current conditions. The strategy remains viable — expectancy is positive — but conservative position sizing is more important.
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<section class="section" id="s10">
+  <div class="section-header"><span class="section-num">10</span><span class="section-title">Sector Analysis</span><span class="section-tag">Universe Breakdown</span></div>
+  <div class="tbl-wrap"><table>
+    <thead><tr><th>Sector</th><th class="r">Tickers</th><th class="r">Post-2020 Long WR%</th><th class="r">Post-2020 Short WR%</th><th>Long Verdict</th></tr></thead>
+    <tbody><tr class="highlight"><td class="label">Unknown</td><td class="r">1</td><td class="r val-pos">83.3%</td><td class="r val-neg">33.3%</td><td><span class="badge badge-green">Favourable</span></td></tr>
+<tr class="highlight"><td class="label">Financials</td><td class="r">6</td><td class="r val-pos">71.1%</td><td class="r val-neu">49.7%</td><td><span class="badge badge-green">Favourable</span></td></tr>
+<tr class="highlight"><td class="label">Real Estate</td><td class="r">3</td><td class="r val-pos">65.8%</td><td class="r val-pos">62.1%</td><td><span class="badge badge-green">Favourable</span></td></tr>
+<tr class="highlight"><td class="label">Utilities</td><td class="r">3</td><td class="r val-pos">62.5%</td><td class="r val-neg">43.4%</td><td><span class="badge badge-green">Favourable</span></td></tr>
+<tr class="highlight"><td class="label">Consumer Defensive</td><td class="r">12</td><td class="r val-pos">62.3%</td><td class="r val-neg">44.2%</td><td><span class="badge badge-green">Favourable</span></td></tr>
+<tr class="highlight"><td class="label">ETF</td><td class="r">16</td><td class="r val-pos">60.0%</td><td class="r val-neu">46.6%</td><td><span class="badge badge-green">Favourable</span></td></tr>
+<tr class="warn-row"><td class="label">Healthcare</td><td class="r">5</td><td class="r val-neu">57.4%</td><td class="r val-pos">60.1%</td><td><span class="badge badge-amber">Neutral</span></td></tr>
+<tr class="warn-row"><td class="label">Industrials</td><td class="r">6</td><td class="r val-neu">52.9%</td><td class="r val-neg">39.7%</td><td><span class="badge badge-amber">Neutral</span></td></tr>
+<tr class="warn-row"><td class="label">Consumer Cyclical</td><td class="r">15</td><td class="r val-neu">52.8%</td><td class="r val-neu">50.1%</td><td><span class="badge badge-amber">Neutral</span></td></tr>
+<tr class=""><td class="label">Energy</td><td class="r">4</td><td class="r val-neg">44.2%</td><td class="r val-neg">42.5%</td><td><span class="badge badge-red">Avoid</span></td></tr>
+<tr class=""><td class="label">Technology</td><td class="r">11</td><td class="r val-neg">42.4%</td><td class="r val-neg">37.4%</td><td><span class="badge badge-red">Avoid</span></td></tr>
+<tr class=""><td class="label">Materials</td><td class="r">2</td><td class="r val-neg">35.0%</td><td class="r val-neg">43.3%</td><td><span class="badge badge-red">Avoid</span></td></tr>
+<tr class=""><td class="label">Communication</td><td class="r">2</td><td class="r val-neg">29.1%</td><td class="r val-pos">58.4%</td><td><span class="badge badge-red">Avoid</span></td></tr>
+</tbody>
+  </table></div>
+</section>
+
+<div class="divider"></div>
+
+<section class="section" id="s11">
+  <div class="section-header"><span class="section-num">11</span><span class="section-title">Strong Performers</span><span class="section-tag">Watchlist Guidance</span></div>
+  <div class="section-body"><p>Tickers with post-2020 long WR &ge; 58% and PF &ge; 1.2, sorted by WR. These represent the highest-quality long setups in the universe with regime filter applied.</p></div>
+  <div class="tbl-wrap"><table>
+    <thead><tr><th>Ticker</th><th>Sector</th><th class="r">TT</th><th class="r">WR%</th><th class="r">PF</th><th class="r">SL%</th><th class="r">Avg ADX</th><th class="r">Avg BTE</th></tr></thead>
+    <tbody><tr class="highlight"><td class="label">MCD</td><td>Restaurants</td><td class="r">9</td><td class="r val-pos">88.9%</td><td class="r val-pos">19.13</td><td class="r">11%</td><td class="r">33.0</td><td class="r">4.1</td></tr>
+<tr class="highlight"><td class="label">WFC</td><td>Banking</td><td class="r">9</td><td class="r val-pos">88.9%</td><td class="r val-pos">15.73</td><td class="r">11%</td><td class="r">30.5</td><td class="r">3.2</td></tr>
+<tr class="highlight"><td class="label">XLV</td><td>Healthcare</td><td class="r">9</td><td class="r val-pos">88.9%</td><td class="r val-pos">13.73</td><td class="r">11%</td><td class="r">32.2</td><td class="r">4.9</td></tr>
+<tr class="highlight"><td class="label">ARKK</td><td>Innovation</td><td class="r">8</td><td class="r val-pos">87.5%</td><td class="r val-pos">12.78</td><td class="r">12%</td><td class="r">31.8</td><td class="r">3.4</td></tr>
+<tr class="highlight"><td class="label">AAPL</td><td>Unknown</td><td class="r">6</td><td class="r val-pos">83.3%</td><td class="r val-pos">3.82</td><td class="r">17%</td><td class="r">32.4</td><td class="r">4.8</td></tr>
+<tr class="highlight"><td class="label">BAC</td><td>Banking</td><td class="r">6</td><td class="r val-pos">83.3%</td><td class="r val-pos">2.02</td><td class="r">17%</td><td class="r">31.1</td><td class="r">4.7</td></tr>
+<tr class="highlight"><td class="label">COST</td><td>Retail</td><td class="r">6</td><td class="r val-pos">83.3%</td><td class="r val-pos">5.55</td><td class="r">17%</td><td class="r">35.1</td><td class="r">4.3</td></tr>
+<tr class="highlight"><td class="label">GS</td><td>Investment Banking</td><td class="r">6</td><td class="r val-pos">83.3%</td><td class="r val-pos">1.95</td><td class="r">17%</td><td class="r">35.3</td><td class="r">2.8</td></tr>
+<tr class="highlight"><td class="label">TSLA</td><td>Auto/EV</td><td class="r">6</td><td class="r val-pos">83.3%</td><td class="r val-pos">4.86</td><td class="r">17%</td><td class="r">32.5</td><td class="r">4.2</td></tr>
+<tr class="highlight"><td class="label">AMZN</td><td>E-Commerce</td><td class="r">5</td><td class="r val-pos">80.0%</td><td class="r val-pos">4.07</td><td class="r">20%</td><td class="r">33.6</td><td class="r">4.4</td></tr>
+<tr class="highlight"><td class="label">HUM</td><td>Health Insurance</td><td class="r">5</td><td class="r val-pos">80.0%</td><td class="r val-pos">17.10</td><td class="r">20%</td><td class="r">33.9</td><td class="r">3.2</td></tr>
+<tr class="highlight"><td class="label">QQQ</td><td>Nasdaq 100</td><td class="r">5</td><td class="r val-pos">80.0%</td><td class="r val-pos">5.13</td><td class="r">20%</td><td class="r">32.7</td><td class="r">3.8</td></tr>
+<tr class="highlight"><td class="label">WMT</td><td>Retail</td><td class="r">5</td><td class="r val-pos">80.0%</td><td class="r val-pos">18.66</td><td class="r">0%</td><td class="r">35.6</td><td class="r">4.6</td></tr>
+<tr class="highlight"><td class="label">BA</td><td>Aerospace & Defense</td><td class="r">4</td><td class="r val-pos">75.0%</td><td class="r val-pos">3.59</td><td class="r">25%</td><td class="r">34.5</td><td class="r">4.2</td></tr>
+<tr class="highlight"><td class="label">PTH</td><td>Healthcare</td><td class="r">4</td><td class="r val-pos">75.0%</td><td class="r val-pos">2.44</td><td class="r">25%</td><td class="r">31.7</td><td class="r">3.5</td></tr>
+<tr class="highlight"><td class="label">JPM</td><td>Banking</td><td class="r">7</td><td class="r val-pos">71.4%</td><td class="r val-pos">1.23</td><td class="r">29%</td><td class="r">32.2</td><td class="r">4.9</td></tr>
+<tr class="highlight"><td class="label">AEP</td><td>Utilities</td><td class="r">6</td><td class="r val-pos">66.7%</td><td class="r val-pos">1.56</td><td class="r">33%</td><td class="r">34.8</td><td class="r">4.3</td></tr>
+<tr class="highlight"><td class="label">C</td><td>Banking</td><td class="r">6</td><td class="r val-pos">66.7%</td><td class="r val-pos">2.02</td><td class="r">33%</td><td class="r">31.7</td><td class="r">5.3</td></tr>
+<tr class="highlight"><td class="label">CMG</td><td>Restaurants</td><td class="r">6</td><td class="r val-pos">66.7%</td><td class="r val-pos">4.09</td><td class="r">17%</td><td class="r">34.3</td><td class="r">3.8</td></tr>
+<tr class="highlight"><td class="label">DG</td><td>Discount Retail</td><td class="r">12</td><td class="r val-pos">66.7%</td><td class="r val-pos">1.56</td><td class="r">33%</td><td class="r">31.7</td><td class="r">4.3</td></tr>
+</tbody>
+  </table></div>
+</section>
+
+<div class="divider"></div>
+
+<section class="section" id="s12">
+  <div class="section-header"><span class="section-num">12</span><span class="section-title">Confluence Framework Summary</span><span class="section-tag">Recommendations</span></div>
+  <div class="callout" style="margin-bottom:28px;">
+    <div class="callout-label good">Reframing SID: Trend Pullback Continuation</div>
+    The data supports characterising SID not as a generic OB/OS bounce strategy but as a <em>trend pullback continuation pattern</em>. The strategy works best when three conditions are simultaneously present:<br><br>
+    &nbsp;&nbsp;1. <strong>A clear underlying trend</strong> — confirmed by SMA regime alignment (SMA50 &gt; SMA200 for longs) and ADX &ge;25<br>
+    &nbsp;&nbsp;2. <strong>A temporary exhaustion move</strong> — the counter-move that pushed RSI into the OB/OS extreme<br>
+    &nbsp;&nbsp;3. <strong>A clean bounce immediately after entry</strong> — no RSI re-entry into the OS zone during the trade<br><br>
+    This reframing explains why <em>Very Low Odds</em> (SMA50 on wrong side of SMA200) underperforms — without regime alignment the RSI extreme is just chop, not exhaustion. It explains why ADX 20–25 is the worst band — insufficient trend to make the exhaustion meaningful. And it explains why clean bounces produce near-100% WR — the trend resumes without the counter-move extending.
+  </div>
+  <div class="tbl-wrap"><table>
+    <thead><tr><th>Factor</th><th>Type</th><th>Evidence</th><th>Action</th></tr></thead>
+    <tbody>
+      <tr class="highlight"><td class="label">Bearish/Bullish Regime (SMA50 vs SMA200)</td><td><span class="badge badge-green">Primary Gate</span></td><td>Universe-wide · primary quality discriminator</td><td><span class="badge badge-green">Required — Hard Filter</span></td></tr>
+      <tr class="highlight"><td class="label">ADX 25–40</td><td><span class="badge badge-green">Secondary Filter</span></td><td>Best performing ADX band across universe</td><td><span class="badge badge-green">Strongly Recommended</span></td></tr>
+      <tr class="highlight"><td class="label">Weekly RSI direction aligned</td><td><span class="badge badge-blue">Mandatory Check</span></td><td>Long = weekly RSI rising · Short = weekly RSI falling</td><td><span class="badge badge-blue">Visual Pre-Entry Gate</span></td></tr>
+      <tr class="subhighlight"><td class="label">MACD Histogram moderately negative</td><td><span class="badge badge-blue">Signal Quality</span></td><td>63.7% WR in optimal band</td><td><span class="badge badge-blue">Quality Upgrade</span></td></tr>
+      <tr class="subhighlight"><td class="label">Entry 2–4 bars after OS/OB touch</td><td><span class="badge badge-blue">Timing</span></td><td>63.8% WR · natural SL widening</td><td><span class="badge badge-blue">Preferred Entry Timing</span></td></tr>
+      <tr class="subhighlight"><td class="label">SL distance &gt;4% from entry</td><td><span class="badge badge-blue">Risk Check</span></td><td>SL &lt;3% = 70%+ stop hit rate</td><td><span class="badge badge-blue">Flag Tight SL Setups</span></td></tr>
+      <tr class="subhighlight"><td class="label">Price pattern (H&amp;S, Double Bottom/Top)</td><td><span class="badge badge-blue">Visual Confluence</span></td><td>H&amp;S produces highest observed WR</td><td><span class="badge badge-blue">Upgrade Where Present</span></td></tr>
+      <tr class="subhighlight"><td class="label">MACD cross before entry</td><td><span class="badge badge-blue">Visual Confluence</span></td><td>Pre-entry directional confirmation</td><td><span class="badge badge-blue">Bonus Confirmation</span></td></tr>
+      <tr class="dimmed"><td>Short trade (OB)</td><td><span class="badge badge-amber">Caution</span></td><td>47.0% post-2020 WR · bear regime only</td><td><span class="badge badge-amber">Higher Threshold Required</span></td></tr>
+      <tr class="dimmed"><td>High-ATR instruments (&gt;3% daily vol)</td><td><span class="badge badge-amber">Risk Flag</span></td><td>RSI-50 exit arrives much further from entry on failures</td><td><span class="badge badge-amber">Reduce Size</span></td></tr>
+      <tr class="dimmed"><td>ADX &lt;25</td><td><span class="badge badge-red">Caution</span></td><td>Choppy regime — unreliable OB/OS extremes</td><td><span class="badge badge-red">Reduce Size or Skip</span></td></tr>
+      <tr class="dimmed"><td>RSI re-enters OS/OB zone during trade</td><td><span class="badge badge-red">Exit Signal</span></td><td>34.6% WR gap — strongest exit signal</td><td><span class="badge badge-red">Exit Immediately</span></td></tr>
+    </tbody>
+  </table></div>
+  <div class="callout info" style="font-family:var(--mono);font-size:12px;line-height:2;margin-top:24px;">
+    <div class="callout-label info">Live Entry Checklist</div>
+    1. SID signal fires (RSI extreme + MACD direction) — <em>mandatory</em><br>
+    2. SMA50 &gt; SMA200 for longs / SMA50 &lt; SMA200 for shorts — <em>mandatory gate</em><br>
+    3. Weekly RSI pointing in trade direction — <em>visual mandatory check</em><br>
+    4. Price in Trade Band (SMA50–SMA200) → preferred · Lower Odds → acceptable with confluence<br>
+    5. ADX 25–40 → preferred · ADX &lt;25 → reduce size or skip · ADX &gt;40 → monitor closely<br>
+    6. MACD histogram moderately negative (−1.0 to −0.3) → quality upgrade<br>
+    7. Entry 2–4 bars after OS/OB touch → preferred · confirm SL distance &ge;4%<br>
+    8. Price pattern present (H&amp;S / Double Top / Double Bottom) → further upgrade<br>
+    9. MACD has crossed signal line before entry → bonus confirmation<br>
+    10. Short trade → apply higher threshold · restrict to bear regime only · reduce size<br>
+    11. High-ATR instrument (daily vol &gt;3%) → reduce size · consider hard price stop<br><br>
+    <em>Steps 1–3 are mandatory gates. Steps 4–11 determine position size and confidence level.</em>
+  </div>
+  <p class="footnote" style="margin-top:32px;">Data: TradingView CSV exports (SID Strategy), BTW Universe 99 tickers, 2010–March 2026. Regime filter applied: longs restricted to SMA50 &gt; SMA200, shorts to SMA50 &lt; SMA200. Backtested results — no guarantee of future performance. March 2026 · Confidential.</p>
+</section>
+
+</div>
+</body>
+</html>

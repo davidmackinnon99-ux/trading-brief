@@ -59,6 +59,31 @@ verdict in `sid-macd-analysis/results/FINDINGS_out_of_sample.md`. Criteria autho
 
 ---
 
+## 1c. Findings update — 15 September 2026
+
+**BTW definition correction:** BTW is the name of the SID master ticker universe (the
+99-ticker backtested list) — confirmed directly from `SID_Analysis_Synopsis_v2.pdf` /
+`SID_Confluence_Report_v4.html`, both titled "BTW Universe Analysis." It is NOT "Buy The
+Weakness" — that label appears in the LORP Continuity Google Doc's Section 8 architecture
+notes (11 May 2026) and is stale/wrong; flagged for correction there, not yet fixed (David's
+call on timing).
+
+**Three source documents filed into the repo** (previously only ever sent as chat
+attachments, with no permanent home — filed today after that caused a real trust problem):
+see `analysis/sid-btw-universe/README.md` for the full index and headline findings. Files:
+`Backtesting_Sheet_300_SID.xlsx` (David's hand-logged 300-trade manual journal — the most
+granular/highest-trust SID dataset in this repo), `SID_Analysis_Synopsis_v2.pdf` and
+`SID_Confluence_Report_v4.html` (99-ticker / 2,932-signal automated BTW-universe backtest,
+March 2026).
+
+Headline findings from the automated backtest are consistent with what's already validated
+above (ADX 20–25 danger zone, MACD0 as supplementary/non-gating quality check, regime filter
+as primary gate). **Not yet done:** a line-by-line reconciliation of the 300-trade manual
+journal against `data/trades/trades_all.csv` and against the automated BTW backtest — open
+item, added to Section 5 below.
+
+---
+
 - **MACD0 display = RAW (MACD−Signal)** — as on the chart, LORP brief, and STRATEGIES.md. The
   (MACD−Signal)/price×100 normalisation is used ONLY inside the cross-ticker bucket analysis and the
   short-gate flags, never for display. SID brief MACD0 column corrected to raw (had shown %).
@@ -119,6 +144,7 @@ histogram keeps converging post-entry.
 ---
 
 ## 5. Open items (need input — not resolvable from files)
+- [ ] Reconcile the 300-trade manual journal (`analysis/sid-btw-universe/Backtesting_Sheet_300_SID.xlsx`) against `data/trades/trades_all.csv` and the automated BTW-universe backtest — three SID datasets now exist and haven't been cross-checked against each other.
 - [ ] Strategy changes v10.5.4.12 → .15 detail (what changed since 29 Mar).
 - [ ] BTW universe re-export status (v10.5.4.10+, Ticker Regime ON).
 - [ ] Recent live-trade findings (39-trade journal is in `SID DATA/`; losers catalogued in
