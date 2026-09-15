@@ -11,7 +11,7 @@ If it isn't committed, it doesn't persist. Commit + push DAILY (see autocommit s
 data + its OUTPUT together in one `analysis/<name>/` folder. A picture isn't verifiable; a
 script plus its data is.
 
-**Last updated:** 3 July 2026 · **Maintainer:** update on every commit.
+**Last updated:** 15 September 2026 · **Maintainer:** update on every commit.
 
 ---
 
@@ -60,10 +60,14 @@ script plus its data is.
 | Morning brief | `scripts/morning-brief.sh` | Brief entrypoint |
 | Brief analyzer | `scripts/analyse-brief.cjs` | Brief post-processing / annotation |
 | Watchlist sync | `scripts/sync-watchlist.cjs` | Full watchlist ingestion |
+| Watchlist push | `scripts/push-watchlist.cjs` | Pushes brief output back to TradingView watchlist sections (resolves bare ticker -> exchange-qualified symbol from the live list) |
 | LORP open-trades report | `scripts/lorp_open_trades_report.py` | Reads local `open_trades.csv` (LORP rows), fetches bars, reports |
 | Autocommit | `autocommit-brief.sh` + `com.davidmackinnon.brief-backup.plist` | Daily commit/backup — extend to cover data/ + analysis/ |
 
 ---
+
+
+> **15 Sep 2026 cleanup:** removed `check-aroon.cjs`, `check-tickers.cjs`, `lorp_validate.py`, `sbt_to_tv.py` (superseded — its merge logic now lives inline in the SBT Nightly Merge macOS app), `subscribe-prompt.cjs`, and `launch_tv_debug.vbs` — none were listed here and none were referenced anywhere else in the repo (confirmed via full-repo grep before removal). Recoverable from git history if ever needed. `scripts/shell-aliases.sh` was checked too and is NOT stranded — it's sourced from `~/.zshrc`.
 
 ## How to add an artifact (checklist)
 1. Put the file in the right folder (`analysis/<name>/`, `data/trades/`, or root doc).
