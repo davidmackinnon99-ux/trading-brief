@@ -180,47 +180,136 @@ function bareSym(sym) { return sym.includes(':') ? sym.split(':')[1] : sym; }
 //      scan) - today's % change for SPY + the 11 SPDR sector ETFs over the same
 //      lookback window, via the same tv symbol/ohlcv mechanism used everywhere else.
 //      Missing/partial file -> tag omitted, brief still runs.
-const SECTOR_ETF_MAP = {
-  'communication services': 'XLC',
-  'energy': 'XLE',
-  'technology': 'XLK',
-  'information technology': 'XLK',
-  'financials': 'XLF',
-  'financial services': 'XLF',
-  'healthcare': 'XLV',
-  'health care': 'XLV',
-  'consumer discretionary': 'XLY',
-  'consumer cyclical': 'XLY',
-  'consumer staples': 'XLP',
-  'consumer defensive': 'XLP',
-  'industrials': 'XLI',
-  'materials': 'XLB',
-  'basic materials': 'XLB',
-  'utilities': 'XLU',
-  'real estate': 'XLRE',
-};
 const normalizeSectorName = s => (s || '').toLowerCase().trim().replace(/\s+/g, ' ');
-
 function loadJsonSafe(p) {
   try { return JSON.parse(fs.readFileSync(p, 'utf8')); } catch (_) { return null; }
 }
-const sectorMapRaw = loadJsonSafe(path.join(__dirname, '..', 'sector-map.json')) || {};
-const sectorMap = {};
-for (const [sym, info] of Object.entries(sectorMapRaw)) {
-  if (sym.startsWith('_')) continue;
-  sectorMap[sym] = info;
+
+// ── Sector/Industry support tagging — REBUILT 15 Sep 2026 ─────────────────
+// Was a hand-maintained ticker->sector JSON map added 13 Sep 2026; David flagged
+// that this can never keep up with 5000+ tickers. Replaced with an auto-populated
+// cache: sector-map.json now holds whatever TradingView's public scanner API
+// (scanner.tradingview.com/america/scan — no login/auth, same endpoint the free
+// web screener uses) has already told us, and any ticker missing from it is
+// fetched live (one batched request for the whole rules.json watchlist) and
+// written back to the cache. Nothing to hand-edit; safe to delete the cache file
+// entirely, it just refills on the next run. Network failure (offline, TV
+// endpoint down/rate-limited) never crashes the brief — affected tickers simply
+// show 'n/a', same as a cache miss always has.
+//
+// TradingView's own "sector" field uses its own ~20-bucket taxonomy (e.g.
+// "Technology Services", "Producer Manufacturing"), not the 11 GICS/SPDR sectors
+// the ETF-rotation scan (sectors.json) is keyed on. TV_SECTOR_TO_ETF below is the
+// crosswalk between the two. It's a standard, documented mapping (not a
+// per-ticker guess) — a few TV buckets genuinely straddle more than one GICS
+// sector in reality (Retail Trade, {Commercial,Distribution,Industrial} Services)
+// and are mapped to their single most common case, so treat Supported/Unsupported
+// tags for tickers in those buckets as slightly less precise than the rest.
+const TV_SECTOR_TO_ETF = {
+  'commercial services': 'XLI',
+  'communications': 'XLC',
+  'consumer durables': 'XLY',
+  'consumer non-durables': 'XLP',
+  'consumer services': 'XLY',
+  'distribution services': 'XLI',
+  'electronic technology': 'XLK',
+  'energy minerals': 'XLE',
+  'finance': 'XLF',
+  'health services': 'XLV',
+  'health technology': 'XLV',
+  'industrial services': 'XLI',
+  'non-energy minerals': 'XLB',
+  'process industries': 'XLB',
+  'producer manufacturing': 'XLI',
+  'retail trade': 'XLY',
+  'technology services': 'XLK',
+  'transportation': 'XLI',
+  'utilities': 'XLU',
+  'real estate': 'XLRE',
+  // 'government' and 'miscellaneous' intentionally left unmapped — no sane ETF
+  // equivalent; those tickers just show 'n/a'.
+};
+
+const SECTOR_MAP_PATH = path.join(__dirname, '..', 'sector-map.json');
+const RULES_PATH       = path.join(__dirname, '..', 'rules.json');
+
+function loadSectorCache() {
+  const raw = loadJsonSafe(SECTOR_MAP_PATH) || {};
+  const out = {};
+  for (const [sym, info] of Object.entries(raw)) {
+    if (sym.startsWith('_')) continue;
+    out[sym] = info;
+  }
+  return out;
 }
+
+function saveSectorCache(map) {
+  try {
+    const withComment = {
+      _comment: "AUTO-POPULATED CACHE — do not hand-edit. ticker -> {sector, industry, etf} " +
+        "fetched from TradingView's public scanner API (scanner.tradingview.com/america/scan). " +
+        "Any ticker missing here is fetched automatically on the next brief run. Safe to delete " +
+        "this whole file; it rebuilds itself.",
+      ...map,
+    };
+    fs.writeFileSync(SECTOR_MAP_PATH, JSON.stringify(withComment, null, 2), 'utf8');
+  } catch (e) {
+    process.stderr.write(`[sector] cache save failed: ${e.message}\n`);
+  }
+}
+
+// Fetch sector/industry for whatever tickers aren't already cached, in ONE
+// batched request. Best-effort only — any failure leaves those tickers as 'n/a'
+// and never throws.
+function fetchMissingSectors(tickers, cache) {
+  const missing = [...new Set(tickers.map(bareSym))].filter(t => !cache[t]);
+  if (!missing.length) return cache;
+  try {
+    // "filter: name in_range" (NOT "symbols.tickers") -- this whole pipeline only
+    // ever carries BARE tickers (rules.json has no exchange prefix anywhere), and
+    // the tickers-list form requires EXCHANGE:TICKER, silently returning zero
+    // matches for bare input. The name filter matches on ticker text directly and
+    // resolves the exchange for us as a side effect (unused here, but free).
+    const body = JSON.stringify({
+      filter: [{ left: 'name', operation: 'in_range', right: missing }],
+      columns: ['name', 'sector', 'industry'],
+    });
+    const res = require('child_process').execFileSync('curl', [
+      '-s', '--max-time', '20',
+      '-X', 'POST', 'https://scanner.tradingview.com/america/scan',
+      '-H', 'Content-Type: application/json',
+      '-d', body,
+    ], { encoding: 'utf8' });
+    const parsed = JSON.parse(res);
+    let found = 0;
+    for (const row of (parsed.data || [])) {
+      const [ticker, sector, industry] = row.d || [];
+      if (!ticker) continue;
+      const etf = TV_SECTOR_TO_ETF[normalizeSectorName(sector)] || null;
+      cache[ticker] = { sector: sector || null, industry: industry || null, etf, fetched: localDateStr() };
+      found++;
+    }
+    process.stderr.write(`[sector] fetched ${found}/${missing.length} new ticker(s) from TradingView scanner\n`);
+    saveSectorCache(cache);
+  } catch (e) {
+    process.stderr.write(`[sector] live fetch failed (${e.message}) — ${missing.length} ticker(s) will show 'n/a' this run\n`);
+  }
+  return cache;
+}
+
+// rules.json's watchlist is BARE tickers (no exchange prefix) -- no good for the
+// scanner API, which needs EXCHANGE:TICKER. Just load the cache here; the actual
+// fetch happens below once `brief`/`sidBrief` are loaded and we have real
+// fully-qualified symbols from the scan results themselves.
+let sectorMap = loadSectorCache();
 
 // SECTOR_REL_THRESHOLD: how far a sector ETF must diverge from SPY (percentage
 // points, over the scan's lookback window) before it counts as actually rotating
 // rather than just noise. Starting value -- tune once this has run for a while.
 const SECTOR_REL_THRESHOLD = 0.3;
-
 let sectorEtfData = null; // populated below once sectorsBriefFile is resolved
-function sectorRelPct(sectorName) {
-  if (!sectorEtfData) return null;
-  const etf = SECTOR_ETF_MAP[normalizeSectorName(sectorName)];
-  if (!etf) return null;
+function sectorRelPct(etf) {
+  if (!sectorEtfData || !etf) return null;
   const etfPct = sectorEtfData.etfs ? sectorEtfData.etfs[etf] : null;
   const spyPct = sectorEtfData.spy_change_pct;
   if (etfPct == null || spyPct == null) return null;
@@ -229,8 +318,8 @@ function sectorRelPct(sectorName) {
 function sectorSupportTag(bareSymbol, direction) {
   if (!direction) return null;
   const info = sectorMap[bareSymbol];
-  if (!info || !info.sector) return null;
-  const rel = sectorRelPct(info.sector);
+  if (!info || !info.etf) return null;
+  const rel = sectorRelPct(info.etf);
   if (rel == null) return null;
   if (direction === 'long')  return rel >  SECTOR_REL_THRESHOLD ? 'Supported' : rel < -SECTOR_REL_THRESHOLD ? 'Unsupported' : 'Neutral';
   if (direction === 'short') return rel < -SECTOR_REL_THRESHOLD ? 'Supported' : rel >  SECTOR_REL_THRESHOLD ? 'Unsupported' : 'Neutral';
@@ -238,7 +327,7 @@ function sectorSupportTag(bareSymbol, direction) {
 }
 function sectorTagDisplay(bareSymbol, direction) {
   const tag = sectorSupportTag(bareSymbol, direction);
-  return tag === 'Supported' ? '\uD83D\uDFE2 Supported' : tag === 'Unsupported' ? '\uD83D\uDD34 Unsupported' : tag === 'Neutral' ? '\u26AA Neutral' : 'n/a';
+  return tag === 'Supported' ? '🟢 Supported' : tag === 'Unsupported' ? '🔴 Unsupported' : tag === 'Neutral' ? '⚪ Neutral' : 'n/a';
 }
 
 // ── Flags ────────────────────────────────────────────────────────
@@ -373,6 +462,16 @@ if (sidBriefFile && fs.existsSync(sidBriefFile)) {
   } catch(e) {
     process.stderr.write(`[warn] Could not load SID brief: ${e.message}\n`);
   }
+}
+
+// Populate the sector cache for today's actual universe -- the fully-qualified
+// EXCHANGE:TICKER symbols living in the scan results themselves (rules.json's
+// watchlist has no exchange prefix, so it can't be used for this lookup).
+{
+  const todaysSymbols = [];
+  for (const s of (brief.symbols_scanned || [])) if (s && s.symbol) todaysSymbols.push(s.symbol);
+  for (const s of ((sidBrief && sidBrief.symbols_scanned) || [])) if (s && s.symbol) todaysSymbols.push(s.symbol);
+  if (todaysSymbols.length) sectorMap = fetchMissingSectors(todaysSymbols, sectorMap);
 }
 
 // SPY Regime Gate removed 28 Aug 2026 (David) — "still not correct, reading the same

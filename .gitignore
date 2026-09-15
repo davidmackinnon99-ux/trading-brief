@@ -21,3 +21,9 @@ briefs/
 
 # Install-time symlink created by the one-shot setup
 AGENTS.md
+
+# Auto-populated sector cache (rebuilds itself from TradingView's scanner API)
+sector-map.json
+
+# One-off safety backups from manual patches
+scripts/*.bak-*
