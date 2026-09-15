@@ -64,9 +64,10 @@ verdict in `sid-macd-analysis/results/FINDINGS_out_of_sample.md`. Criteria autho
 **BTW definition correction:** BTW is the name of the SID master ticker universe (the
 99-ticker backtested list) — confirmed directly from `SID_Analysis_Synopsis_v2.pdf` /
 `SID_Confluence_Report_v4.html`, both titled "BTW Universe Analysis." It is NOT "Buy The
-Weakness" — that label appears in the LORP Continuity Google Doc's Section 8 architecture
-notes (11 May 2026) and is stale/wrong; flagged for correction there, not yet fixed (David's
-call on timing).
+Weakness" — that label appears in the LORP Continuity doc's Section 8 architecture notes and was stale/wrong there.
+Fixed 15 September 2026 as part of migrating that doc into the repo (see below) — LORP
+Continuity now lives at LORP_Project_Continuity.md, same convention as this doc; the old
+Google Doc copy is archived with a banner pointing here.
 
 **Three source documents filed into the repo** (previously only ever sent as chat
 attachments, with no permanent home — filed today after that caused a real trust problem):
