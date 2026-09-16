@@ -11,7 +11,7 @@ If it isn't committed, it doesn't persist. Commit + push DAILY (see autocommit s
 data + its OUTPUT together in one `analysis/<name>/` folder. A picture isn't verifiable; a
 script plus its data is.
 
-**Last updated:** 15 September 2026 · **Maintainer:** update on every commit.
+**Last updated:** 16 September 2026 · **Maintainer:** update on every commit.
 
 ---
 
@@ -63,6 +63,7 @@ script plus its data is.
 | Watchlist push | `scripts/push-watchlist.cjs` | Pushes brief output back to TradingView watchlist sections (resolves bare ticker -> exchange-qualified symbol from the live list) |
 | LORP open-trades report | `scripts/lorp_open_trades_report.py` | Reads local `open_trades.csv` (LORP rows), fetches bars, reports |
 | Autocommit | `autocommit-brief.sh` + `com.davidmackinnon.brief-backup.plist` | Daily commit/backup — extend to cover data/ + analysis/ |
+| SBT Nightly Merge | `scripts/sbt_nightly_merge_run.sh` | Merges SBT scan CSVs + tvremix pull CSVs from `~/Downloads/SBT_Latest` (bare `~/Downloads` fallback) into one deduped ticker list at `~/Downloads/SBT_Merged_<date>.txt`; this file mirrors the deployed macOS app at `/Applications/SBT Nightly Merge.app/Contents/MacOS/run.sh` (not run from this repo — copy back here after any app-side edit) | Deployed app (Platypus-wrapped shell+Python); fixed 16 Sep 2026 so a same-day re-run accumulates onto the existing merged output instead of overwriting it (a same-day SBT-then-tvremix double-run had clobbered the SBT half of the result) |
 
 ---
 
