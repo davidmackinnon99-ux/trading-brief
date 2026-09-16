@@ -1464,6 +1464,12 @@ function normalizeSrc(r) {
   // no longer actually trigger.
   if (sec.includes('SID')) return 'SID';
   if (sec.includes('BTW')) return 'BTW';
+  // Claude (16 Sep 2026): "TV REMIX" (David's tvremix.xyz dashboard picks, added to the
+  // watchlist ~15 Sep) fell through to the generic fallback below, which takes the section
+  // name's first word -- "TV REMIX".split(' ')[0] = "TV". That's why tickers from this
+  // section were showing Src "TV" instead of a watchlist-section tag: it's not a new data
+  // source, it's this section going unrecognised. Explicit case, same style as SID/LORP/BTW.
+  if (sec.includes('TV REMIX')) return 'TVX';
   return sec ? sec.split(' ')[0] : 'OTHER';
 }
 
@@ -1696,7 +1702,19 @@ if (!VERBOSE) {
     // "DI" column format) — previously only the raw ADX number was shown, DI+/DI- were used
     // internally for the 🟢/🔴 ADX marker but never surfaced as their own data.
     const diStr = (r.diPlus != null && r.diMinus != null) ? `${r.diPlus.toFixed(0)}/${r.diMinus.toFixed(0)}` : '—';
-    const lorpDirection = r.backtestStream > 0 ? 'long' : r.backtestStream < 0 ? 'short' : null;
+    // Claude (16 Sep 2026): backtestStream's SIGN does not track bullish/bearish
+    // consistently across all native codes -- Long/Short (+-1) and First Pullback (+-3)
+    // do follow sign (positive = Long/Upward), but Standard/Strong MR is INVERTED: +4/+5
+    // = 'Downward MR' (bearish) and -4/-5 = 'Upward MR' (bullish). The old sign-only check
+    // tagged every MR row backwards, so the Sector Supported/Unsupported column was
+    // computed against the wrong direction for the entire LORP Screener - Pullback table
+    // (e.g. KR/GRDN showed Unsupported when Supported was correct, and vice versa for
+    // MLTX/GE). Map from the actual code instead of its sign.
+    const LORP_BULLISH_CODES = new Set([1, 3, -4, -5]);   // LORP Long, Upward First Pullback, Upward MR
+    const LORP_BEARISH_CODES = new Set([-1, -3, 4, 5]);   // LORP Short, Downward First Pullback, Downward MR
+    const lorpDirection = LORP_BULLISH_CODES.has(r.backtestStream) ? 'long'
+                        : LORP_BEARISH_CODES.has(r.backtestStream) ? 'short'
+                        : null;
     const sectorStr = sectorTagDisplay(bareSym(r.sym), lorpDirection);
     return [r.sym, sigStr, `$${fmt(r.price)}`, entryStr, macd0Str, distStr, adxStr, diStr, normalizeSrc(r), sectorStr];
   }
