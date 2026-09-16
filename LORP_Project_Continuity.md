@@ -87,6 +87,29 @@ Unsupported by comparing the ticker's own sector against live SPDR
 sector-ETF-vs-SPY rotation, direction-aware against the LORP Long/Short
 signal.
 
+FIX — Sector support tag inverted on MR rows; TV REMIX source unlabelled
+(16 Sep 2026): David flagged the Sector column on the 16 Sep brief as
+wrong, and asked why some tickers showed Src "TV". Two bugs in
+analyse-brief.cjs, both fixed and committed:
+(1) The direction fed into the sector-support check (sectorTagDisplay)
+was read off backtestStream's raw sign, but the native code's sign only
+tracks Long/Short (+-1) and First Pullback (+-3) — Standard/Strong MR is
+inverted (+4/+5 = "Downward MR" = bearish, -4/-5 = "Upward MR" = bullish).
+Every row in the LORP Screener - Pullback table (all the Standard/Strong
+Upward/Downward MR rows) was tagged against the opposite direction —
+e.g. KR and GRDN showed Unsupported when Supported was correct, GE and
+MLTX the reverse. Fixed by mapping from the actual backtestStream code
+instead of its sign. (2) The new "TV REMIX" watchlist section (David's
+tvremix.xyz dashboard picks, added to the watchlist ~15 Sep — see the
+morning-brief-pipeline note on TV Remix) had no explicit case in
+normalizeSrc(), so it fell through to the generic "first word of the
+section name" fallback — "TV REMIX" -> "TV". Not a new data source, just
+this section going unrecognised; given an explicit "TVX" label instead.
+Also fixed autocommit-brief.sh to push whenever local main is ahead of
+personal/main, not only right after this script's own commit, so a fix
+committed directly to the repo (as these were) doesn't sit unpushed until
+something else changes.
+
 REPO HOUSEKEEPING (13 Sep 2026): the working repo copy on David's Mac had
 forked from its GitHub backup — 3 commits existed on GitHub (5 Aug + 11
 Sep 2026) never pulled into this working copy, and one of them (11 Sep)
