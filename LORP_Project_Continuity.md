@@ -36,7 +36,7 @@ zero) could have cut ~40% of losses. MACD0 is now treated as the prime
 indicator for LORP, same as for SID.
 
 CURRENT TOOLING:
-• LORP_Backtest_Adapter_v2.13.pine (strategies/ in ~/Indicators, committed
+• LORP_Backtest_Adapter_v2.13.pine (strategies/ in ~/Trading Indicators, committed
   2 Aug 2026): adds Wait-to-Enter (arm on signal, enter on a 2/2 higher-low
   turn = REV tag, or a close reclaiming the signal-bar high = TREND tag;
   15-bar timeout with no trade if neither happens), MACD0-cross exit,
