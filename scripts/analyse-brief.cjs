@@ -330,6 +330,20 @@ function sectorTagDisplay(bareSymbol, direction) {
   return tag === 'Supported' ? '🟢 Supported' : tag === 'Unsupported' ? '🔴 Unsupported' : tag === 'Neutral' ? '⚪ Neutral' : 'n/a';
 }
 
+// David (17 Sep 2026): ~30% of a typical brief's tickers (15/51 on 16 Sep, 13/40 on
+// 17 Sep) were closed-end funds/trusts/ETFs, not real operating-company equities --
+// TradingView's scanner tags these sector 'Miscellaneous' (which is exactly why they
+// showed Sector 'n/a': no SPDR ETF maps to 'Miscellaneous', see TV_SECTOR_TO_ETF above).
+// LORP/SID aren't built to trade funds (no earnings cycle, index-tracking price action),
+// so exclude them at the candidate-list level rather than just at sector-tag display --
+// covers every downstream table (Screener/Watch List/Fired-entry/Long/Short) from one
+// place. Cache miss (ticker not yet fetched) defaults to NOT excluded -- same
+// fail-open behaviour as the existing 'n/a' sector-tag fallback.
+function isFundOrTrust(sym) {
+  const info = sectorMap[bareSym(sym)];
+  return !!(info && info.sector === 'Miscellaneous');
+}
+
 // ── Flags ────────────────────────────────────────────────────────
 // --debug : dump all raw study names + value keys for first symbol, then exit
 // --keys  : alias for --debug
@@ -1528,7 +1542,10 @@ if (!VERBOSE) {
 
   // ── LORP ──
   console.log('---\n');
-  const lorpAll = results.filter(r => !r.error && r.strategy === 'LORP');
+  const lorpAll = results.filter(r => !r.error && r.strategy === 'LORP').filter(r => {
+  if (isFundOrTrust(r.sym)) { process.stderr.write(`[LORP rejected] ${r.sym}: fund/trust (sector=Miscellaneous), not a real equity for LORP\n`); return false; }
+  return true;
+});
 
   // Split by source section — deduplicate LORP BRIEF against LORP SCREENER
   const lorpScreener = lorpAll.filter(r => lorpScreenerSet.has(r.sym));
@@ -2005,7 +2022,10 @@ if (!VERBOSE) {
 
   // ── SID ──
   console.log('---\n');
-  const sidPass = sidResults.filter(r => !r.error && (r.isLongPass || r.isShortPass));
+  const sidPass = sidResults.filter(r => !r.error && (r.isLongPass || r.isShortPass)).filter(r => {
+  if (isFundOrTrust(r.sym)) { process.stderr.write(`[SID rejected] ${r.sym}: fund/trust (sector=Miscellaneous), not a real equity for SID\n`); return false; }
+  return true;
+});
   const sidLongs  = sidPass.filter(r => r.isLongPass);
   const sidShorts = sidPass.filter(r => r.isShortPass);
   // Populate cross-strategy SID membership sets (used by alsoTag)

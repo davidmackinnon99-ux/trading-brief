@@ -110,6 +110,24 @@ personal/main, not only right after this script's own commit, so a fix
 committed directly to the repo (as these were) doesn't sit unpushed until
 something else changes.
 
+FIX — LORP/SID candidate lists were ~30% funds/trusts, not equities (17 Sep
+2026): David flagged the Sector column as "still having issues" on the 17
+Sep brief. Math check confirmed the 16 Sep direction-sign fix is correct --
+every resolved Supported/Unsupported/Neutral tag matched hand-calculated
+SPDR-vs-SPY rotation. The real problem was upstream: 15 of 51 brief
+tickers on 16 Sep and 13 of 40 on 17 Sep were closed-end funds/ETFs/trusts
+(TradingView scanner tags these sector "Miscellaneous", which is exactly
+why they showed Sector "n/a" -- no SPDR ETF maps to "Miscellaneous").
+Neither LORP nor SID is built to trade funds (no earnings cycle, index-
+tracking price action, SID's OB/OS-after-earnings logic doesn't apply).
+Added isFundOrTrust() to analyse-brief.cjs, excluding any ticker whose
+cached sector is "Miscellaneous" from lorpAll and sidPass -- the single
+upstream source for every downstream table (Screener/Watch List/Fired-
+entry/Long/Short), so one change covers all of them. Cache-miss tickers
+default to not-excluded (same fail-open behaviour as the existing 'n/a'
+sector-tag fallback). Logged to stderr as [LORP rejected]/[SID rejected]
+like other hard filters, for visibility in the pipeline log.
+
 REPO HOUSEKEEPING (13 Sep 2026): the working repo copy on David's Mac had
 forked from its GitHub backup — 3 commits existed on GitHub (5 Aug + 11
 Sep 2026) never pulled into this working copy, and one of them (11 Sep)
