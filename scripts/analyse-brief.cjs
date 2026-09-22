@@ -230,6 +230,18 @@ const TV_SECTOR_TO_ETF = {
   // equivalent; those tickers just show 'n/a'.
 };
 
+// David (22 Sep 2026): caught XHR showing sector "Finance" / ETF XLF when it's
+// actually a REIT (real estate). Root cause: TradingView's scanner buckets ALL
+// REITs (and real-estate developers) under its broad "Finance" sector -- the
+// finer-grained split lives in the "industry" field ("Real Estate Investment
+// Trusts", "Real Estate Development"), which TV_SECTOR_TO_ETF never looked at.
+// Affected every REIT in the cache (52 tickers on the 22 Sep audit: SPG, PLD,
+// AMT, O, VICI, XHR, SKT, ... all mis-tagged Finance/XLF instead of Real
+// Estate/XLRE). This override checks industry FIRST and reclassifies to Real
+// Estate/XLRE regardless of what TV's coarse sector bucket says.
+function isRealEstateIndustry(industry) {
+  return /real estate/i.test(industry || '');
+}
 const SECTOR_MAP_PATH = path.join(__dirname, '..', 'sector-map.json');
 const RULES_PATH       = path.join(__dirname, '..', 'rules.json');
 
@@ -285,8 +297,13 @@ function fetchMissingSectors(tickers, cache) {
     for (const row of (parsed.data || [])) {
       const [ticker, sector, industry] = row.d || [];
       if (!ticker) continue;
-      const etf = TV_SECTOR_TO_ETF[normalizeSectorName(sector)] || null;
-      cache[ticker] = { sector: sector || null, industry: industry || null, etf, fetched: localDateStr() };
+      // Industry override takes priority over TV's coarse sector bucket (see
+      // isRealEstateIndustry comment above) -- REITs/real-estate developers get
+      // reclassified to Real Estate/XLRE even though TV files them under Finance.
+      let displaySector = sector || null;
+      let etf = TV_SECTOR_TO_ETF[normalizeSectorName(sector)] || null;
+      if (isRealEstateIndustry(industry)) { displaySector = 'Real Estate'; etf = 'XLRE'; }
+      cache[ticker] = { sector: displaySector, industry: industry || null, etf, fetched: localDateStr() };
       found++;
     }
     process.stderr.write(`[sector] fetched ${found}/${missing.length} new ticker(s) from TradingView scanner\n`);
