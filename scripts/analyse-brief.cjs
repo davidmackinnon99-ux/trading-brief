@@ -329,6 +329,15 @@ function sectorTagDisplay(bareSymbol, direction) {
   const tag = sectorSupportTag(bareSymbol, direction);
   return tag === 'Supported' ? '🟢 Supported' : tag === 'Unsupported' ? '🔴 Unsupported' : tag === 'Neutral' ? '⚪ Neutral' : 'n/a';
 }
+// David (22 Sep 2026): the existing "Sector" column was actually the rotation
+// verdict (Supported/Neutral/Unsupported), not the ticker's actual sector name —
+// renamed that column to "Sector Support" and added this to show the real sector
+// name TradingView returned (already cached in sector-map.json for the ETF
+// lookup, just never surfaced in the table before).
+function sectorNameDisplay(bareSymbol) {
+  const info = sectorMap[bareSymbol];
+  return (info && info.sector) ? info.sector : 'n/a';
+}
 
 // David (17 Sep 2026): ~30% of a typical brief's tickers (15/51 on 16 Sep, 13/40 on
 // 17 Sep) were closed-end funds/trusts/ETFs, not real operating-company equities --
@@ -1733,10 +1742,11 @@ if (!VERBOSE) {
                         : LORP_BEARISH_CODES.has(r.backtestStream) ? 'short'
                         : null;
     const sectorStr = sectorTagDisplay(bareSym(r.sym), lorpDirection);
-    return [r.sym, sigStr, `$${fmt(r.price)}`, entryStr, macd0Str, distStr, adxStr, diStr, normalizeSrc(r), sectorStr];
+    const sectorNameStr = sectorNameDisplay(bareSym(r.sym));
+    return [r.sym, sigStr, `$${fmt(r.price)}`, entryStr, macd0Str, distStr, adxStr, diStr, normalizeSrc(r), sectorNameStr, sectorStr];
   }
 
-  const lorpHeaders = ['Ticker', 'Sig', 'Price', 'Type', 'MACD0', 'Dist', 'ADX', 'DI', 'Src', 'Sector'];
+  const lorpHeaders = ['Ticker', 'Sig', 'Price', 'Type', 'MACD0', 'Dist', 'ADX', 'DI', 'Src', 'Sector', 'Sector Support'];
   const lorpRightAlign = new Set([2, 5]);  // Price, Dist right-aligned (shifted after Sig moved to index 1); tag columns left-aligned
   // Fixed-width monospace grid (same renderer as the SID table) so columns line up under the
   // headers in any viewer, not only a markdown renderer. Context columns (Cf/ADX/RVOL/Aroon/
@@ -2049,7 +2059,7 @@ if (!VERBOSE) {
     console.log('*Gap/ATR = SL distance in ATRs (how far the stop sits from entry). Per STRATEGIES.md: ≥2.0 ideal (sound stop room) · <1.5 avoid (stop too tight, noise-vulnerable). Shown as an approximate starting point (~); calculate the real value manually before acting — no auto-flag, no hard reject. ATR% alone has low predictive value.*\n');
     { const _rs = readReminders('sid'); if (_rs.length) console.log('\n' + _rs.map(x => `\uD83D\uDCCC ${x}`).join('\n') + '\n'); }
 
-    const sidHeaders = ['Ticker','Sig','Price','MACD0','Gap/ATR','ADX','DI','SMA200','SMA50','RVOL','Src','Score','Sector'];
+    const sidHeaders = ['Ticker','Sig','Price','MACD0','Gap/ATR','ADX','DI','SMA200','SMA50','RVOL','Src','Score','Sector','Sector Support'];
     const sidRightAlign = new Set([2, 9]);  // Price, RVOL (SMA50 inserted at idx 8 -> RVOL shifts to 9)
 
     function sidRowCells(r) {
@@ -2082,7 +2092,8 @@ if (!VERBOSE) {
       const macd0Str = macd0Raw == null ? D : (macd0Raw >= 0 ? '+' : '') + macd0Raw.toFixed(2);
       const sidDirection = r.isLongPass ? 'long' : 'short';
       const sectorStr = sectorTagDisplay(bareSym(r.sym), sidDirection);
-      return [r.sym, sig, '$' + fmt(r.price), macd0Str, gatr, adx, di, sma200, sma50, rvol, src, sidScore(r), sectorStr];
+      const sectorNameStr = sectorNameDisplay(bareSym(r.sym));
+      return [r.sym, sig, '$' + fmt(r.price), macd0Str, gatr, adx, di, sma200, sma50, rvol, src, sidScore(r), sectorNameStr, sectorStr];
     }
 
     function printSIDTable(rows) {
