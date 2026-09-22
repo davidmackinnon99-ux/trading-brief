@@ -307,11 +307,21 @@ let sectorMap = loadSectorCache();
 // points, over the scan's lookback window) before it counts as actually rotating
 // rather than just noise. Starting value -- tune once this has run for a while.
 const SECTOR_REL_THRESHOLD = 0.3;
-let sectorEtfData = null; // populated below once sectorsBriefFile is resolved
-function sectorRelPct(etf) {
-  if (!sectorEtfData || !etf) return null;
-  const etfPct = sectorEtfData.etfs ? sectorEtfData.etfs[etf] : null;
-  const spyPct = sectorEtfData.spy_change_pct;
+// David (22 Sep 2026): "with the current market" a single day's 4-bar snapshot was
+// too noisy -- a ticker could flip Supported/Unsupported day to day on nothing more
+// than sector-ETF noise near the threshold. Now requires the SAME side of the
+// threshold on the last 3 available sector-scan days (today + the 2 prior trading
+// days it ran on) before tagging Supported/Unsupported; any disagreement across
+// those 3 days -> Neutral. sectorEtfData keeps pointing at the latest single day
+// (used nowhere else currently, kept for compatibility); sectorHistoryData is the
+// most-recent-first array of up to 3 days actually used for tagging.
+let sectorEtfData = null; // populated below once sectorsBriefFile is resolved (latest day only)
+let sectorHistoryData = []; // most-recent-first, up to 3 parsed sectors JSON objects
+const SECTOR_HISTORY_DAYS = 3;
+function sectorRelPctFor(data, etf) {
+  if (!data || !etf) return null;
+  const etfPct = data.etfs ? data.etfs[etf] : null;
+  const spyPct = data.spy_change_pct;
   if (etfPct == null || spyPct == null) return null;
   return etfPct - spyPct;
 }
@@ -319,11 +329,16 @@ function sectorSupportTag(bareSymbol, direction) {
   if (!direction) return null;
   const info = sectorMap[bareSymbol];
   if (!info || !info.etf) return null;
-  const rel = sectorRelPct(info.etf);
-  if (rel == null) return null;
-  if (direction === 'long')  return rel >  SECTOR_REL_THRESHOLD ? 'Supported' : rel < -SECTOR_REL_THRESHOLD ? 'Unsupported' : 'Neutral';
-  if (direction === 'short') return rel < -SECTOR_REL_THRESHOLD ? 'Supported' : rel >  SECTOR_REL_THRESHOLD ? 'Unsupported' : 'Neutral';
-  return null;
+  if (sectorHistoryData.length < SECTOR_HISTORY_DAYS) return null; // not enough history yet -> 'n/a'
+  const rels = sectorHistoryData.map(d => sectorRelPctFor(d, info.etf));
+  if (rels.some(r => r == null)) return null;
+  const supportedEachDay = rel => direction === 'long' ? rel >  SECTOR_REL_THRESHOLD
+                                 : direction === 'short' ? rel < -SECTOR_REL_THRESHOLD : false;
+  const unsupportedEachDay = rel => direction === 'long' ? rel < -SECTOR_REL_THRESHOLD
+                                   : direction === 'short' ? rel >  SECTOR_REL_THRESHOLD : false;
+  if (rels.every(supportedEachDay))   return 'Supported';
+  if (rels.every(unsupportedEachDay)) return 'Unsupported';
+  return 'Neutral';
 }
 function sectorTagDisplay(bareSymbol, direction) {
   const tag = sectorSupportTag(bareSymbol, direction);
@@ -337,6 +352,12 @@ function sectorTagDisplay(bareSymbol, direction) {
 function sectorNameDisplay(bareSymbol) {
   const info = sectorMap[bareSymbol];
   return (info && info.sector) ? info.sector : 'n/a';
+}
+// David (22 Sep 2026): show which SPDR ETF the Sector Support verdict is actually
+// being derived from (e.g. Health Technology -> XLV), next to the sector name.
+function sectorEtfCodeDisplay(bareSymbol) {
+  const info = sectorMap[bareSymbol];
+  return (info && info.etf) ? info.etf : 'n/a';
 }
 
 // David (17 Sep 2026): ~30% of a typical brief's tickers (15/51 on 16 Sep, 13/40 on
@@ -449,6 +470,27 @@ if (!sectorsBriefFile) {
 if (sectorsBriefFile && fs.existsSync(sectorsBriefFile)) {
   sectorEtfData = loadJsonSafe(sectorsBriefFile);
   if (!sectorEtfData) process.stderr.write(`[sector] failed to parse ${sectorsBriefFile} — sector tags will show 'n/a'\n`);
+
+  // Build the 3-day history (today + up to 2 prior trading days it ran on) that
+  // sectorSupportTag requires for consistency (David, 22 Sep 2026). Walks the
+  // briefs dir for every past brief-YYYY-MM-DD-sectors.json, keeps the ones on or
+  // before today's date, and takes the most recent 3.
+  try {
+    const sectorsDir = path.dirname(sectorsBriefFile);
+    const todayBase = path.basename(sectorsBriefFile);
+    const allSectorFiles = fs.readdirSync(sectorsDir)
+      .filter(f => /^brief-\d{4}-\d{2}-\d{2}-sectors\.json$/.test(f))
+      .sort(); // filenames embed ISO dates -> lexicographic sort is chronological
+    const cutoffIdx = allSectorFiles.indexOf(todayBase);
+    const upToToday = cutoffIdx >= 0 ? allSectorFiles.slice(0, cutoffIdx + 1) : allSectorFiles;
+    const lastN = upToToday.slice(-SECTOR_HISTORY_DAYS);
+    sectorHistoryData = lastN.map(f => loadJsonSafe(path.join(sectorsDir, f))).filter(Boolean).reverse(); // most-recent-first
+    if (sectorHistoryData.length < SECTOR_HISTORY_DAYS) {
+      process.stderr.write(`[sector] only ${sectorHistoryData.length}/${SECTOR_HISTORY_DAYS} days of sector history available — Sector Support will show 'n/a' until ${SECTOR_HISTORY_DAYS} days have run\n`);
+    }
+  } catch (e) {
+    process.stderr.write(`[sector] failed to build ${SECTOR_HISTORY_DAYS}-day history (${e.message}) — Sector Support will show 'n/a'\n`);
+  }
 } else {
   process.stderr.write(`[sector] no sectors file found for today — sector tags will show 'n/a'\n`);
 }
@@ -1743,10 +1785,11 @@ if (!VERBOSE) {
                         : null;
     const sectorStr = sectorTagDisplay(bareSym(r.sym), lorpDirection);
     const sectorNameStr = sectorNameDisplay(bareSym(r.sym));
-    return [r.sym, sigStr, `$${fmt(r.price)}`, entryStr, macd0Str, distStr, adxStr, diStr, normalizeSrc(r), sectorNameStr, sectorStr];
+    const sectorEtfStr = sectorEtfCodeDisplay(bareSym(r.sym));
+    return [r.sym, sigStr, `$${fmt(r.price)}`, entryStr, macd0Str, distStr, adxStr, diStr, normalizeSrc(r), sectorNameStr, sectorEtfStr, sectorStr];
   }
 
-  const lorpHeaders = ['Ticker', 'Sig', 'Price', 'Type', 'MACD0', 'Dist', 'ADX', 'DI', 'Src', 'Sector', 'Sector Support'];
+  const lorpHeaders = ['Ticker', 'Sig', 'Price', 'Type', 'MACD0', 'Dist', 'ADX', 'DI', 'Src', 'Sector', 'ETF', 'Sector Support'];
   const lorpRightAlign = new Set([2, 5]);  // Price, Dist right-aligned (shifted after Sig moved to index 1); tag columns left-aligned
   // Fixed-width monospace grid (same renderer as the SID table) so columns line up under the
   // headers in any viewer, not only a markdown renderer. Context columns (Cf/ADX/RVOL/Aroon/
@@ -2059,7 +2102,7 @@ if (!VERBOSE) {
     console.log('*Gap/ATR = SL distance in ATRs (how far the stop sits from entry). Per STRATEGIES.md: ≥2.0 ideal (sound stop room) · <1.5 avoid (stop too tight, noise-vulnerable). Shown as an approximate starting point (~); calculate the real value manually before acting — no auto-flag, no hard reject. ATR% alone has low predictive value.*\n');
     { const _rs = readReminders('sid'); if (_rs.length) console.log('\n' + _rs.map(x => `\uD83D\uDCCC ${x}`).join('\n') + '\n'); }
 
-    const sidHeaders = ['Ticker','Sig','Price','MACD0','Gap/ATR','ADX','DI','SMA200','SMA50','RVOL','Src','Score','Sector','Sector Support'];
+    const sidHeaders = ['Ticker','Sig','Price','MACD0','Gap/ATR','ADX','DI','SMA200','SMA50','RVOL','Src','Score','Sector','ETF','Sector Support'];
     const sidRightAlign = new Set([2, 9]);  // Price, RVOL (SMA50 inserted at idx 8 -> RVOL shifts to 9)
 
     function sidRowCells(r) {
@@ -2093,7 +2136,8 @@ if (!VERBOSE) {
       const sidDirection = r.isLongPass ? 'long' : 'short';
       const sectorStr = sectorTagDisplay(bareSym(r.sym), sidDirection);
       const sectorNameStr = sectorNameDisplay(bareSym(r.sym));
-      return [r.sym, sig, '$' + fmt(r.price), macd0Str, gatr, adx, di, sma200, sma50, rvol, src, sidScore(r), sectorNameStr, sectorStr];
+      const sectorEtfStr = sectorEtfCodeDisplay(bareSym(r.sym));
+      return [r.sym, sig, '$' + fmt(r.price), macd0Str, gatr, adx, di, sma200, sma50, rvol, src, sidScore(r), sectorNameStr, sectorEtfStr, sectorStr];
     }
 
     function printSIDTable(rows) {
