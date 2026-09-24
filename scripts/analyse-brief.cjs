@@ -546,6 +546,45 @@ if (sidBriefFile && fs.existsSync(sidBriefFile)) {
   }
 }
 
+
+// ── MACD cross quality (David, 24 Sep 2026) ────────────────────────────────────
+// Study: 6,673 MACD/signal crosses, 44 journal tickers, 2018–2026
+// (analysis/macd-cross-quality/RESULTS.md). Separation at the cross bar predicts
+// whether the cross holds: >=0.22x normal halves 3-bar reversals (20% -> ~10%).
+// Verdict is direction-aware, same Supported/Neutral/Unsupported language as Sector:
+//   Unsupported = MACD is on the wrong side of its signal line for this trade
+//   Supported   = right side AND separation >= 0.22x (cross-bar value from MACD Sep
+//                 v1.3 when on the chart; otherwise today's separation from v1.2)
+//   Neutral     = right side but separation still < 0.22x (weak / unconfirmed cross)
+const MACD_CROSS_OK = 0.22;
+function macdSepIndex(scan) {
+  const m = new Map();
+  for (const s of ((scan && scan.symbols_scanned) || [])) {
+    const st = (s.indicators?.studies || []).find(x => x.name.toLowerCase().includes('macd separation'));
+    if (st) m.set(s.symbol, st.values || {});
+  }
+  return m;
+}
+function macdCrossTag(v, direction) {
+  if (!v || !direction) return null;
+  const n = k => { const x = v[k]; if (x == null || x === '∅') return null; const f = parseFloat(String(x).replace('−', '-').replace(/[^0-9.\-]/g, '')); return isNaN(f) ? null : f; };
+  const raw = n('Raw MACD-Signal Distance');
+  if (raw == null) return null;
+  const want = direction === 'long' ? 1 : -1;
+  if (Math.sign(raw) !== want) return 'Unsupported';
+  const crossSep = n('Cross Bar Separation');   // v1.3 only
+  const nowSep   = n('MACD Separation');
+  const sep = crossSep != null ? Math.max(crossSep, nowSep ?? 0) : nowSep;
+  if (sep == null) return null;
+  return sep >= MACD_CROSS_OK ? 'Supported' : 'Neutral';
+}
+function macdCrossDisplay(map, sym, direction) {
+  const t = macdCrossTag(map.get(sym), direction);
+  return t === 'Supported' ? '🟢 Supported' : t === 'Unsupported' ? '🔴 Unsupported' : t === 'Neutral' ? '⚪ Neutral' : 'n/a';
+}
+const macdSepLorp = macdSepIndex(brief);
+const macdSepSid  = macdSepIndex(sidBrief);
+
 // Populate the sector cache for today's actual universe -- the fully-qualified
 // EXCHANGE:TICKER symbols living in the scan results themselves (rules.json's
 // watchlist has no exchange prefix, so it can't be used for this lookup).
@@ -1803,10 +1842,11 @@ if (!VERBOSE) {
     const sectorStr = sectorTagDisplay(bareSym(r.sym), lorpDirection);
     const sectorNameStr = sectorNameDisplay(bareSym(r.sym));
     const sectorEtfStr = sectorEtfCodeDisplay(bareSym(r.sym));
-    return [r.sym, sigStr, `$${fmt(r.price)}`, entryStr, macd0Str, distStr, adxStr, diStr, normalizeSrc(r), sectorNameStr, sectorEtfStr, sectorStr];
+    const macdXStr = macdCrossDisplay(macdSepLorp, r.sym, lorpDirection);
+    return [r.sym, sigStr, `$${fmt(r.price)}`, entryStr, macd0Str, distStr, adxStr, diStr, normalizeSrc(r), sectorNameStr, sectorEtfStr, sectorStr, macdXStr];
   }
 
-  const lorpHeaders = ['Ticker', 'Sig', 'Price', 'Type', 'MACD0', 'Dist', 'ADX', 'DI', 'Src', 'Sector', 'ETF', 'Sector Support'];
+  const lorpHeaders = ['Ticker', 'Sig', 'Price', 'Type', 'MACD0', 'Dist', 'ADX', 'DI', 'Src', 'Sector', 'ETF', 'Sector Support', 'MACD Cross'];
   const lorpRightAlign = new Set([2, 5]);  // Price, Dist right-aligned (shifted after Sig moved to index 1); tag columns left-aligned
   // Fixed-width monospace grid (same renderer as the SID table) so columns line up under the
   // headers in any viewer, not only a markdown renderer. Context columns (Cf/ADX/RVOL/Aroon/
@@ -2119,7 +2159,7 @@ if (!VERBOSE) {
     console.log('*Gap/ATR = SL distance in ATRs (how far the stop sits from entry). Per STRATEGIES.md: ≥2.0 ideal (sound stop room) · <1.5 avoid (stop too tight, noise-vulnerable). Shown as an approximate starting point (~); calculate the real value manually before acting — no auto-flag, no hard reject. ATR% alone has low predictive value.*\n');
     { const _rs = readReminders('sid'); if (_rs.length) console.log('\n' + _rs.map(x => `\uD83D\uDCCC ${x}`).join('\n') + '\n'); }
 
-    const sidHeaders = ['Ticker','Sig','Price','MACD0','Gap/ATR','ADX','DI','SMA200','SMA50','RVOL','Src','Score','Sector','ETF','Sector Support'];
+    const sidHeaders = ['Ticker','Sig','Price','MACD0','Gap/ATR','ADX','DI','SMA200','SMA50','RVOL','Src','Score','Sector','ETF','Sector Support','MACD Cross'];
     const sidRightAlign = new Set([2, 9]);  // Price, RVOL (SMA50 inserted at idx 8 -> RVOL shifts to 9)
 
     function sidRowCells(r) {
@@ -2154,7 +2194,8 @@ if (!VERBOSE) {
       const sectorStr = sectorTagDisplay(bareSym(r.sym), sidDirection);
       const sectorNameStr = sectorNameDisplay(bareSym(r.sym));
       const sectorEtfStr = sectorEtfCodeDisplay(bareSym(r.sym));
-      return [r.sym, sig, '$' + fmt(r.price), macd0Str, gatr, adx, di, sma200, sma50, rvol, src, sidScore(r), sectorNameStr, sectorEtfStr, sectorStr];
+      const macdXStr = macdCrossDisplay(macdSepSid, r.sym, sidDirection);
+      return [r.sym, sig, '$' + fmt(r.price), macd0Str, gatr, adx, di, sma200, sma50, rvol, src, sidScore(r), sectorNameStr, sectorEtfStr, sectorStr, macdXStr];
     }
 
     function printSIDTable(rows) {
@@ -2387,6 +2428,7 @@ if (!VERBOSE) {
   console.log('          Short: RSI crossed above 70 (OB touch) · RSI falling  ');
   console.log('          SMA200 tier (HIGH CONVICTION ≥5% away) · ADX (<20 coiling ✓ · 20-25 NML ⚠️ · 25-40 trending)  ');
   console.log('          Gap/ATR ≥2.0 ideal (stop room) · <1.5 avoid (stop too tight) · Src: SID·LORP·BTW  ');
+  console.log('**MACD Cross:** 🟢 right side of signal & separation ≥0.22× (holds ~90%) · ⚪ right side but weak/unconfirmed · 🔴 MACD against the trade  ');
   console.log('          ATR% risk · Gap/ATR = SL distance in ATRs (per STRATEGIES.md: ≥2.0 ideal · <1.5 avoid) · VD (ref)\n');
 
   // ── CSV Export ──

@@ -172,6 +172,14 @@ export async function runBrief({ rules_path, sections } = {}) {
   }
 
   let consecutiveTimeouts = 0;
+  // David (24 Sep 2026): on 24 Sep every lower-pane study on the SID layout (incl. SID
+  // Trading Signals Pro) returned no values for the entire run — each symbol burned the
+  // full ready-wait and the brief came out with "SID indicator not found" after 2.5h.
+  // If the layout's required study (READY_REQUIRE_STUDY) is missing on this many symbols
+  // in a row, abort so morning-brief.sh can retry, instead of scanning on blind.
+  const REQUIRED_STUDY = (process.env.READY_REQUIRE_STUDY || '').toLowerCase();
+  const MAX_CONSECUTIVE_MISSING = 8;
+  let consecutiveMissing = 0;
 
   for (const symbol of filteredWatchlist) {
     const scanOne = async () => {
@@ -205,7 +213,20 @@ export async function runBrief({ rules_path, sections } = {}) {
       ]);
       results.push(result);
       consecutiveTimeouts = 0; // a success resets the run
+      if (REQUIRED_STUDY) {
+        const names = (result.indicators?.studies || []).map((x) => String(x.name || '').toLowerCase());
+        if (names.some((n) => n.includes(REQUIRED_STUDY))) {
+          consecutiveMissing = 0;
+        } else if (++consecutiveMissing >= MAX_CONSECUTIVE_MISSING) {
+          throw Object.assign(new Error(
+            `REQUIRED STUDY MISSING: "${process.env.READY_REQUIRE_STUDY}" returned no values on ` +
+              `${consecutiveMissing} consecutive symbols — indicator not computing on this layout. ` +
+              `Aborting scan (${results.length}/${filteredWatchlist.length} attempted).`,
+          ), { requiredStudyMissing: true });
+        }
+      }
     } catch (err) {
+      if (err.requiredStudyMissing) throw err;
       process.stderr.write(`[brief] TIMEOUT/ERROR ${symbol}: ${err.message}\n`);
       results.push({ symbol, error: err.message });
       if (/timeout/i.test(err.message)) {

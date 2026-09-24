@@ -142,6 +142,16 @@ echo "[$(date)] Scanning SID layout (XN1LuowU) — full watchlist..." >> "$LOGFI
 TRADINGVIEW_LAYOUT_ID="XN1LuowU" READY_REQUIRE_STUDY="SID Trading Signals" \
   "$NODE" "$TV_DIR/src/cli/index.js" brief > "$OUTFILE_SID" 2>> "$LOGFILE"
 SID_SCAN_EXIT=$?
+# 24 Sep 2026: if the SID indicator wasn't computing (scan aborts with REQUIRED STUDY
+# MISSING after 8 symbols), reload the SID tab once and retry the scan.
+if [ $SID_SCAN_EXIT -ne 0 ] && tail -5 "$LOGFILE" | grep -q "REQUIRED STUDY MISSING"; then
+    echo "[$(date)] SID indicator not computing — reloading SID tab and retrying once" >> "$LOGFILE"
+    TRADINGVIEW_LAYOUT_ID="XN1LuowU" "$NODE" "$TV_DIR/src/cli/index.js" ui eval --code 'location.reload(); 1' >/dev/null 2>> "$LOGFILE" || true
+    sleep 90
+    TRADINGVIEW_LAYOUT_ID="XN1LuowU" READY_REQUIRE_STUDY="SID Trading Signals" \
+      "$NODE" "$TV_DIR/src/cli/index.js" brief > "$OUTFILE_SID" 2>> "$LOGFILE"
+    SID_SCAN_EXIT=$?
+fi
 if [ $SID_SCAN_EXIT -eq 0 ] && [ -s "$OUTFILE_SID" ]; then
     echo "[$(date)] SID scan complete" >> "$LOGFILE"
 else
