@@ -1,0 +1,16 @@
+
+LONG
+all crosses                                      n= 3329 kept=100.0%  fail= 20.4%  fwd10=+0.75%  win10=55.2%
+sep >= 0.22                                      n= 1341 kept= 40.3%  fail=  9.8%  fwd10=+0.97%  win10=55.9%
+sep >= 0.35                                      n=  752 kept= 22.6%  fail=  7.7%  fwd10=+1.07%  win10=57.4%
+sep >= 0.22 & WT aligned                         n= 1316 kept= 39.5%  fail=  9.7%  fwd10=+0.92%  win10=55.3%
+sep >= 0.22 & WT aligned & crossed on far side of zero n=  720 kept= 21.6%  fail=  6.2%  fwd10=+1.10%  win10=58.2%
+sep < 0.22 & WT NOT aligned (avoid bucket)       n=  185 kept=  5.6%  fail= 35.7%  fwd10=+0.72%  win10=54.6%
+
+SHORT
+all crosses                                      n= 3344 kept=100.0%  fail= 20.1%  fwd10=-0.44%  win10=45.7%
+sep >= 0.22                                      n= 1359 kept= 40.6%  fail= 10.2%  fwd10=-0.27%  win10=48.2%
+sep >= 0.35                                      n=  777 kept= 23.2%  fail=  8.0%  fwd10=-0.23%  win10=48.1%
+sep >= 0.22 & WT aligned                         n= 1327 kept= 39.7%  fail= 10.2%  fwd10=-0.29%  win10=48.2%
+sep >= 0.22 & WT aligned & crossed on far side of zero n=  973 kept= 29.1%  fail=  7.9%  fwd10=-0.19%  win10=49.0%
+sep < 0.22 & WT NOT aligned (avoid bucket)       n=  252 kept=  7.5%  fail= 38.9%  fwd10=-0.11%  win10=52.4%
