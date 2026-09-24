@@ -80,6 +80,13 @@ an ASX-listing issue even though none were ASX-listed. Fixed by carrying
 the fully-qualified EXCHANGE:TICKER form through to the push instead of
 the bare symbol.
 
+NEW FINDING — MACD cross quality / MACD Sep v1.3 (24 Sep 2026): a fresh
+MACD/signal cross can be graded at the cross-bar close — separation >=0.22x
+normal halves the 3-bar reversal rate (20% -> 10%), >=0.35x -> ~8%; bullish
+crosses below zero are strongest. Applies to LORP entries timed off MACD0.
+Full detail in SID_Project_Continuity.md section 1d and
+analysis/macd-cross-quality/RESULTS.md. Timing aid only, not yet a gate.
+
 NEW FEATURE — live sector/industry support tagging (13 Sep 2026): see the
 SID continuity doc for full detail (identical feature, applies to both
 the SID and LORP brief tables) — each row now tags Supported / Neutral /

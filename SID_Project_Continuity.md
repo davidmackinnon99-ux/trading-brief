@@ -99,6 +99,22 @@ item, added to Section 5 below.
   requirement anywhere in the SID pipeline (indicator, brief, or STRATEGIES.md).
 - **Repo reorganised 8 Jul 2026:** Indicators content now under `Repository/{indicators,strategies,analysis,data}` (see repo README). SID analysis paths: `Repository/analysis/sid-adx-analysis/`, `Repository/analysis/sid-macd-analysis/`, data at `Repository/data/trades/trades_all.csv`. Open trades unified into one `Repository/data/open_trades.csv` (strategy column).
 
+## 1d. Findings update — 24 September 2026: MACD cross quality (MACD Sep v1.3)
+
+Tested whether a fresh MACD/signal cross can be judged at the close of the cross bar
+instead of waiting for confirming candles (6,673 crosses, 44 journal tickers, 2018–2026 —
+`analysis/macd-cross-quality/RESULTS.md`). Baseline: ~20% of crosses re-cross within 3 bars.
+- **Cross-bar separation is the key factor:** >=0.22x normal cuts failure to ~10%; >=0.35x to ~8%.
+- **Longs crossing below zero** (far side) fail least (6% with >=0.22x) and have the best 10-bar
+  returns. Shorts crossing above zero fail less but return worse — info only, consistent with
+  the existing wide-gap-short avoidance.
+- Ticker whipsaw history: no useful effect (dropped). WaveTrend alignment (WT3D proxy): adds
+  little once separation is known; treat "weak separation + WT not aligned" (~37% fail) as avoid.
+- Filtering halves whipsaws but only modestly lifts returns — a timing aid, not a gate. Not yet
+  validated against actual SID trade outcomes (open item).
+- Implemented in **MACD Separation & Convergence v1.3** (Last cross grade, Cross depth, fast-expansion
+  flag, quality-cross alerts, data-window exports). Not yet wired into the brief.
+
 ## 2. SID = trend pullback continuation (confirmed)
 Works when: clear underlying trend (SMA50/200 aligned) + temporary counter-move pushes RSI
 to OB/OS + (**ideal, NOT required**) a visible **H&S / Inv H&S** structure — flat is
