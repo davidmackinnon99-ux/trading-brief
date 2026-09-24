@@ -113,7 +113,13 @@ instead of waiting for confirming candles (6,673 crosses, 44 journal tickers, 20
 - Filtering halves whipsaws but only modestly lifts returns — a timing aid, not a gate. Not yet
   validated against actual SID trade outcomes (open item).
 - Implemented in **MACD Separation & Convergence v1.3** (Last cross grade, Cross depth, fast-expansion
-  flag, quality-cross alerts, data-window exports). Not yet wired into the brief.
+  flag, quality-cross alerts, data-window exports).
+- **Brief (24 Sep):** new "MACD Cross" column on SID and LORP tables — Supported (right side of
+  signal, separation >=0.22x), Neutral (right side, weak), Unsupported (MACD against the trade).
+  Uses v1.3's cross-bar value when on the layout, else v1.2's current separation.
+- **Scan guard (24 Sep):** the 24 Sep SID scan ran 2.5h with every lower-pane study returning
+  no values ("SID indicator not found"). Scan now aborts after 8 consecutive symbols missing
+  the required study; morning-brief.sh reloads the SID tab and retries once.
 
 ## 2. SID = trend pullback continuation (confirmed)
 Works when: clear underlying trend (SMA50/200 aligned) + temporary counter-move pushes RSI
