@@ -349,6 +349,10 @@ rotation report' runs 16:15 NY (before the brief) with sector/sub-industry rotat
 Script: ~/tradingview-mcp-jackson/scripts/morning-brief.sh
 Analyser: ~/tradingview-mcp-jackson/scripts/analyse-brief.cjs
 
+Clean-tab fix (26 Sep 2026): the scanner now skips "SID Clean" / "LORP Clean" tabs and selects the page
+that actually carries the required study (Lorentzian for LORP) — src/connection.js. Brief of 26 Sep failed
+before this fix (LORP layout not matched, fell back to a page without Lorentzian) and was re-run at 09:30.
+
 DUAL-LAYOUT SCAN ARCHITECTURE:
   Scan 1 — LORP layout (runs FIRST):
     Switch to LORP layout → wait 120s → scan LORP SCREENER + LORP BRIEF

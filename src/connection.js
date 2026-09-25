@@ -109,6 +109,44 @@ async function findChartTarget() {
   const targets = await resp.json();
   const chartTargets = targets.filter(t => t.type === 'page' && /tradingview\.com\/chart/i.test(t.url));
 
+  // 26 Sep 2026: study-aware target selection. David keeps "SID Clean" / "LORP Clean" tabs
+  // (no indicators). A Clean tab can carry the SAME /chart/<id>/ URL as the real layout
+  // (e.g. "SID Clean" still reports /chart/XN1LuowU/), and CDP page order changes with focus,
+  // so URL matching alone can pick the empty tab (brief failed 26 Sep: REQUIRED STUDY MISSING).
+  // When READY_REQUIRE_STUDY is set: ignore any layout whose name contains "Clean" and pick
+  // the page that actually carries the required study (preferring TRADINGVIEW_LAYOUT_ID).
+  const requireStudy = (process.env.READY_REQUIRE_STUDY || '').toLowerCase();
+  if (requireStudy && chartTargets.length > 0) {
+    const wantLayout = process.env.TRADINGVIEW_LAYOUT_ID;
+    const hits = [];
+    for (const target of chartTargets) {
+      try {
+        const tc = await CDP({ host: CDP_HOST, port: CDP_PORT, target: target.id });
+        await tc.Runtime.enable();
+        const r = await tc.Runtime.evaluate({
+          expression: `(function(){try{var n='';try{n=TradingViewApi.layoutName()||'';}catch(e){}
+            var st=[];try{st=TradingViewApi.activeChart().getAllStudies().map(function(x){return (x.name||'').toLowerCase();});}catch(e){}
+            return {name:n, studies:st};}catch(e){return null;}})()`,
+          returnByValue: true,
+        });
+        await tc.close();
+        const info = r.result?.value;
+        if (!info) continue;
+        if (/clean/i.test(info.name)) {
+          process.stderr.write(`[connection] skipping "${info.name}" tab (${target.url}) — Clean layout\n`);
+          continue;
+        }
+        if (info.studies.some(n => n.includes(requireStudy))) hits.push({ target, name: info.name });
+      } catch (_) { /* unreachable page — skip */ }
+    }
+    const best = hits.find(h => wantLayout && h.target.url.includes(`/chart/${wantLayout}/`)) || hits[0];
+    if (best) {
+      process.stderr.write(`[connection] READY_REQUIRE_STUDY="${process.env.READY_REQUIRE_STUDY}" → layout "${best.name}" ${best.target.url}\n`);
+      return best.target;
+    }
+    process.stderr.write(`[connection] WARNING: no non-Clean page carries "${process.env.READY_REQUIRE_STUDY}" — falling back to URL match\n`);
+  }
+
   // Deduplicate by layout ID — prefer Desktop app pages over Chrome tab pages.
   // When both the Desktop app and a Chrome tab have the same layout open, CDP sees
   // two pages with the same layout ID. The Desktop app page has a non-empty

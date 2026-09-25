@@ -125,6 +125,10 @@ instead of waiting for confirming candles (6,673 crosses, 44 journal tickers, 20
   time when started between 15:00 and 16:25 NY, so the final daily bar is settled. No-op in US summer.
   Separate cloud scheduled task 'Daily sector rotation report' runs 16:15 NY (6:15 AEST summer /
   7:15 winter, always before the brief): 5-day vs prior-month sector + sub-industry rotation with SID Trigger/Setup/Watch stages.
+- **Clean-tab fix (26 Sep):** brief failed 26 Sep (REQUIRED STUDY MISSING) because the "SID Clean"
+  tab reports the same /chart/XN1LuowU/ URL as the real SID layout and was picked first. src/connection.js
+  now ignores any layout named "*Clean*" and picks the page that actually carries READY_REQUIRE_STUDY
+  (SID Trading Signals / Lorentzian), preferring the pinned layout ID. SID-tab reload retry also uses it.
 
 ## 2. SID = trend pullback continuation (confirmed)
 Works when: clear underlying trend (SMA50/200 aligned) + temporary counter-move pushes RSI
