@@ -1,5 +1,5 @@
 #!/bin/bash
-# Morning Brief — runs via launchd at 7:00 AM Tue–Sat
+# Morning Brief — runs via launchd at 7:00 AM Tue–Sat (waits until 16:25 New York if the US close has not settled — see US-close guard)
 # Launches TradingView if not running, then runs the full watchlist scan.
 
 # Load Gmail credentials if present
@@ -32,6 +32,19 @@ if [ -f "$LOCKFILE" ]; then
     fi
 fi
 echo $$ > "$LOCKFILE"
+
+# ── US-close guard (DST-proof) ───────────────────────────────────
+# launchd fires at 7:00 AM Brisbane. During US daylight saving that is 17:00 New York
+# (1 hr after the close); during US standard time (Nov–Mar) it is exactly 16:00, the close.
+# If we are between 15:00 and 16:25 New York time, wait until 16:25 so the final daily
+# bar is settled. Runs at any other time (manual runs etc.) are not delayed.
+NY_NOW=$(( 10#$(TZ=America/New_York date +%H) * 60 + 10#$(TZ=America/New_York date +%M) ))
+NY_READY=$(( 16 * 60 + 25 ))
+if [ "$NY_NOW" -ge $(( 15 * 60 )) ] && [ "$NY_NOW" -lt "$NY_READY" ]; then
+    WAIT_SECS=$(( (NY_READY - NY_NOW) * 60 ))
+    echo "[$(date)] US close guard: New York time is $(TZ=America/New_York date +%H:%M) — waiting $((WAIT_SECS/60)) min for the final daily bar." >> "$LOGFILE"
+    sleep "$WAIT_SECS"
+fi
 
 # Global watchdog — hard-stop the whole brief if it ever runs absurdly long.
 # Defence-in-depth behind the per-call CDP timeouts in connection.js: guarantees a

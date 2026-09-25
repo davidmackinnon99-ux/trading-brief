@@ -342,7 +342,10 @@ This bug should be fixed in the Pine Script when time permits (separate task).
 
 8. Morning Brief — Architecture (as of 11 May 2026)
 
-The morning brief runs at 6:30 AM AEST Tue–Sat via launchd.
+The morning brief runs at 7:00 AM AEST Tue–Sat via launchd (updated 25 Sep 2026). A US-close
+guard in morning-brief.sh waits until 16:25 New York time if started before the close has settled
+(applies Nov–Mar, US standard time, when 7:00 AEST = 16:00 NY). A cloud scheduled task 'Daily sector
+rotation report' runs 16:15 NY (before the brief) with sector/sub-industry rotation + SID-stage flags.
 Script: ~/tradingview-mcp-jackson/scripts/morning-brief.sh
 Analyser: ~/tradingview-mcp-jackson/scripts/analyse-brief.cjs
 

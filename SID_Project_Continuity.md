@@ -120,6 +120,11 @@ instead of waiting for confirming candles (6,673 crosses, 44 journal tickers, 20
 - **Scan guard (24 Sep):** the 24 Sep SID scan ran 2.5h with every lower-pane study returning
   no values ("SID indicator not found"). Scan now aborts after 8 consecutive symbols missing
   the required study; morning-brief.sh reloads the SID tab and retries once.
+- **US-close guard (25 Sep):** launchd still fires at 7:00 AM AEST, but from US standard time
+  (Nov–Mar) that is exactly the 16:00 NY close. morning-brief.sh now waits until 16:25 New York
+  time when started between 15:00 and 16:25 NY, so the final daily bar is settled. No-op in US summer.
+  Separate cloud scheduled task 'Daily sector rotation report' runs 16:15 NY (6:15 AEST summer /
+  7:15 winter, always before the brief): 5-day vs prior-month sector + sub-industry rotation with SID Trigger/Setup/Watch stages.
 
 ## 2. SID = trend pullback continuation (confirmed)
 Works when: clear underlying trend (SMA50/200 aligned) + temporary counter-move pushes RSI
