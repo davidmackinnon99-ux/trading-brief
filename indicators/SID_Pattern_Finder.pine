@@ -1,6 +1,7 @@
 // This Pine Script™ code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
-// SID Pattern Finder v2.0 — Head & Shoulders, Inverse H&S, Double Top, Double Bottom
+// SID Pattern Finder v2.1 — Head & Shoulders, Inverse H&S, Double Top, Double Bottom
 // Stand-alone directional-context overlay for SID entries.
+// v2.1 (28 Sep 2026): a new pattern may not reuse the last swing of the previous one (no chained double bottoms/tops).
 // v2.0 (28 Sep 2026): ATR-size swings replace fixed-bar pivots; neckline-slope, shoulder-timing and
 //   prior-trend rules added; no overlapping patterns; shaded pattern shapes with LS/RS markers;
 //   failed / unbroken patterns hidden by default.
@@ -211,7 +212,7 @@ if newPiv
         int   s1  = bH - bLS
         int   s2  = bRS - bH
         bool common = bRS - bLS <= maxWidth and math.abs(ls - rs) <= shTol * a and math.abs(n1 - n2) <= neckTol * a
-             and math.max(s1, s2) <= symMax * math.min(s1, s2) and bLS >= lastEnd
+             and math.max(s1, s2) <= symMax * math.min(s1, s2) and bLS > lastEnd
         if lt == 1 and showHS and common and hd - math.max(ls, rs) >= headMin * a and p0 < math.min(n1, n2)
             newKind := 1
             newS    := n - 5
@@ -227,7 +228,7 @@ if newPiv
         float a   = pAtr.get(n - 3)
         int   bT1 = pBar.get(n - 3)
         int   gap = pBar.get(n - 1) - bT1
-        bool common = gap >= dblMinGap and gap <= maxWidth and math.abs(t1 - t2) <= dblTol * a and bT1 >= lastEnd
+        bool common = gap >= dblMinGap and gap <= maxWidth and math.abs(t1 - t2) <= dblTol * a and bT1 > lastEnd
         if lt == 1 and showDT and common and math.min(t1, t2) - m >= dblDepth * a and p0 < m
             newKind := 3
             newS    := n - 3
