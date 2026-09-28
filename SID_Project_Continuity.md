@@ -210,10 +210,23 @@ Head & Shoulders, Inverse H&S, Double Top, Double Bottom.
   double bottom, which overlapped a failed double top). Offline: EMBJ shows only the double top.
 - Status: David to test against past SID entries.
 
+## 1f. Pattern study — targets, pattern context, entry candles (28 September 2026)
+
+Tested against 2,373 SID trades (`analysis/pattern-targets/RESULTS.md`; Pattern Finder v2.5 rules
+replayed without hindsight; masterclass entry candles per Caginalp & Laurent 1998).
+- **Measured-move target exits don't apply to SID as traded:** 1 of 2,316 trades touched an aligned
+  pattern's 50%/75% target before exit, none the 100% target. SID enters after price has fallen back
+  through the neckline, so targets sit far beyond a 2–4 week bounce.
+- **Exit on an opposing pattern confirming mid-trade:** no help (those trades were already -8% avg).
+- **Recently confirmed pattern against the trade at entry:** lower averages (longs +0.56 vs +1.35,
+  shorts -1.40 vs -0.38) but not statistically reliable and absent in 2013–19 — context only, not a rule.
+- **Entry candles (TIU/TOU/3WS/MS and bear equivalents):** no edge on either side.
+- Decision pending David: keep Pattern Finder as a discretionary aid; no rule changes on this evidence.
+
 ## 5. Open items (need input — not resolvable from files)
 - [ ] Reconcile the 300-trade manual journal (`analysis/sid-btw-universe/Backtesting_Sheet_300_SID.xlsx`) against `data/trades/trades_all.csv` and the automated BTW-universe backtest — three SID datasets now exist and haven't been cross-checked against each other.
 - [x] ~30% of brief candidates were funds/trusts, not equities — fixed 17 Sep 2026 by excluding sector "Miscellaneous" tickers from both `lorpAll` and `sidPass` in `analyse-brief.cjs`; see `LORP_Project_Continuity.md`'s 17 Sep entry for the full writeup (applies to both strategies).
-- [ ] Test SID Pattern Finder v2.0 against past SID entries; decide whether pattern bias belongs in the brief.
+- [ ] Test SID Pattern Finder v2.5 against past SID entries (David, manual). Automated study (1f) found no rule-worthy edge; send any trade where a clear pattern was missed or a target exit would have helped.
 - [ ] Strategy changes v10.5.4.12 → .15 detail (what changed since 29 Mar).
 - [ ] BTW universe re-export status (v10.5.4.10+, Ticker Regime ON).
 - [ ] Recent live-trade findings (39-trade journal is in `SID DATA/`; losers catalogued in
