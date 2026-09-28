@@ -1,6 +1,8 @@
 // This Pine Script™ code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
-// SID Pattern Finder v2.4 — Head & Shoulders, Inverse H&S, Double Top, Double Bottom
+// SID Pattern Finder v2.5 — Head & Shoulders, Inverse H&S, Double Top, Double Bottom
 // Stand-alone directional-context overlay for SID entries.
+// v2.5 (28 Sep 2026): no-overlap rule only checks patterns still forming or confirmed (an expired or failed
+//   pattern no longer blocks a new one). Matches the Python port used for the SID trade study.
 // v2.4 (28 Sep 2026): a pattern sharing 2+ swings with one already shown is held back (not drawn) and only
 //   replaces the earlier pattern if its own neckline breaks (EMBJ double top + double bottom from the same swings).
 // v2.3 (28 Sep 2026): min bars between double tops/bottoms 8 -> 5 (EMBJ Aug double top was 7 bars);
@@ -12,7 +14,7 @@
 //   prior-trend rules added; no overlapping patterns; shaded pattern shapes with LS/RS markers;
 //   failed / unbroken patterns hidden by default.
 //@version=6
-indicator("SID Pattern Finder v2.4 [H&S / Double Top-Bottom]", shorttitle = "SID Patterns", overlay = true,
+indicator("SID Pattern Finder v2.5 [H&S / Double Top-Bottom]", shorttitle = "SID Patterns", overlay = true,
      max_lines_count = 500, max_labels_count = 500, max_polylines_count = 100, max_bars_back = 500)
 
 // ───────────────────────── Inputs ─────────────────────────
@@ -216,6 +218,14 @@ f_common(array<int> a, array<int> b) =>
             c += 1
     c
 
+// last swing bar of any forming / confirmed pattern in direction d (new patterns must start after it)
+f_liveEnd(int d) =>
+    int e = -1
+    for q in pats
+        if q.dir == d and q.state <= 1
+            e := math.max(e, q.lastBar)
+    e
+
 // most swings a candidate shares with any pattern currently shown or forming
 f_shared(array<int> bars) =>
     int best = 0
@@ -223,8 +233,6 @@ f_shared(array<int> bars) =>
         if q.state != 2 and q.state != 4 and not q.shadow
             best := math.max(best, f_common(bars, f_swingBars(q)))
     best
-var int lastEndBear = -1
-var int lastEndBull = -1
 
 bool hsForm  = false
 bool ihsForm = false
@@ -238,7 +246,7 @@ array<int> idx = array.new<int>()
 int n = pType.size()
 if newPiv
     int lt = pType.get(n - 1)
-    int lastEnd = lt == 1 ? lastEndBear : lastEndBull
+    int lastEnd = f_liveEnd(lt == 1 ? -1 : 1)
     // H&S / Inverse: five consecutive swings LS, neck1, head, neck2, RS
     if n >= 5
         float ls  = pPrice.get(n - 5)
@@ -333,10 +341,6 @@ if newKind > 0
     pats.push(p)
     if showPend and not p.shadow
         f_render(p)
-    if dir == -1
-        lastEndBear := lB
-    else
-        lastEndBull := lB
     if pats.size() > maxKeep
         f_clear(pats.shift())
     hsForm  := newKind == 1 and not p.shadow
