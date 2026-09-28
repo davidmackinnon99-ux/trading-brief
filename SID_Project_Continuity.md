@@ -1,9 +1,9 @@
 # SID Strategy — Project Continuity
 
 **Living doc — git is the version history (no more numbered copies).**
-**Last updated:** 28 September 2026
+**Last updated:** 29 September 2026
 **Supersedes:** SID_Project_Continuity_9 (29 Mar 2026) + the iCloud `v10` draft — both archive only.
-**Strategy:** v10.5.4.15 (backtest) · **Indicator:** SID Trading Signals Pro v8.5.12 (entry+confluence)
+**Strategy:** SID Strategy v10.5.18 (backtest) · **Indicator:** SID Trading Signals Pro v8.5.18 (entry+confluence) — code in `~/Trading Indicators` repo
 
 ---
 
@@ -138,7 +138,7 @@ histogram keeps converging post-entry.
 
 ---
 
-## 3. SID entry/exit logic — from indicator source v8.5.12 (authoritative)
+## 3. SID entry/exit logic — from indicator source v8.5.18 (authoritative; MACD-turn entry re-confirmed 29 Sep 2026, see 1g)
 - **Long entry:** OS touch (RSI ≤ 30) within last **10 bars** · RSI < 50 · RSI rising ·
   **MACD line rising** (`macd_slope_bars`=1; note: SID uses MACD-line *slope*, NOT MACD-vs-
   Signal like LORP) · valid SL · flat · >5 bars since last exit.
@@ -222,6 +222,17 @@ replayed without hindsight; masterclass entry candles per Caginalp & Laurent 199
   shorts -1.40 vs -0.38) but not statistically reliable and absent in 2013–19 — context only, not a rule.
 - **Entry candles (TIU/TOU/3WS/MS and bear equivalents):** no edge on either side.
 - Decision pending David: keep Pattern Finder as a discretionary aid; no rule changes on this evidence.
+
+## 1g. Entry trigger reverted to MACD TURN — 29 September 2026
+- **Decision (David):** SID entry goes back to the original **MACD turn** — MACD line turning in
+  the same direction as RSI (`macd_slope_bars`=1) — replacing the MACD/signal **crossover-in-window**
+  trigger used since v10.5.12 / v8.5.16 (25 Aug 2026). Reason: the cross was the cleaner signal but
+  got him into trades too late.
+- **Entry judgement aid:** MACD Separation & Convergence **v1.3** (see 1d) read alongside the turn to
+  decide whether to take it — discretionary, not coded as a gate.
+- **Code:** SID Strategy **v10.5.18** + SID Trading Signals Pro **v8.5.18**. Only change is the
+  "Require MACD Crossover" input default true → false in both; crossover logic (incl. the v10.5.13 /
+  v8.5.17 still-on-confirming-side fix) kept as a one-click option. Both must match. Not backtested yet.
 
 ## 5. Open items (need input — not resolvable from files)
 - [ ] Reconcile the 300-trade manual journal (`analysis/sid-btw-universe/Backtesting_Sheet_300_SID.xlsx`) against `data/trades/trades_all.csv` and the automated BTW-universe backtest — three SID datasets now exist and haven't been cross-checked against each other.

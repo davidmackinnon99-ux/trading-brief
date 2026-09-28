@@ -40,13 +40,13 @@ Bar Prediction Values, ATR%, RVOL, VD, Aroon, ADX, DI+/DI-, WRB, Range%, vs Open
 ## SID — OB/OS Bounce (Long + Short, Daily)
 
 **Layout:** XN1LuowU · Hint: `SID Trading Signals Pro`  
-**Indicator:** SID Trading Signals Pro v8.5.12 (entry + confluence), NOT v10.5.4.15 strategy
+**Indicator:** SID Trading Signals Pro v8.5.18 (entry + confluence; MACD-turn entry), NOT v10.5.18 strategy
 
 ### Hard filters (brief code)
 
 | Factor | Rule |
 |--------|------|
-| Entry signal | `Long Entry Signal = 1` or `Short Entry Signal = 1` from v8.5.12 must be true |
+| Entry signal | `Long Entry Signal = 1` or `Short Entry Signal = 1` from v8.5.18 must be true |
 | 10-bar rule | Built into indicator — entry can only fire within 10 bars of initial OB/OS cross |
 
 ### Context columns (shown, not filtered)
