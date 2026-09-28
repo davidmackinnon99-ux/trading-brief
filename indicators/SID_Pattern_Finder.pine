@@ -1,0 +1,275 @@
+// This Pine Script™ code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// SID Pattern Finder v1.0 — Head & Shoulders, Inverse H&S, Double Top, Double Bottom
+// Stand-alone directional-context tool for SID entries. Visual style after theEccentricTrader's H&S script.
+// Created 28 Sep 2026.
+//@version=6
+indicator("SID Pattern Finder [H&S / Double Top-Bottom]", shorttitle = "SID Patterns", overlay = true, max_lines_count = 500, max_labels_count = 500)
+
+// ───────────────────────── Inputs ─────────────────────────
+grpD      = "Detection"
+pivLen    = input.int(4, "Swing strength (bars each side)", minval = 2, maxval = 15, group = grpD, tooltip = "A swing high/low needs this many lower/higher bars on each side. Lower = more (noisier) patterns, found sooner. Patterns appear this many bars after the final shoulder/top.")
+maxWidth  = input.int(60, "Max pattern width (bars)", minval = 10, maxval = 300, group = grpD, tooltip = "Lookback limit: first shoulder/top to last shoulder/top.")
+atrLen    = input.int(14, "ATR length", minval = 1, group = grpD)
+shTol     = input.float(1.0, "H&S: shoulder height tolerance (×ATR)", minval = 0.1, step = 0.1, group = grpD)
+headMin   = input.float(0.5, "H&S: min head prominence over shoulders (×ATR)", minval = 0.1, step = 0.1, group = grpD)
+dblTol    = input.float(0.5, "Double: max difference between tops/bottoms (×ATR)", minval = 0.1, step = 0.1, group = grpD)
+dblDepth  = input.float(1.5, "Double: min depth of middle swing (×ATR)", minval = 0.1, step = 0.1, group = grpD)
+dblMinGap = input.int(5, "Double: min bars between tops/bottoms", minval = 2, group = grpD)
+breakWin  = input.int(20, "Bars allowed for neckline break", minval = 1, group = grpD, tooltip = "After the final swing, the pattern stays 'pending' this long. No break by then = expired.")
+
+grpS      = "Show"
+showHS    = input.bool(true, "Head & Shoulders (bearish)", group = grpS)
+showIHS   = input.bool(true, "Inverse Head & Shoulders (bullish)", group = grpS)
+showDT    = input.bool(true, "Double Top (bearish)", group = grpS)
+showDB    = input.bool(true, "Double Bottom (bullish)", group = grpS)
+showNeck  = input.bool(true, "Necklines", group = grpS)
+showTgt   = input.bool(true, "Measured-move targets", group = grpS)
+showPanel = input.bool(true, "Status panel", group = grpS)
+showZig   = input.bool(false, "Swing zigzag (for checking pivots)", group = grpS)
+maxKeep   = input.int(12, "Max patterns kept on chart", minval = 1, maxval = 40, group = grpS)
+
+grpC      = "Colours"
+bearCol   = input.color(color.new(color.red, 0), "Bearish pattern", group = grpC)
+bullCol   = input.color(color.new(color.teal, 0), "Bullish pattern", group = grpC)
+neckCol   = input.color(color.new(color.yellow, 0), "Neckline", group = grpC)
+failCol   = input.color(color.new(color.gray, 40), "Failed / expired", group = grpC)
+
+// ───────────────────────── Types & helpers ─────────────────────────
+// kind: 1 = H&S, 2 = Inverse H&S, 3 = Double Top, 4 = Double Bottom
+// state: 0 = pending, 1 = neckline broken (confirmed), 2 = failed, 3 = expired
+type Pat
+    int          kind
+    int          key
+    int          dir
+    int          nb1
+    float        np1
+    int          nb2
+    float        np2
+    int          lastBar
+    float        height
+    float        invalid
+    int          state  = 0
+    int          brkBar = na
+    array<line>  lns
+    array<label> lbs
+    line         neck
+    line         tgt
+
+f_nv(int b1, float p1, int b2, float p2, int x) =>
+    b2 == b1 ? p1 : p1 + (p2 - p1) * (x - b1) / (b2 - b1)
+
+f_name(int k) =>
+    k == 1 ? "H&S" : k == 2 ? "INV H&S" : k == 3 ? "DOUBLE TOP" : "DOUBLE BOTTOM"
+
+f_clear(Pat p) =>
+    for l in p.lns
+        line.delete(l)
+    for lb in p.lbs
+        label.delete(lb)
+    line.delete(p.neck)
+    line.delete(p.tgt)
+
+// ───────────────────────── Swing pivots (alternating zigzag) ─────────────────────────
+var array<int>   pType  = array.new<int>()
+var array<float> pPrice = array.new<float>()
+var array<int>   pBar   = array.new<int>()
+var array<float> pAtr   = array.new<float>()
+
+// returns 0 = no change, 1 = new pivot added, 2 = last pivot replaced by a more extreme one
+f_add(int t, float p, int b, float a) =>
+    int res = 0
+    int n = array.size(pType)
+    if n > 0 and array.get(pType, n - 1) == t
+        float last = array.get(pPrice, n - 1)
+        if (t == 1 and p > last) or (t == -1 and p < last)
+            array.set(pPrice, n - 1, p)
+            array.set(pBar, n - 1, b)
+            array.set(pAtr, n - 1, a)
+            res := 2
+    else
+        array.push(pType, t)
+        array.push(pPrice, p)
+        array.push(pBar, b)
+        array.push(pAtr, a)
+        res := 1
+        if array.size(pType) > 12
+            array.shift(pType)
+            array.shift(pPrice)
+            array.shift(pBar)
+            array.shift(pAtr)
+    res
+
+atr    = ta.atr(atrLen)
+ph     = ta.pivothigh(high, pivLen, pivLen)
+pl     = ta.pivotlow(low, pivLen, pivLen)
+pivBar = bar_index - pivLen
+pivAtr = atr[pivLen]
+
+int chg = 0
+if not na(ph)
+    chg := math.max(chg, f_add(1, ph, pivBar, pivAtr))
+if not na(pl)
+    chg := math.max(chg, f_add(-1, pl, pivBar, pivAtr))
+
+int n = array.size(pType)
+
+var line zz = na
+if showZig and chg > 0 and n >= 2
+    if chg == 2 and not na(zz)
+        line.set_xy2(zz, array.get(pBar, n - 1), array.get(pPrice, n - 1))
+    else
+        zz := line.new(array.get(pBar, n - 2), array.get(pPrice, n - 2), array.get(pBar, n - 1), array.get(pPrice, n - 1), color = color.new(color.gray, 50), style = line.style_dotted)
+
+// ───────────────────────── Pattern builder ─────────────────────────
+f_make(int kind, int s) =>
+    int   cnt   = kind <= 2 ? 5 : 3
+    int   dir   = kind == 1 or kind == 3 ? -1 : 1
+    color col   = dir == -1 ? bearCol : bullCol
+    array<line>  lns = array.new<line>()
+    array<label> lbs = array.new<label>()
+    for i = s to s + cnt - 2
+        lns.push(line.new(array.get(pBar, i), array.get(pPrice, i), array.get(pBar, i + 1), array.get(pPrice, i + 1), color = col, width = 2))
+    int   lastB = array.get(pBar, s + cnt - 1)
+    int   nb1   = array.get(pBar, s + 1)
+    float np1   = array.get(pPrice, s + 1)
+    int   nb2   = kind <= 2 ? array.get(pBar, s + 3) : nb1
+    float np2   = kind <= 2 ? array.get(pPrice, s + 3) : np1
+    float p0    = array.get(pPrice, s)
+    float p2    = array.get(pPrice, s + 2)
+    float extreme = kind <= 2 ? p2 : dir == -1 ? math.max(p0, p2) : math.min(p0, p2)
+    int   refB  = kind <= 2 ? array.get(pBar, s + 2) : int((array.get(pBar, s) + array.get(pBar, s + 2)) / 2)
+    float height = math.abs(extreme - f_nv(nb1, np1, nb2, np2, refB))
+    int   endB  = lastB + breakWin
+    lbs.push(label.new(refB, extreme, f_name(kind), style = dir == -1 ? label.style_label_down : label.style_label_up, color = color.new(color.black, 100), textcolor = col, size = size.small))
+    line nk = na
+    if showNeck
+        nk := line.new(nb1, np1, endB, f_nv(nb1, np1, nb2, np2, endB), color = neckCol, width = 1)
+    line tg = na
+    if showTgt
+        float tp = f_nv(nb1, np1, nb2, np2, lastB) + dir * height
+        tg := line.new(lastB, tp, endB, tp, color = col, style = line.style_dashed)
+    Pat.new(kind, array.get(pBar, s), dir, nb1, np1, nb2, np2, lastB, height, extreme, 0, na, lns, lbs, nk, tg)
+
+// ───────────────────────── Detection ─────────────────────────
+var array<Pat> pats = array.new<Pat>()
+
+bool hsForm  = false
+bool ihsForm = false
+bool dtForm  = false
+bool dbForm  = false
+bool hsBrk   = false
+bool ihsBrk  = false
+bool dtBrk   = false
+bool dbBrk   = false
+
+int newKind = 0
+int newS    = 0
+if chg > 0 and n >= 3
+    int lt = array.get(pType, n - 1)
+    // Head & Shoulders / Inverse — 5 alternating swings: shoulder, neck, head, neck, shoulder
+    if n >= 5
+        float a  = array.get(pPrice, n - 5)
+        float c  = array.get(pPrice, n - 3)
+        float e  = array.get(pPrice, n - 1)
+        float ar = array.get(pAtr, n - 3)
+        bool  wOk = array.get(pBar, n - 1) - array.get(pBar, n - 5) <= maxWidth
+        bool  shOk = math.abs(a - e) <= shTol * ar
+        if lt == 1 and showHS and wOk and shOk and c - math.max(a, e) >= headMin * ar
+            newKind := 1
+            newS    := n - 5
+        else if lt == -1 and showIHS and wOk and shOk and math.min(a, e) - c >= headMin * ar
+            newKind := 2
+            newS    := n - 5
+    // Double Top / Bottom — 3 alternating swings: top, trough, top (or mirror)
+    if newKind == 0
+        float a   = array.get(pPrice, n - 3)
+        float b   = array.get(pPrice, n - 2)
+        float c   = array.get(pPrice, n - 1)
+        float ar  = array.get(pAtr, n - 3)
+        int   gap = array.get(pBar, n - 1) - array.get(pBar, n - 3)
+        bool  gOk = gap >= dblMinGap and gap <= maxWidth
+        bool  eq  = math.abs(a - c) <= dblTol * ar
+        if lt == 1 and showDT and gOk and eq and math.min(a, c) - b >= dblDepth * ar
+            newKind := 3
+            newS    := n - 3
+        else if lt == -1 and showDB and gOk and eq and b - math.max(a, c) >= dblDepth * ar
+            newKind := 4
+            newS    := n - 3
+
+if newKind > 0
+    int key = array.get(pBar, newS)
+    // same pattern re-found after its last swing extended: redraw rather than duplicate
+    if array.size(pats) > 0
+        for i = array.size(pats) - 1 to 0
+            Pat q = array.get(pats, i)
+            if q.kind == newKind and q.key == key
+                f_clear(q)
+                array.remove(pats, i)
+    array.push(pats, f_make(newKind, newS))
+    if array.size(pats) > maxKeep
+        f_clear(array.shift(pats))
+    hsForm  := newKind == 1
+    ihsForm := newKind == 2
+    dtForm  := newKind == 3
+    dbForm  := newKind == 4
+
+// ───────────────────────── Neckline break / failure / expiry ─────────────────────────
+if barstate.isconfirmed and array.size(pats) > 0
+    for p in pats
+        if p.state == 0 and bar_index > p.lastBar
+            float nv     = f_nv(p.nb1, p.np1, p.nb2, p.np2, bar_index)
+            bool  broke  = p.dir == -1 ? close < nv : close > nv
+            bool  failed = p.dir == -1 ? close > p.invalid : close < p.invalid
+            color col    = p.dir == -1 ? bearCol : bullCol
+            if broke
+                p.state  := 1
+                p.brkBar := bar_index
+                p.lbs.push(label.new(bar_index, p.dir == -1 ? high : low, (p.dir == -1 ? "▼ " : "▲ ") + f_name(p.kind), style = p.dir == -1 ? label.style_label_down : label.style_label_up, color = col, textcolor = color.white, size = size.tiny))
+                if not na(p.tgt)
+                    float tp = nv + p.dir * p.height
+                    line.set_xy1(p.tgt, bar_index, tp)
+                    line.set_xy2(p.tgt, bar_index + breakWin, tp)
+                hsBrk  := hsBrk or p.kind == 1
+                ihsBrk := ihsBrk or p.kind == 2
+                dtBrk  := dtBrk or p.kind == 3
+                dbBrk  := dbBrk or p.kind == 4
+            else if failed or bar_index - p.lastBar > breakWin
+                p.state := failed ? 2 : 3
+                for l in p.lns
+                    line.set_color(l, failCol)
+                if not na(p.neck)
+                    line.set_color(p.neck, failCol)
+                    line.set_style(p.neck, line.style_dotted)
+                line.delete(p.tgt)
+                for lb in p.lbs
+                    label.set_textcolor(lb, failCol)
+                    label.set_text(lb, label.get_text(lb) + (failed ? " ✗" : " (no break)"))
+
+// ───────────────────────── Bias output (Data Window) & panel ─────────────────────────
+// +2 bullish confirmed, +1 bullish pending, -1 bearish pending, -2 bearish confirmed, 0 none/stale
+int bias = 0
+string status = "None recent"
+if array.size(pats) > 0
+    Pat lp = array.last(pats)
+    if lp.state == 0 and bar_index - lp.lastBar <= breakWin
+        bias   := lp.dir
+        status := f_name(lp.kind) + " — pending neckline break"
+    else if lp.state == 1 and bar_index - lp.brkBar <= breakWin
+        bias   := lp.dir * 2
+        status := f_name(lp.kind) + " — confirmed " + str.tostring(bar_index - lp.brkBar) + " bars ago"
+
+plot(bias, "Pattern Bias", display = display.data_window)
+
+var table tb = table.new(position.top_right, 1, 1, bgcolor = color.new(color.black, 80), border_width = 1)
+if showPanel and barstate.islast
+    color tc = bias > 0 ? bullCol : bias < 0 ? bearCol : color.gray
+    table.cell(tb, 0, 0, "Pattern: " + status, text_color = tc, text_size = size.small)
+
+// ───────────────────────── Alerts ─────────────────────────
+alertcondition(hsForm,  "H&S formed",             "{{ticker}} {{interval}}: Head & Shoulders formed (pending neckline)")
+alertcondition(ihsForm, "Inverse H&S formed",     "{{ticker}} {{interval}}: Inverse Head & Shoulders formed (pending neckline)")
+alertcondition(dtForm,  "Double Top formed",      "{{ticker}} {{interval}}: Double Top formed (pending neckline)")
+alertcondition(dbForm,  "Double Bottom formed",   "{{ticker}} {{interval}}: Double Bottom formed (pending neckline)")
+alertcondition(hsBrk or dtBrk,   "Bearish neckline break", "{{ticker}} {{interval}}: Bearish pattern neckline broken")
+alertcondition(ihsBrk or dbBrk,  "Bullish neckline break", "{{ticker}} {{interval}}: Bullish pattern neckline broken")
+alertcondition(hsForm or ihsForm or dtForm or dbForm, "Any pattern formed", "{{ticker}} {{interval}}: Reversal pattern formed")

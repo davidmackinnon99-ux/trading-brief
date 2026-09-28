@@ -1,7 +1,7 @@
 # SID Strategy — Project Continuity
 
 **Living doc — git is the version history (no more numbered copies).**
-**Last updated:** 7 July 2026
+**Last updated:** 28 September 2026
 **Supersedes:** SID_Project_Continuity_9 (29 Mar 2026) + the iCloud `v10` draft — both archive only.
 **Strategy:** v10.5.4.15 (backtest) · **Indicator:** SID Trading Signals Pro v8.5.12 (entry+confluence)
 
@@ -175,9 +175,22 @@ histogram keeps converging post-entry.
 
 ---
 
+## 1e. SID Pattern Finder v1.0 — 28 September 2026
+
+New stand-alone overlay `indicators/SID_Pattern_Finder.pine` to help read directional context
+before a SID entry: Head & Shoulders, Inverse H&S, Double Top, Double Bottom.
+- Swing pivots (default 4 bars each side) chained into an alternating zigzag; patterns limited to
+  60 bars wide; shoulder/top matching and depth measured in ATR so it scales across tickers.
+- Each pattern is drawn with its neckline and measured-move target, stays "pending" up to 20 bars,
+  then marks as confirmed (close through neckline), failed (close beyond head/tops) or expired.
+- Data Window "Pattern Bias": +2 bull confirmed, +1 bull pending, -1 bear pending, -2 bear confirmed.
+  Alerts for each pattern forming and for bullish/bearish neckline breaks.
+- Status: not yet validated. David to test against past SID entries before any use in the brief.
+
 ## 5. Open items (need input — not resolvable from files)
 - [ ] Reconcile the 300-trade manual journal (`analysis/sid-btw-universe/Backtesting_Sheet_300_SID.xlsx`) against `data/trades/trades_all.csv` and the automated BTW-universe backtest — three SID datasets now exist and haven't been cross-checked against each other.
 - [x] ~30% of brief candidates were funds/trusts, not equities — fixed 17 Sep 2026 by excluding sector "Miscellaneous" tickers from both `lorpAll` and `sidPass` in `analyse-brief.cjs`; see `LORP_Project_Continuity.md`'s 17 Sep entry for the full writeup (applies to both strategies).
+- [ ] Test SID Pattern Finder v1.0 against past SID entries; decide whether pattern bias belongs in the brief.
 - [ ] Strategy changes v10.5.4.12 → .15 detail (what changed since 29 Mar).
 - [ ] BTW universe re-export status (v10.5.4.10+, Ticker Regime ON).
 - [ ] Recent live-trade findings (39-trade journal is in `SID DATA/`; losers catalogued in
