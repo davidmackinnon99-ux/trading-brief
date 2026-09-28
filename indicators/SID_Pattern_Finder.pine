@@ -1,6 +1,8 @@
 // This Pine Script™ code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
-// SID Pattern Finder v2.3 — Head & Shoulders, Inverse H&S, Double Top, Double Bottom
+// SID Pattern Finder v2.4 — Head & Shoulders, Inverse H&S, Double Top, Double Bottom
 // Stand-alone directional-context overlay for SID entries.
+// v2.4 (28 Sep 2026): a pattern sharing 2+ swings with one already shown is held back (not drawn) and only
+//   replaces the earlier pattern if its own neckline breaks (EMBJ double top + double bottom from the same swings).
 // v2.3 (28 Sep 2026): min bars between double tops/bottoms 8 -> 5 (EMBJ Aug double top was 7 bars);
 //   patterns that formed but never broke the neckline now shown in grey by default (failed ones still hidden).
 // v2.2 (28 Sep 2026): default swing size 1.25 ATR (caught GLD Aug H&S); double tops/bottoms may span minor swings;
@@ -10,7 +12,7 @@
 //   prior-trend rules added; no overlapping patterns; shaded pattern shapes with LS/RS markers;
 //   failed / unbroken patterns hidden by default.
 //@version=6
-indicator("SID Pattern Finder v2.3 [H&S / Double Top-Bottom]", shorttitle = "SID Patterns", overlay = true,
+indicator("SID Pattern Finder v2.4 [H&S / Double Top-Bottom]", shorttitle = "SID Patterns", overlay = true,
      max_lines_count = 500, max_labels_count = 500, max_polylines_count = 100, max_bars_back = 500)
 
 // ───────────────────────── Inputs ─────────────────────────
@@ -57,7 +59,8 @@ deadCol   = input.color(color.new(color.gray, 30), "Failed / never broken", grou
 
 // ───────────────────────── Types & helpers ─────────────────────────
 // kind: 1 = H&S, 2 = Inverse H&S, 3 = Double Top, 4 = Double Bottom
-// state: 0 = forming, 1 = confirmed (close through neckline), 2 = failed, 3 = never broken
+// state: 0 = forming, 1 = confirmed (close through neckline), 2 = failed, 3 = never broken, 4 = superseded
+// shadow: pattern shares 2+ swings with a pattern already shown; kept hidden unless its own neckline breaks
 type Pat
     int                kind
     int                dir
@@ -81,6 +84,7 @@ type Pat
     label              brk
     label              tgtLbl
     array<label>       ptLbls
+    bool               shadow = false
 
 f_nv(int b1, float p1, int b2, float p2, int x) =>
     b2 == b1 ? p1 : p1 + (p2 - p1) * (x - b1) / (b2 - b1)
@@ -197,6 +201,28 @@ if barstate.isconfirmed and not na(atr)
 
 // ───────────────────────── Detection ─────────────────────────
 var array<Pat> pats = array.new<Pat>()
+
+// swing bars of a pattern (its points without the two neckline closure points)
+f_swingBars(Pat p) =>
+    array<int> r = array.new<int>()
+    for i = 0 to p.pts.size() - 3
+        r.push(p.pts.get(i).index)
+    r
+
+f_common(array<int> a, array<int> b) =>
+    int c = 0
+    for x in a
+        if b.includes(x)
+            c += 1
+    c
+
+// most swings a candidate shares with any pattern currently shown or forming
+f_shared(array<int> bars) =>
+    int best = 0
+    for q in pats
+        if q.state != 2 and q.state != 4 and not q.shadow
+            best := math.max(best, f_common(bars, f_swingBars(q)))
+    best
 var int lastEndBear = -1
 var int lastEndBull = -1
 
@@ -303,8 +329,9 @@ if newKind > 0
     Pat p = Pat.new(kind = newKind, dir = dir, pts = pts, nb1 = nb1, np1 = np1, nb2 = nb2, np2 = np2,
          firstBar = fB, lastBar = lB, hb = hb, hp = hp, height = math.abs(hp - f_nv(nb1, np1, nb2, np2, hb)),
          state = 0, ptLbls = array.new<label>())
+    p.shadow := f_shared(f_swingBars(p)) >= 2
     pats.push(p)
-    if showPend
+    if showPend and not p.shadow
         f_render(p)
     if dir == -1
         lastEndBear := lB
@@ -312,10 +339,10 @@ if newKind > 0
         lastEndBull := lB
     if pats.size() > maxKeep
         f_clear(pats.shift())
-    hsForm  := newKind == 1
-    ihsForm := newKind == 2
-    dtForm  := newKind == 3
-    dbForm  := newKind == 4
+    hsForm  := newKind == 1 and not p.shadow
+    ihsForm := newKind == 2 and not p.shadow
+    dtForm  := newKind == 3 and not p.shadow
+    dbForm  := newKind == 4 and not p.shadow
 
 // ───────────────────────── Neckline break / failure / expiry ─────────────────────────
 if barstate.isconfirmed and pats.size() > 0
@@ -329,17 +356,29 @@ if barstate.isconfirmed and pats.size() > 0
                 p.state  := 1
                 p.endBar := bar_index
                 p.tgtP   := nv + p.dir * p.height
+                if p.shadow
+                    // a held-back overlapping pattern broke out: it replaces the pattern(s) it overlapped
+                    p.shadow := false
+                    array<int> mine = f_swingBars(p)
+                    for q in pats
+                        if not (q.firstBar == p.firstBar and q.kind == p.kind) and f_common(mine, f_swingBars(q)) >= 2
+                            q.state := 4
+                            f_clear(q)
                 f_render(p)
                 bearBrk := bearBrk or p.dir == -1
                 bullBrk := bullBrk or p.dir == 1
             else if failed or bar_index - p.lastBar > breakWin
                 p.state  := failed ? 2 : 3
                 p.endBar := bar_index
-                if failed ? showFail : showNoBrk
+                if (failed ? showFail : showNoBrk) and not p.shadow
                     f_render(p)
                 else
                     f_clear(p)
                     pats.remove(i)
+    if pats.size() > 0
+        for i = pats.size() - 1 to 0
+            if pats.get(i).state == 4
+                pats.remove(i)
 
 // ───────────────────────── Bias output (Data Window) & panel ─────────────────────────
 // +2 bullish confirmed, +1 bullish forming, -1 bearish forming, -2 bearish confirmed, 0 none
@@ -348,6 +387,8 @@ string status = "No active pattern"
 if pats.size() > 0
     for i = pats.size() - 1 to 0
         Pat p = pats.get(i)
+        if p.shadow or p.state >= 2
+            continue
         if p.state == 0
             bias   := p.dir
             status := f_name(p.kind) + " forming · neckline " + str.tostring(f_nv(p.nb1, p.np1, p.nb2, p.np2, bar_index), format.mintick)

@@ -204,6 +204,10 @@ Head & Shoulders, Inverse H&S, Double Top, Double Bottom.
   the tops were 7 bars apart (min was 8) — now 5. Note the neckline was never closed below (lowest close
   71.56), so it shows as "formed, no break"; such patterns are now shown in grey by default (failed ones
   stay hidden).
+- **v2.4:** EMBJ showed a Double Top AND a Double Bottom built from the same swings (79.76 / 71.12 / 79.53
+  then 71.12 / 79.53 / 71.29) — really one 71–80 range. A pattern sharing 2+ swings with one already
+  shown is now held back and only replaces it if its own neckline breaks (keeps GLD's confirmed Jul
+  double bottom, which overlapped a failed double top). Offline: EMBJ shows only the double top.
 - Status: David to test against past SID entries.
 
 ## 5. Open items (need input — not resolvable from files)
