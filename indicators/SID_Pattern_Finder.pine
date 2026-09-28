@@ -1,20 +1,24 @@
 // This Pine Script™ code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
-// SID Pattern Finder v2.1 — Head & Shoulders, Inverse H&S, Double Top, Double Bottom
+// SID Pattern Finder v2.2 — Head & Shoulders, Inverse H&S, Double Top, Double Bottom
 // Stand-alone directional-context overlay for SID entries.
+// v2.2 (28 Sep 2026): default swing size 1.25 ATR (caught GLD Aug H&S); double tops/bottoms may span minor swings;
+//   trend-into-pattern checked over the 20 bars before the pattern instead of one swing.
 // v2.1 (28 Sep 2026): a new pattern may not reuse the last swing of the previous one (no chained double bottoms/tops).
 // v2.0 (28 Sep 2026): ATR-size swings replace fixed-bar pivots; neckline-slope, shoulder-timing and
 //   prior-trend rules added; no overlapping patterns; shaded pattern shapes with LS/RS markers;
 //   failed / unbroken patterns hidden by default.
 //@version=6
-indicator("SID Pattern Finder v2 [H&S / Double Top-Bottom]", shorttitle = "SID Patterns", overlay = true,
-     max_lines_count = 500, max_labels_count = 500, max_polylines_count = 100)
+indicator("SID Pattern Finder v2.2 [H&S / Double Top-Bottom]", shorttitle = "SID Patterns", overlay = true,
+     max_lines_count = 500, max_labels_count = 500, max_polylines_count = 100, max_bars_back = 500)
 
 // ───────────────────────── Inputs ─────────────────────────
 grpD      = "Detection"
-zzMult    = input.float(1.5, "Swing size (×ATR)", minval = 0.5, step = 0.25, group = grpD,
+zzMult    = input.float(1.25, "Swing size (×ATR)", minval = 0.5, step = 0.25, group = grpD,
      tooltip = "A high or low only counts as a swing once price has reversed this many ATRs away from it. Higher = fewer, bigger, cleaner patterns. Lower = more, smaller patterns.")
 atrLen    = input.int(14, "ATR length", minval = 1, group = grpD)
 maxWidth  = input.int(60, "Max pattern width (bars)", minval = 10, maxval = 300, group = grpD)
+trendBars = input.int(20, "Trend-into-pattern lookback (bars)", minval = 5, group = grpD,
+     tooltip = "A top pattern needs price below the neckline somewhere in this many bars before it starts (a rise into the top); a bottom pattern needs price above the neckline (a fall into the bottom).")
 breakWin  = input.int(15, "Bars allowed for neckline break", minval = 1, group = grpD,
      tooltip = "After the last shoulder/top, the neckline must be broken within this many bars or the pattern is dropped.")
 
@@ -77,6 +81,15 @@ type Pat
 
 f_nv(int b1, float p1, int b2, float p2, int x) =>
     b2 == b1 ? p1 : p1 + (p2 - p1) * (x - b1) / (b2 - b1)
+
+// lowest low (or highest high) in the len bars before bar b — used to require a trend into the pattern
+f_before(int b, int len, bool lowest) =>
+    float r = lowest ? 1e10 : -1e10
+    for k = 1 to len
+        int off = bar_index - b + k
+        if off <= bar_index
+            r := lowest ? math.min(r, low[off]) : math.max(r, high[off])
+    r
 
 f_name(int k) =>
     k == 1 ? "H&S" : k == 2 ? "INV H&S" : k == 3 ? "DOUBLE TOP" : "DOUBLE BOTTOM"
@@ -192,14 +205,13 @@ bool bearBrk = false
 bool bullBrk = false
 
 int newKind = 0
-int newS    = 0
+array<int> idx = array.new<int>()
 int n = pType.size()
 if newPiv
     int lt = pType.get(n - 1)
     int lastEnd = lt == 1 ? lastEndBear : lastEndBull
-    // H&S / Inverse: swing before pattern, LS, neck1, head, neck2, RS
-    if n >= 6
-        float p0  = pPrice.get(n - 6)
+    // H&S / Inverse: five consecutive swings LS, neck1, head, neck2, RS
+    if n >= 5
         float ls  = pPrice.get(n - 5)
         float n1  = pPrice.get(n - 4)
         float hd  = pPrice.get(n - 3)
@@ -213,53 +225,76 @@ if newPiv
         int   s2  = bRS - bH
         bool common = bRS - bLS <= maxWidth and math.abs(ls - rs) <= shTol * a and math.abs(n1 - n2) <= neckTol * a
              and math.max(s1, s2) <= symMax * math.min(s1, s2) and bLS > lastEnd
-        if lt == 1 and showHS and common and hd - math.max(ls, rs) >= headMin * a and p0 < math.min(n1, n2)
+        if lt == 1 and showHS and common and hd - math.max(ls, rs) >= headMin * a
+             and f_before(bLS, trendBars, true) < math.min(n1, n2)
             newKind := 1
-            newS    := n - 5
-        else if lt == -1 and showIHS and common and math.min(ls, rs) - hd >= headMin * a and p0 > math.max(n1, n2)
+        else if lt == -1 and showIHS and common and math.min(ls, rs) - hd >= headMin * a
+             and f_before(bLS, trendBars, false) > math.max(n1, n2)
             newKind := 2
-            newS    := n - 5
-    // Double Top / Bottom: swing before pattern, T1, middle, T2
-    if newKind == 0 and n >= 4
-        float p0  = pPrice.get(n - 4)
-        float t1  = pPrice.get(n - 3)
-        float m   = pPrice.get(n - 2)
-        float t2  = pPrice.get(n - 1)
-        float a   = pAtr.get(n - 3)
-        int   bT1 = pBar.get(n - 3)
-        int   gap = pBar.get(n - 1) - bT1
-        bool common = gap >= dblMinGap and gap <= maxWidth and math.abs(t1 - t2) <= dblTol * a and bT1 > lastEnd
-        if lt == 1 and showDT and common and math.min(t1, t2) - m >= dblDepth * a and p0 < m
-            newKind := 3
-            newS    := n - 3
-        else if lt == -1 and showDB and common and m - math.max(t1, t2) >= dblDepth * a and p0 > m
-            newKind := 4
-            newS    := n - 3
+        if newKind > 0
+            for k = n - 5 to n - 1
+                idx.push(k)
+    // Double Top / Bottom: T2 = newest swing; T1 = an earlier swing of the same type, looking past
+    // minor swings in between provided none of them goes beyond the two tops/bottoms
+    if newKind == 0 and n >= 3
+        float t2 = pPrice.get(n - 1)
+        int   b2 = pBar.get(n - 1)
+        int   j  = n - 3
+        while j >= 0 and newKind == 0
+            float t1  = pPrice.get(j)
+            int   b1  = pBar.get(j)
+            int   gap = b2 - b1
+            if gap > maxWidth
+                break
+            bool  blocked = false
+            float mP   = na
+            int   mIdx = -1
+            for k = j + 1 to n - 2
+                float q = pPrice.get(k)
+                if pType.get(k) == lt
+                    if lt == 1 ? q >= math.min(t1, t2) : q <= math.max(t1, t2)
+                        blocked := true
+                else if mIdx < 0 or (lt == 1 ? q < mP : q > mP)
+                    mP   := q
+                    mIdx := k
+            if blocked
+                break
+            float a  = pAtr.get(j)
+            bool  ok = gap >= dblMinGap and math.abs(t1 - t2) <= dblTol * a and b1 > lastEnd
+            if lt == 1
+                ok := ok and showDT and math.min(t1, t2) - mP >= dblDepth * a and f_before(b1, trendBars, true) < mP
+            else
+                ok := ok and showDB and mP - math.max(t1, t2) >= dblDepth * a and f_before(b1, trendBars, false) > mP
+            if ok
+                newKind := lt == 1 ? 3 : 4
+                idx.push(j)
+                idx.push(mIdx)
+                idx.push(n - 1)
+            j -= 2
 
 if newKind > 0
     bool  hs   = newKind <= 2
     int   dir  = newKind == 1 or newKind == 3 ? -1 : 1
-    int   cnt  = hs ? 5 : 3
-    int   fB   = pBar.get(newS)
-    int   lB   = pBar.get(newS + cnt - 1)
-    int   nb1  = pBar.get(newS + 1)
-    float np1  = pPrice.get(newS + 1)
-    int   nb2  = hs ? pBar.get(newS + 3) : nb1
-    float np2  = hs ? pPrice.get(newS + 3) : np1
+    int   fB   = pBar.get(idx.first())
+    int   lB   = pBar.get(idx.last())
+    int   nb1  = pBar.get(idx.get(1))
+    float np1  = pPrice.get(idx.get(1))
+    int   nb2  = hs ? pBar.get(idx.get(3)) : nb1
+    float np2  = hs ? pPrice.get(idx.get(3)) : np1
     int   hb   = na
     float hp   = na
     if hs
-        hb := pBar.get(newS + 2)
-        hp := pPrice.get(newS + 2)
+        hb := pBar.get(idx.get(2))
+        hp := pPrice.get(idx.get(2))
     else
-        float t1 = pPrice.get(newS)
-        float t2 = pPrice.get(newS + 2)
+        float t1 = pPrice.get(idx.first())
+        float t2 = pPrice.get(idx.last())
         bool firstMore = dir == -1 ? t1 >= t2 : t1 <= t2
         hb := firstMore ? fB : lB
         hp := firstMore ? t1 : t2
     array<chart.point> pts = array.new<chart.point>()
-    for i = newS to newS + cnt - 1
-        pts.push(chart.point.from_index(pBar.get(i), pPrice.get(i)))
+    for k in idx
+        pts.push(chart.point.from_index(pBar.get(k), pPrice.get(k)))
     pts.push(chart.point.from_index(lB, f_nv(nb1, np1, nb2, np2, lB)))
     pts.push(chart.point.from_index(fB, f_nv(nb1, np1, nb2, np2, fB)))
     Pat p = Pat.new(kind = newKind, dir = dir, pts = pts, nb1 = nb1, np1 = np1, nb2 = nb2, np2 = np2,

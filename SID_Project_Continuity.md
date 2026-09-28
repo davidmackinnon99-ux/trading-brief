@@ -195,6 +195,11 @@ Head & Shoulders, Inverse H&S, Double Top, Double Bottom.
   (target 102.7); Double Top 26 Aug/9 Sep confirmed 15 Sep (target 117.1); one Jun double top failed
   (hidden). The false April H&S from v1 no longer appears.
 - **v2.1:** a new pattern may no longer reuse the final swing of the previous same-direction pattern (GLD Jun–Jul showed two chained double bottoms sharing the 17 Jul low, each with its own target).
+- **v2.2:** GLD Aug 2026 H&S (LS 12 Aug 407.4 / head 24 Aug 429.4 / RS 3 Sep 413.5, neckline ~397)
+  was missed because the left-shoulder pullback was only ~1.25 ATR. Default swing size now 1.25 ATR;
+  double tops/bottoms may span minor swings (kept ANF's Jul double bottom at the smaller swing size);
+  trend-into-pattern now = price beyond the neckline somewhere in the 20 bars before the pattern.
+  Offline check: GLD H&S confirmed 14 Sep (target 363.2) + Jul double bottom; ANF unchanged.
 - Status: David to test against past SID entries.
 
 ## 5. Open items (need input — not resolvable from files)
