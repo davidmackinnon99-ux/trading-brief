@@ -175,22 +175,31 @@ histogram keeps converging post-entry.
 
 ---
 
-## 1e. SID Pattern Finder v1.0 — 28 September 2026
+## 1e. SID Pattern Finder — 28 September 2026 (v1.0 → v2.0 same day)
 
-New stand-alone overlay `indicators/SID_Pattern_Finder.pine` to help read directional context
-before a SID entry: Head & Shoulders, Inverse H&S, Double Top, Double Bottom.
-- Swing pivots (default 4 bars each side) chained into an alternating zigzag; patterns limited to
-  60 bars wide; shoulder/top matching and depth measured in ATR so it scales across tickers.
-- Each pattern is drawn with its neckline and measured-move target, stays "pending" up to 20 bars,
-  then marks as confirmed (close through neckline), failed (close beyond head/tops) or expired.
-- Data Window "Pattern Bias": +2 bull confirmed, +1 bull pending, -1 bear pending, -2 bear confirmed.
-  Alerts for each pattern forming and for bullish/bearish neckline breaks.
-- Status: not yet validated. David to test against past SID entries before any use in the brief.
+Stand-alone overlay `indicators/SID_Pattern_Finder.pine` for directional context before a SID entry:
+Head & Shoulders, Inverse H&S, Double Top, Double Bottom.
+- **v1.0 rejected on first look (ANF):** fixed 4-bar pivots picked up tiny wiggles as shoulders; no
+  neckline-slope limit (an "H&S" was drawn with a steeply rising neckline); breakout labels sat far from
+  their pattern; failed patterns cluttered the chart.
+- **v2.0 rules:** a swing only counts once price reverses >= 1.5 ATR from it. H&S needs shoulders
+  within 1 ATR of each other, head >= 0.5 ATR beyond the higher shoulder, the two neckline points within
+  1 ATR (no steep necklines), shoulder timing no more than 2.5x lopsided, and a prior trend into the
+  pattern (the swing before the left shoulder sits beyond the neckline). Doubles: tops/bottoms within
+  0.75 ATR, middle swing >= 2 ATR deep, >= 8 bars apart, prior trend required. Max width 60 bars; no
+  overlapping patterns in the same direction. Confirmed = close through neckline within 15 bars.
+- **v2.0 display:** shaded shape between the swings and the neckline, LS/RS markers, name tag on the
+  head/top ("forming" until broken), triangle on the break bar, labelled target. Failed / never-broken
+  patterns hidden by default. Data Window "Pattern Bias": +2/+1/-1/-2.
+- Offline check of the v2 rules on ANF (Feb–Sep 2026): Double Bottom 23 Jun/8 Jul confirmed 15 Jul
+  (target 102.7); Double Top 26 Aug/9 Sep confirmed 15 Sep (target 117.1); one Jun double top failed
+  (hidden). The false April H&S from v1 no longer appears.
+- Status: not yet compiled on TradingView from the cloud session; David to test against past SID entries.
 
 ## 5. Open items (need input — not resolvable from files)
 - [ ] Reconcile the 300-trade manual journal (`analysis/sid-btw-universe/Backtesting_Sheet_300_SID.xlsx`) against `data/trades/trades_all.csv` and the automated BTW-universe backtest — three SID datasets now exist and haven't been cross-checked against each other.
 - [x] ~30% of brief candidates were funds/trusts, not equities — fixed 17 Sep 2026 by excluding sector "Miscellaneous" tickers from both `lorpAll` and `sidPass` in `analyse-brief.cjs`; see `LORP_Project_Continuity.md`'s 17 Sep entry for the full writeup (applies to both strategies).
-- [ ] Test SID Pattern Finder v1.0 against past SID entries; decide whether pattern bias belongs in the brief.
+- [ ] Test SID Pattern Finder v2.0 against past SID entries; decide whether pattern bias belongs in the brief.
 - [ ] Strategy changes v10.5.4.12 → .15 detail (what changed since 29 Mar).
 - [ ] BTW universe re-export status (v10.5.4.10+, Ticker Regime ON).
 - [ ] Recent live-trade findings (39-trade journal is in `SID DATA/`; losers catalogued in
