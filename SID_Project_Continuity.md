@@ -200,6 +200,10 @@ Head & Shoulders, Inverse H&S, Double Top, Double Bottom.
   double tops/bottoms may span minor swings (kept ANF's Jul double bottom at the smaller swing size);
   trend-into-pattern now = price beyond the neckline somewhere in the 20 bars before the pattern.
   Offline check: GLD H&S confirmed 14 Sep (target 363.2) + Jul double bottom; ANF unchanged.
+- **v2.3:** EMBJ Aug 2026 double top (79.76 on 10 Aug / 79.53 on 19 Aug, neckline 71.12) was missed because
+  the tops were 7 bars apart (min was 8) — now 5. Note the neckline was never closed below (lowest close
+  71.56), so it shows as "formed, no break"; such patterns are now shown in grey by default (failed ones
+  stay hidden).
 - Status: David to test against past SID entries.
 
 ## 5. Open items (need input — not resolvable from files)
