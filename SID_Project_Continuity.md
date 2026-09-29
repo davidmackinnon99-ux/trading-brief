@@ -208,6 +208,10 @@ Head & Shoulders, Inverse H&S, Double Top, Double Bottom.
   then 71.12 / 79.53 / 71.29) — really one 71–80 range. A pattern sharing 2+ swings with one already
   shown is now held back and only replaces it if its own neckline breaks (keeps GLD's confirmed Jul
   double bottom, which overlapped a failed double top). Offline: EMBJ shows only the double top.
+- **v2.6 (29 Sep):** SYK double top (352.49 / 317.62 / 349.77, broke 1 Sep, target 282.74) hit its target
+  on 8 Sep but the panel still read "confirmed 18 bars ago". Patterns now switch to "target reached"
+  once price touches the target: bias drops to 0, and the target line stays on the chart as a level
+  (60 bars by default). File: `SID_Pattern_Finder_v2.6.pine` in the trading-indicators repo.
 - Status: David to test against past SID entries.
 
 ## 1f. Pattern study — targets, pattern context, entry candles (28 September 2026)
