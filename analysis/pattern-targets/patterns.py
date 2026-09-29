@@ -1,4 +1,4 @@
-"""Python port of SID Pattern Finder v2.5 (indicators/SID_Pattern_Finder.pine), default settings.
+"""Python port of SID Pattern Finder v2.5 (~/Trading Indicators/indicators/SID_Pattern_Finder_v2.5.pine), default settings.
 Detects H&S / Inverse H&S / Double Top / Double Bottom on daily OHLC and records each pattern's
 life-cycle (found -> confirmed / failed / no-break / superseded) so trades can be checked against
 exactly what the chart would have shown at the time.  Part of the pattern-target study (28 Sep 2026)."""

@@ -177,7 +177,7 @@ histogram keeps converging post-entry.
 
 ## 1e. SID Pattern Finder — 28 September 2026 (v1.0 → v2.0 same day)
 
-Stand-alone overlay `indicators/SID_Pattern_Finder.pine` for directional context before a SID entry:
+Stand-alone overlay `SID_Pattern_Finder_v2.5.pine` (in the `~/Trading Indicators` repo) for directional context before a SID entry:
 Head & Shoulders, Inverse H&S, Double Top, Double Bottom.
 - **v1.0 rejected on first look (ANF):** fixed 4-bar pivots picked up tiny wiggles as shoulders; no
   neckline-slope limit (an "H&S" was drawn with a steeply rising neckline); breakout labels sat far from
