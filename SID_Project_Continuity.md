@@ -212,6 +212,9 @@ Head & Shoulders, Inverse H&S, Double Top, Double Bottom.
   on 8 Sep but the panel still read "confirmed 18 bars ago". Patterns now switch to "target reached"
   once price touches the target: bias drops to 0, and the target line stays on the chart as a level
   (60 bars by default). File: `SID_Pattern_Finder_v2.6.pine` in the trading-indicators repo.
+- **v2.7 (1 Oct):** AMPH panel showed a June double bottom as "target reached 19 bars ago" in October (hit came
+  49 bars after the break) — misleading. A target now only counts if hit within 20 bars of the break;
+  reached level kept 20 bars (was 60); target labels name their pattern (SECZ showed an orphaned target).
 - Status: David to test against past SID entries.
 
 ## 1f. Pattern study — targets, pattern context, entry candles (28 September 2026)
