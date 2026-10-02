@@ -175,6 +175,9 @@ histogram keeps converging post-entry.
 
 ---
 
+> **2 Oct 2026:** the pattern, SMC and student-journal analyses (sections 1e–1k) live in the private
+> **trading-indicators** repo (`~/Trading Indicators/analysis/`), not here — this repo is public.
+
 ## 1e. SID Pattern Finder — 28 September 2026 (v1.0 → v2.0 same day)
 
 Stand-alone overlay `SID_Pattern_Finder_v2.5.pine` (in the `~/Trading Indicators` repo) for directional context before a SID entry:
@@ -219,7 +222,7 @@ Head & Shoulders, Inverse H&S, Double Top, Double Bottom.
 
 ## 1f. Pattern study — targets, pattern context, entry candles (28 September 2026)
 
-Tested against 2,373 SID trades (`analysis/pattern-targets/RESULTS.md`; Pattern Finder v2.5 rules
+Tested against 2,373 SID trades (`trading-indicators: analysis/pattern-targets/RESULTS.md`; Pattern Finder v2.5 rules
 replayed without hindsight; masterclass entry candles per Caginalp & Laurent 1998).
 - **Measured-move target exits don't apply to SID as traded:** 1 of 2,316 trades touched an aligned
   pattern's 50%/75% target before exit, none the 100% target. SID enters after price has fallen back
@@ -244,7 +247,7 @@ replayed without hindsight; masterclass entry candles per Caginalp & Laurent 199
 ## 1g. SMC order-block study — BigBeluga SMC vs SID trades (29 September 2026)
 
 Python port of BigBeluga "Smart Money Concepts [1.0.0]" (defaults), replayed without hindsight and
-checked against the SYK chart; 2,317 SID trades (`analysis/smc-orderblocks/RESULTS.md`).
+checked against the SYK chart; 2,317 SID trades (`trading-indicators: analysis/smc-orderblocks/RESULTS.md`).
 - **Bull order block under a SID long does not help** — 67% WR / -0.17% avg vs 72% / +1.32% (bigger
   losses, same median); consistent across eras, t = -2.0. Don't treat it as extra confidence.
 - **Shorts with a bull order block within 1 ATR below did better, with much smaller losses** (+0.55% vs
@@ -255,7 +258,7 @@ checked against the SYK chart; 2,317 SID trades (`analysis/smc-orderblocks/RESUL
 
 ## 1h. Trading the patterns directly (2 October 2026)
 
-`analysis/pattern-targets/PATTERN_TRADES.md`. Breakout (neckline) entries: no edge for double tops/bottoms
+`trading-indicators: analysis/pattern-targets/PATTERN_TRADES.md`. Breakout (neckline) entries: no edge for double tops/bottoms
 or H&S after a same-stock placebo control. **Early double-bottom longs** (enter when the second bottom is
 confirmed, stop under the lower bottom, 75% measured-move target, 30-bar time stop): +1.12%/trade,
 42% WR, +0.19R over placebo (t 4.2), consistent 2013–26, weak 2005–12. Candidate for a scan — David to
@@ -266,7 +269,7 @@ watchlist (not necessarily an immediate trade).
 
 ## 1i. SID x patterns watchlist test + SID Python port (2 October 2026)
 
-`analysis/pattern-targets/SID_PATTERN_WATCHLIST.md`. **SID v10.5.18 ported to Python** (`sid.py`): 8,642
+`trading-indicators: analysis/pattern-targets/SID_PATTERN_WATCHLIST.md`. **SID v10.5.18 ported to Python** (`sid.py`): 8,642
 generated trades on 101 tickers 2004–26; 98% of the 2,552 recorded trades in trades_all.csv matched
 (same direction, ±3 days) — usable for future SID research on any universe.
 - SID longs while a double bottom is forming (watchlist idea): +0.08% vs +0.89% with no pattern, n 73 —
@@ -278,7 +281,7 @@ generated trades on 101 tickers 2004–26; 98% of the 2,552 recorded trades in t
 
 ## 1j. Student journals (Richard, Leen, Cathie, D-Soh) — 2 October 2026
 
-`analysis/student-journals/RESULTS.md`. 747 trades (688 priced). Only 50% match the SID port (vs 98% for
+`trading-indicators: analysis/student-journals/RESULTS.md`. 747 trades (688 priced). Only 50% match the SID port (vs 98% for
 David's automated trades) — manual, discretionary back-tests. Hand-labelled aligned patterns did better
 (longs +4.43% vs +3.29%, shorts +3.24% vs +2.33%, t ≈ 1.7–1.9), but an objective no-hindsight
 "entry at a second bottom/top" test shows no benefit in their trades or in 8,642 generated SID trades;
@@ -287,7 +290,7 @@ only 21% of labelled patterns pass it. Likely hindsight in labelling. Student ba
 
 ## 1k. Target exhaustion (2 October 2026)
 
-`analysis/pattern-targets/EXHAUSTION.md`. David's observation confirmed on timing: a third of SID trades
+`trading-indicators: analysis/pattern-targets/EXHAUSTION.md`. David's observation confirmed on timing: a third of SID trades
 fire within 15 bars of an opposing pattern reaching its measured-move target. But those trades do no
 better (longs +0.49% vs +0.84%, shorts -0.79% vs -0.42%; students the same). Neckline breaks show no
 drift-adjusted follow-through at 10–60 bars. Look-ahead fix in patterns.py (breakout bar recorded);
