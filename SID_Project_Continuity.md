@@ -129,6 +129,10 @@ instead of waiting for confirming candles (6,673 crosses, 44 journal tickers, 20
   tab reports the same /chart/XN1LuowU/ URL as the real SID layout and was picked first. src/connection.js
   now ignores any layout named "*Clean*" and picks the page that actually carries READY_REQUIRE_STUDY
   (SID Trading Signals / Lorentzian), preferring the pinned layout ID. SID-tab reload retry also uses it.
+- **SID ready-wait (2 Oct):** brief of 2 Oct lost SID again (REQUIRED STUDY MISSING on the correct SID layout;
+  reload-retry also failed) though the indicator computed fine minutes later. Likely the heavier layout since
+  Pattern Finder v2.7. src/core/morning.js now re-reads study values every 2s for up to ~20s when the required
+  study is missing before counting the symbol as missing. SID re-run the same afternoon from the morning watchlist.
 
 ## 2. SID = trend pullback continuation (confirmed)
 Works when: clear underlying trend (SMA50/200 aligned) + temporary counter-move pushes RSI

@@ -192,11 +192,22 @@ export async function runBrief({ rules_path, sections } = {}) {
         timeframeConfirmed = true;
       }
 
-      const [state, indicators, quote] = await Promise.all([
+      let [state, indicators, quote] = await Promise.all([
         chart.getState(),
         data.getStudyValues(),
         data.getQuote({}),
       ]);
+      // 2 Oct 2026: SID Trading Signals sometimes hasn't finished computing after the
+      // 1s scan delay (heavier SID layout since Pattern Finder v2.7). The scan then saw
+      // "no values" on 8 symbols and aborted. If the required study is missing, keep
+      // re-reading for up to ~20s before treating this symbol as missing.
+      if (REQUIRED_STUDY) {
+        const hasReq = (iv) => (iv?.studies || []).some((x) => String(x.name || '').toLowerCase().includes(REQUIRED_STUDY));
+        for (let i = 0; i < 10 && !hasReq(indicators); i++) {
+          await new Promise((r) => setTimeout(r, 2000));
+          indicators = await data.getStudyValues();
+        }
+      }
 
       return { symbol, timeframe: default_timeframe, state, indicators, quote };
     };
