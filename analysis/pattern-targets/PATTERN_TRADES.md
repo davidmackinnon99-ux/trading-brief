@@ -67,3 +67,7 @@ SID-style entry to catch.
 **Trade list for chart review:** `~/pattern-study/out_all/Pattern_Trades_List.xlsx` (also copied to the
 Mac desktop) — 10,423 early-entry double top/bottom trades (75% target) with pattern dates, entry, stop,
 target, neckline break, exit; first sheet = last 15 months (734 rows).
+
+**Update (2 Oct, after look-ahead fix):** breakout entries now use each pattern's own breakout bar and
+include patterns later superseded. 75% target, edge vs placebo: double bottom breakout -0.01R, double top
++0.03R, inverse H&S -0.04R, H&S 0.00R — no edge. Early double bottom unchanged: +0.17R (t 5.4).

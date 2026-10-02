@@ -285,6 +285,14 @@ David's automated trades) — manual, discretionary back-tests. Hand-labelled al
 only 21% of labelled patterns pass it. Likely hindsight in labelling. Student back-test results
 (~80% WR, ~+3%) far exceed mechanical SID — treat manual back-tests with caution.
 
+## 1k. Target exhaustion (2 October 2026)
+
+`analysis/pattern-targets/EXHAUSTION.md`. David's observation confirmed on timing: a third of SID trades
+fire within 15 bars of an opposing pattern reaching its measured-move target. But those trades do no
+better (longs +0.49% vs +0.84%, shorts -0.79% vs -0.42%; students the same). Neckline breaks show no
+drift-adjusted follow-through at 10–60 bars. Look-ahead fix in patterns.py (breakout bar recorded);
+breakout-entry edges now ≈ 0; early double bottom still +0.17R (t 5.4).
+
 ## 5. Open items (need input — not resolvable from files)
 - [ ] Reconcile the 300-trade manual journal (`analysis/sid-btw-universe/Backtesting_Sheet_300_SID.xlsx`) against `data/trades/trades_all.csv` and the automated BTW-universe backtest — three SID datasets now exist and haven't been cross-checked against each other.
 - [x] ~30% of brief candidates were funds/trusts, not equities — fixed 17 Sep 2026 by excluding sector "Miscellaneous" tickers from both `lorpAll` and `sidPass` in `analyse-brief.cjs`; see `LORP_Project_Continuity.md`'s 17 Sep entry for the full writeup (applies to both strategies).
