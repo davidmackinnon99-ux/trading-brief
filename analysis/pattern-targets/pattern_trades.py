@@ -23,9 +23,9 @@ for f in sorted(glob.glob(os.path.join(CACHE, "*.csv"))):
         d = p["dir"]
         for mode in ("breakout", "early"):
             if mode == "breakout":
-                if p["state"] not in (1, 4) or p["neck_brk"] is None:
+                if p["brk"] is None:
                     continue
-                e_bar, base = p["end"], p["neck_brk"]
+                e_bar, base = p["brk"], p["neck_brk"]
             else:
                 if p["shadow"]:
                     continue
@@ -64,7 +64,7 @@ for f in sorted(glob.glob(os.path.join(CACHE, "*.csv"))):
                         o2 = C[e2 + TSTOP]
                     pr.append(d * (o2 - en2) / en2 * 100 / risk)
                 D = px.index
-                brk = p["end"] if p["state"] in (1, 4) and p["neck_brk"] is not None else None
+                brk = p["brk"]
                 a_now = ATR[p["bars"][-1]]
                 speed = (abs(p["np1"] - p["prices"][-1]) / a_now / max(1, brk - p["bars"][-1])) if brk is not None else np.nan
                 rows.append(dict(sym=sym, kind=NAMES[p["kind"]], mode=mode, k=k, year=px.index[e_bar].year,

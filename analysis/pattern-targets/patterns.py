@@ -125,7 +125,7 @@ def detect(H, L, C, P=DEF):
                 p = dict(kind=kind, dir=d, bars=[s[2] for s in sw], prices=[s[1] for s in sw],
                          nb1=sw[1][2], np1=sw[1][1], nb2=(sw[3][2] if hs else sw[1][2]),
                          np2=(sw[3][1] if hs else sw[1][1]), first=sw[0][2], last=sw[-1][2],
-                         found=i, state=0, end=None, tgt=None, neck_brk=None, removed=False)
+                         found=i, state=0, end=None, brk=None, tgt=None, neck_brk=None, removed=False)
                 if hs:
                     p["hb"], p["hp"] = sw[2][2], sw[2][1]
                 else:
@@ -144,7 +144,7 @@ def detect(H, L, C, P=DEF):
             broke = C[i] < v if p["dir"] == -1 else C[i] > v
             failed = C[i] > p["hp"] if p["dir"] == -1 else C[i] < p["hp"]
             if broke:
-                p.update(state=1, end=i, neck_brk=v, tgt=v + p["dir"] * p["height"])
+                p.update(state=1, end=i, brk=i, neck_brk=v, tgt=v + p["dir"] * p["height"])
                 if p["shadow"]:
                     p["shadow"] = False
                     p["shown_from"] = i
