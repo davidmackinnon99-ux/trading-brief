@@ -40,10 +40,18 @@ def ema(x, n):
     return out
 
 
-def sid_trades(O, H, L, C, os_lvl=30, ob_lvl=70, look=10, max_hold=20):
+def sid_trades(O, H, L, C, os_lvl=30, ob_lvl=70, look=10, max_hold=20, cross=None, cross_win=5):
+    """cross=True -> 'Require MACD Crossover' ON: MACD/signal cross within +/-cross_win bars of the latest
+    RSI OS/OB touch and MACD on the right side of the signal line (instead of MACD slope).
+    Default from env SID_CROSS=1."""
+    import os as _os
+    if cross is None:
+        cross = _os.environ.get("SID_CROSS") == "1"
     N = len(C)
     rsi = rsi_wilder(C)
     macd = ema(C, 12) - ema(C, 26)
+    sig = ema(macd, 9)
+    last_xup = last_xdn = None
     trades = []
     pos, entry_bar, entry_px, sl = 0, None, None, None
     last_exit = 0
@@ -53,6 +61,11 @@ def sid_trades(O, H, L, C, os_lvl=30, ob_lvl=70, look=10, max_hold=20):
     long_shown = short_shown = False
     prev_pos = 0
     for i in range(1, N):
+        if not (np.isnan(sig[i]) or np.isnan(sig[i - 1])):
+            if macd[i] > sig[i] and macd[i - 1] <= sig[i - 1]:
+                last_xup = i
+            if macd[i] < sig[i] and macd[i - 1] >= sig[i - 1]:
+                last_xdn = i
         if np.isnan(rsi[i]) or np.isnan(rsi[i - 1]) or np.isnan(macd[i]) or np.isnan(macd[i - 1]):
             prev_pos = pos
             continue
@@ -81,8 +94,15 @@ def sid_trades(O, H, L, C, os_lvl=30, ob_lvl=70, look=10, max_hold=20):
         ob_recent = last_ob is not None and i - last_ob <= look
         os_ok = os_recent and last_os > last_exit
         ob_ok = ob_recent and last_ob > last_exit
-        long_conf = os_recent and rsi[i] < 50 and rsi[i] > rsi[i - 1] and macd[i] > macd[i - 1]
-        short_conf = ob_recent and rsi[i] > 50 and rsi[i] < rsi[i - 1] and macd[i] < macd[i - 1]
+        if cross:
+            up_ok = (last_xup is not None and last_os is not None and abs((i - last_xup) - (i - last_os)) <= cross_win
+                     and not np.isnan(sig[i]) and macd[i] > sig[i])
+            dn_ok = (last_xdn is not None and last_ob is not None and abs((i - last_xdn) - (i - last_ob)) <= cross_win
+                     and not np.isnan(sig[i]) and macd[i] < sig[i])
+        else:
+            up_ok, dn_ok = macd[i] > macd[i - 1], macd[i] < macd[i - 1]
+        long_conf = os_recent and rsi[i] < 50 and rsi[i] > rsi[i - 1] and up_ok
+        short_conf = ob_recent and rsi[i] > 50 and rsi[i] < rsi[i - 1] and dn_ok
         entered = False
         if os_ok and long_conf and setup_low is not None and flat and not long_shown and cool_ok:
             long_shown, trk_long = True, False
