@@ -292,6 +292,9 @@ fire within 15 bars of an opposing pattern reaching its measured-move target. Bu
 better (longs +0.49% vs +0.84%, shorts -0.79% vs -0.42%; students the same). Neckline breaks show no
 drift-adjusted follow-through at 10–60 bars. Look-ahead fix in patterns.py (breakout bar recorded);
 breakout-entry edges now ≈ 0; early double bottom still +0.17R (t 5.4).
+Re-run with MACD crossover entry (Pine option, ±5 bars of RSI touch): 2,988 trades, longs 68% / +0.55%,
+shorts 58% / -0.11% — crossover lifts win rate and shorts vs slope mode. Patterns/exhaustion still no help.
+Only 9% of trades_all.csv match this crossover rule — David's crossover definition to be confirmed.
 
 ## 5. Open items (need input — not resolvable from files)
 - [ ] Reconcile the 300-trade manual journal (`analysis/sid-btw-universe/Backtesting_Sheet_300_SID.xlsx`) against `data/trades/trades_all.csv` and the automated BTW-universe backtest — three SID datasets now exist and haven't been cross-checked against each other.

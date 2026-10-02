@@ -37,3 +37,17 @@ but knowing that a target was just reached doesn't improve the SID trade. Breako
 drift-adjusted follow-through. Early double bottoms (before the break) remain the only robust edge
 (+0.17R vs placebo, t 5.4 after the look-ahead fix). Earlier pattern-context studies used the old
 confirmed-state flag; re-checking them with the breakout bar would only change small subgroups.
+
+## Re-run with SID 'Require MACD Crossover' ON (David's primary trigger) — 2 Oct 2026
+`SID_CROSS=1`: MACD/signal cross within ±5 bars of the latest RSI OS/OB touch and MACD on the right
+side of the signal line (the Pine option as coded in v10.5.18). 2,988 generated trades (950 long,
+2,038 short): longs 68% WR / +0.55%, shorts 58% / -0.11% (slope mode: 59% / +0.70%, 47% / -0.51%).
+Only 9% of trades_all.csv and 18% of student trades match this rule (slope mode: 98% / 50%) — the
+recorded trades were not taken with this exact crossover window.
+
+| Class (crossover mode) | Longs (n / WR / avg) | t | Shorts | t |
+|---|---|---|---|---|
+| no opposing pattern | 719 / 69% / +0.70% | | 1608 / 58% / -0.11% | |
+| opposing, target just reached | 202 / 64% / -0.04% | -1.5 | 372 / 59% / +0.05% | +0.6 |
+| aligned pattern forming at entry | 61 / 59% / -0.71% | -1.3 | 139 / 60% / +0.26% | +1.0 |
+Same conclusion as slope mode: pattern context / target exhaustion does not improve SID.
