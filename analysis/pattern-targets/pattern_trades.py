@@ -18,7 +18,7 @@ for f in sorted(glob.glob(os.path.join(CACHE, "*.csv"))):
     sym = os.path.basename(f)[:-4]
     px = pd.read_csv(f, index_col=0, parse_dates=True)
     H, L, C = (px[k].values.astype(float) for k in ("High", "Low", "Close"))
-    pats, _ = detect(H, L, C)
+    pats, ATR = detect(H, L, C)
     for p in pats:
         d = p["dir"]
         for mode in ("breakout", "early"):
@@ -63,7 +63,15 @@ for f in sorted(glob.glob(os.path.join(CACHE, "*.csv"))):
                     if o2 is None:
                         o2 = C[e2 + TSTOP]
                     pr.append(d * (o2 - en2) / en2 * 100 / risk)
+                D = px.index
+                brk = p["end"] if p["state"] in (1, 4) and p["neck_brk"] is not None else None
+                a_now = ATR[p["bars"][-1]]
+                speed = (abs(p["np1"] - p["prices"][-1]) / a_now / max(1, brk - p["bars"][-1])) if brk is not None else np.nan
                 rows.append(dict(sym=sym, kind=NAMES[p["kind"]], mode=mode, k=k, year=px.index[e_bar].year,
+                                 p1=D[p["bars"][0]].date(), neck=D[p["bars"][1]].date(), p_last=D[p["bars"][-1]].date(),
+                                 neck_price=round(p["np1"], 2), break_date=D[brk].date() if brk is not None else None,
+                                 entry_date=D[e_bar].date(), entry=round(entry, 2), stop=round(stop, 2), target=round(tgt, 2),
+                                 exit_date=D[x_bar].date(), exit_price=round(out, 2), speed_atr_per_bar=speed,
                                  ret=ret, R=ret / risk, R_placebo=float(np.mean(pr)), risk=risk, bars=x_bar - e_bar,
                                  exit="target" if out == tgt else "stop" if out == stop else "time"))
 R = pd.DataFrame(rows)
