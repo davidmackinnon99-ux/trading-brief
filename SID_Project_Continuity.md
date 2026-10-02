@@ -276,6 +276,15 @@ generated trades on 101 tickers 2004–26; 98% of the 2,552 recorded trades in t
 - Early double bottoms remain a stand-alone setup (1h), not a SID filter. David may add student journals
   for extra validation.
 
+## 1j. Student journals (Richard, Leen, Cathie, D-Soh) — 2 October 2026
+
+`analysis/student-journals/RESULTS.md`. 747 trades (688 priced). Only 50% match the SID port (vs 98% for
+David's automated trades) — manual, discretionary back-tests. Hand-labelled aligned patterns did better
+(longs +4.43% vs +3.29%, shorts +3.24% vs +2.33%, t ≈ 1.7–1.9), but an objective no-hindsight
+"entry at a second bottom/top" test shows no benefit in their trades or in 8,642 generated SID trades;
+only 21% of labelled patterns pass it. Likely hindsight in labelling. Student back-test results
+(~80% WR, ~+3%) far exceed mechanical SID — treat manual back-tests with caution.
+
 ## 5. Open items (need input — not resolvable from files)
 - [ ] Reconcile the 300-trade manual journal (`analysis/sid-btw-universe/Backtesting_Sheet_300_SID.xlsx`) against `data/trades/trades_all.csv` and the automated BTW-universe backtest — three SID datasets now exist and haven't been cross-checked against each other.
 - [x] ~30% of brief candidates were funds/trusts, not equities — fixed 17 Sep 2026 by excluding sector "Miscellaneous" tickers from both `lorpAll` and `sidPass` in `analyse-brief.cjs`; see `LORP_Project_Continuity.md`'s 17 Sep entry for the full writeup (applies to both strategies).
