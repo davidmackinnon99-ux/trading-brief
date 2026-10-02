@@ -40,3 +40,30 @@ positive on 35 of 45 symbols; median stop distance 3.1%; ~13 bars average hold.
 - Double tops / H&S shorts: no edge after controlling for drift; don't scan for them.
 - Caveats: SID-journal universe only (45 mostly large caps), no costs (~0.03R), single-path test —
   forward-track before sizing up.
+
+## Re-run on 101 tickers — BTW list (69) + SID journal symbols (2 Oct 2026)
+
+Same method, `cache_all` on the Mac (Yahoo; ABX → ABX.TO, LLOY → LLOY.L). Edge vs same-stock placebo
+(random-walk noise floor ≈ +0.05–0.09R):
+
+| Pattern / entry (75% target) | n | WR | avg / trade | avg R | edge vs placebo |
+|---|---|---|---|---|---|
+| **Double bottom · early** | **4,774** | **42%** | **+1.34%** | **+0.33R** | **+0.16R (t 5.2)** |
+| Double bottom · breakout | 2,242 | 69% | +0.77% | +0.12R | +0.07R (≈ noise) |
+| Double top · early | 5,649 | 31% | -0.11% | -0.01R | +0.12R (t 4.6) — above noise but still loses money in rising markets |
+| Double top · breakout | 2,251 | 64% | -0.22% | -0.01R | +0.05R (≈ noise) |
+| Inverse H&S · early / breakout | 1,253 / 975 | 58% / 65% | +0.80% / +0.57% | +0.12R / +0.10R | +0.03R (noise) |
+| H&S · early / breakout | 1,330 / 927 | 50% / 58% | -0.14% / -0.39% | +0.01R / -0.03R | +0.08R / +0.05R (noise) |
+
+Confirms the 45-symbol result: early double bottoms are the one robust setup; breakout entries have no
+edge for any pattern.
+
+**Momentum (David's point):** for doubles that did break their neckline, speed from the second
+bottom/top to the break, in ATR per bar (descriptive — uses hindsight, not usable as an entry filter):
+slow tercile 12 bars to break, target hit 47% (DB) / 41% (DT); medium 6 bars, 60% / 55%; fast 4 / 2
+bars, 68% / 66%. A third of the moves break within 2–4 bars of the second bottom/top — too fast for a
+SID-style entry to catch.
+
+**Trade list for chart review:** `~/pattern-study/out_all/Pattern_Trades_List.xlsx` (also copied to the
+Mac desktop) — 10,423 early-entry double top/bottom trades (75% target) with pattern dates, entry, stop,
+target, neckline break, exit; first sheet = last 15 months (734 rows).

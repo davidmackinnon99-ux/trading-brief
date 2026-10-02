@@ -260,6 +260,9 @@ or H&S after a same-stock placebo control. **Early double-bottom longs** (enter 
 confirmed, stop under the lower bottom, 75% measured-move target, 30-bar time stop): +1.12%/trade,
 42% WR, +0.19R over placebo (t 4.2), consistent 2013–26, weak 2005–12. Candidate for a scan — David to
 choose route (morning-brief Python scan vs TradingView Pine Screener).
+Re-run on 101 tickers (BTW + journal symbols): early double bottoms +0.16R over placebo (t 5.2, n 4,774,
++1.34%/trade, 42% WR) — confirmed; breakout entries still no edge. David prefers using patterns as a
+watchlist (not necessarily an immediate trade).
 
 ## 5. Open items (need input — not resolvable from files)
 - [ ] Reconcile the 300-trade manual journal (`analysis/sid-btw-universe/Backtesting_Sheet_300_SID.xlsx`) against `data/trades/trades_all.csv` and the automated BTW-universe backtest — three SID datasets now exist and haven't been cross-checked against each other.
