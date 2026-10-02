@@ -253,6 +253,14 @@ checked against the SYK chart; 2,317 SID trades (`analysis/smc-orderblocks/RESUL
 - SMC structure trend and liquidity sweeps: no reliable edge. Indicator's buy/sell "activity" bars are
   cosmetic (fixed 2:1 cycle), OB volume % = one candle's share among shown blocks.
 
+## 1h. Trading the patterns directly (2 October 2026)
+
+`analysis/pattern-targets/PATTERN_TRADES.md`. Breakout (neckline) entries: no edge for double tops/bottoms
+or H&S after a same-stock placebo control. **Early double-bottom longs** (enter when the second bottom is
+confirmed, stop under the lower bottom, 75% measured-move target, 30-bar time stop): +1.12%/trade,
+42% WR, +0.19R over placebo (t 4.2), consistent 2013–26, weak 2005–12. Candidate for a scan — David to
+choose route (morning-brief Python scan vs TradingView Pine Screener).
+
 ## 5. Open items (need input — not resolvable from files)
 - [ ] Reconcile the 300-trade manual journal (`analysis/sid-btw-universe/Backtesting_Sheet_300_SID.xlsx`) against `data/trades/trades_all.csv` and the automated BTW-universe backtest — three SID datasets now exist and haven't been cross-checked against each other.
 - [x] ~30% of brief candidates were funds/trusts, not equities — fixed 17 Sep 2026 by excluding sector "Miscellaneous" tickers from both `lorpAll` and `sidPass` in `analyse-brief.cjs`; see `LORP_Project_Continuity.md`'s 17 Sep entry for the full writeup (applies to both strategies).
