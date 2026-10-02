@@ -12,6 +12,7 @@ from patterns import detect, NAMES, nv
 
 CACHE, OUT = sys.argv[1], sys.argv[2]
 KS, TSTOP = (0.5, 0.75, 1.0), 30
+RNG = np.random.default_rng(7)
 rows = []
 for f in sorted(glob.glob(os.path.join(CACHE, "*.csv"))):
     sym = os.path.basename(f)[:-4]
@@ -49,8 +50,21 @@ for f in sorted(glob.glob(os.path.join(CACHE, "*.csv"))):
                     out = C[x_bar]
                 ret = d * (out - entry) / entry * 100
                 risk = abs(entry - stop) / entry * 100
+                # placebo: same stock, 5 random entry bars, same % stop/target distances and time stop
+                pr = []
+                for e2 in RNG.integers(30, len(C) - TSTOP - 1, 5):
+                    en2 = C[e2]; st2 = en2 * (1 - d * risk / 100); tg2 = en2 * (1 + d * abs(tgt - entry) / entry)
+                    o2 = None
+                    for b in range(e2 + 1, e2 + 1 + TSTOP):
+                        if (L[b] <= st2) if d == 1 else (H[b] >= st2):
+                            o2 = st2; break
+                        if (H[b] >= tg2) if d == 1 else (L[b] <= tg2):
+                            o2 = tg2; break
+                    if o2 is None:
+                        o2 = C[e2 + TSTOP]
+                    pr.append(d * (o2 - en2) / en2 * 100 / risk)
                 rows.append(dict(sym=sym, kind=NAMES[p["kind"]], mode=mode, k=k, year=px.index[e_bar].year,
-                                 ret=ret, R=ret / risk, risk=risk, bars=x_bar - e_bar,
+                                 ret=ret, R=ret / risk, R_placebo=float(np.mean(pr)), risk=risk, bars=x_bar - e_bar,
                                  exit="target" if out == tgt else "stop" if out == stop else "time"))
 R = pd.DataFrame(rows)
 R.to_csv(os.path.join(OUT, "pattern_trades.csv"), index=False)
@@ -59,10 +73,11 @@ R.to_csv(os.path.join(OUT, "pattern_trades.csv"), index=False)
 def summ(x):
     w, l = x.ret[x.ret > 0].sum(), -x.ret[x.ret < 0].sum()
     return (f"{len(x)} | {(x.ret>0).mean()*100:.0f}% | {x.ret.mean():+.2f}% | {x.R.mean():+.2f}R | "
-            f"{w/l if l else float('inf'):.2f} | {(x.exit=='target').mean()*100:.0f}% / {(x.exit=='stop').mean()*100:.0f}% | {x.bars.mean():.0f}")
+            f"{w/l if l else float('inf'):.2f} | {(x.exit=='target').mean()*100:.0f}% / {(x.exit=='stop').mean()*100:.0f}% | {x.bars.mean():.0f} | "
+            f"{x.R_placebo.mean():+.2f}R | {x.R.mean()-x.R_placebo.mean():+.2f}R (t {(x.R-x.R_placebo).mean()/((x.R-x.R_placebo).std()/np.sqrt(len(x))):+.1f})")
 
 
-out = ["| Pattern | Entry | Target | n | WR | avg | avg R | PF | target / stop hit | bars |", "|---|---|---|---|---|---|---|---|---|---|"]
+out = ["| Pattern | Entry | Target | n | WR | avg | avg R | PF | target / stop hit | bars | placebo R | edge vs placebo |", "|---|---|---|---|---|---|---|---|---|---|---|---|"]
 for kind in ("DOUBLE BOTTOM", "DOUBLE TOP", "INV H&S", "H&S"):
     for mode in ("breakout", "early"):
         for k in KS:
