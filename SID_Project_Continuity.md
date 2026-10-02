@@ -264,6 +264,18 @@ Re-run on 101 tickers (BTW + journal symbols): early double bottoms +0.16R over 
 +1.34%/trade, 42% WR) — confirmed; breakout entries still no edge. David prefers using patterns as a
 watchlist (not necessarily an immediate trade).
 
+## 1i. SID x patterns watchlist test + SID Python port (2 October 2026)
+
+`analysis/pattern-targets/SID_PATTERN_WATCHLIST.md`. **SID v10.5.18 ported to Python** (`sid.py`): 8,642
+generated trades on 101 tickers 2004–26; 98% of the 2,552 recorded trades in trades_all.csv matched
+(same direction, ±3 days) — usable for future SID research on any universe.
+- SID longs while a double bottom is forming (watchlist idea): +0.08% vs +0.89% with no pattern, n 73 —
+  no benefit; the two signals rarely coincide.
+- Recently confirmed pattern at SID entry hurts in both directions (longs +0.28% vs +0.89%, shorts
+  -2.16% vs -0.44%). Best SID trades: no pattern showing.
+- Early double bottoms remain a stand-alone setup (1h), not a SID filter. David may add student journals
+  for extra validation.
+
 ## 5. Open items (need input — not resolvable from files)
 - [ ] Reconcile the 300-trade manual journal (`analysis/sid-btw-universe/Backtesting_Sheet_300_SID.xlsx`) against `data/trades/trades_all.csv` and the automated BTW-universe backtest — three SID datasets now exist and haven't been cross-checked against each other.
 - [x] ~30% of brief candidates were funds/trusts, not equities — fixed 17 Sep 2026 by excluding sector "Miscellaneous" tickers from both `lorpAll` and `sidPass` in `analyse-brief.cjs`; see `LORP_Project_Continuity.md`'s 17 Sep entry for the full writeup (applies to both strategies).
