@@ -9,7 +9,7 @@ the corrected watchlist-sections note in Section 8 below and SID_Project_Continu
 ---
 
 ╔══════════════════════════════════════════════════════════════════╗
-║ CURRENT STATE — updated 13 September 2026 (supersedes items below ║
+║ CURRENT STATE — updated 3 October 2026 (supersedes items below    ║
 ║ where they conflict; original 11 May 2026 document retained       ║
 ║ beneath as history)                                                ║
 ╚═══════════════════════════════════════════════════════════════════════╝
@@ -352,6 +352,11 @@ Analyser: ~/tradingview-mcp-jackson/scripts/analyse-brief.cjs
 Clean-tab fix (26 Sep 2026): the scanner now skips "SID Clean" / "LORP Clean" tabs and selects the page
 that actually carries the required study (Lorentzian for LORP) — src/connection.js. Brief of 26 Sep failed
 before this fix (LORP layout not matched, fell back to a page without Lorentzian) and was re-run at 09:30.
+
+Required-study wait (2 Oct 2026): the 2 Oct SID scan aborted with REQUIRED STUDY MISSING on the correct
+layout even though the indicator computed fine moments later. src/core/morning.js now re-reads study values
+every 2s for up to ~20s before counting a symbol as missing. Shared scanner code, so it covers the LORP scan
+(Lorentzian) as well as SID.
 
 DUAL-LAYOUT SCAN ARCHITECTURE:
   Scan 1 — LORP layout (runs FIRST):
