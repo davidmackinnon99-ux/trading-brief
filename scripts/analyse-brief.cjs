@@ -1009,7 +1009,7 @@ function sidReviewSet(scanFired, alertLog) {
 // David (7 Oct 2026): TradingView files EVERY ETF under sector "Miscellaneous", so the
 // 17 Sep fund/trust rule was removing equity ETFs too (XLF, XLRE, HDV…), against the
 // "prefer ETFs" rule. Now: equity ETFs are reviewed; bond/cash ETFs go to the appendix.
-const BOND_CASH_ETF_RE = /\b(bond|treasury|treasuries|muni|municipal|aggregate|fixed income|t-?bill|money market|ultra[- ]short|short[- ]term|floating rate|govt|government|credit|corporate|mortgage|tips|duration|high yield)\b/i;
+const BOND_CASH_ETF_RE = /\b(bond|treasury|treasuries|muni|municipal|aggregate|fixed income|t-?bill|money market|ultra[- ]short|short[- ]term|floating rate|govt|government|credit|corporate|mortgage|tips|duration|high yield|maturity|cash)\b/i;
 const SECTOR_ETFS = new Set(['XLK', 'XLF', 'XLY', 'XLU', 'XLV', 'XLC', 'XLB', 'XLRE', 'XLI', 'XLP', 'XLE']);
 function rotationForEtf(etf, direction) {
   if (!etf || sectorHistoryData.length < SECTOR_HISTORY_DAYS) return null;

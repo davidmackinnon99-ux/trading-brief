@@ -49,6 +49,18 @@ try {
   const res = { fetched_at: new Date().toISOString(), bar_date: barDate, sid: latest(sidAll),
     ldc: latest(rows.filter((r) => r.message.startsWith(LDC_PREFIX))),
     other_count: rows.filter((r) => !r.message.startsWith(SID_PREFIX) && !r.message.startsWith(LDC_PREFIX)).length };
+  // TradingView trims fires from list_fires once they are read/cleared — never let a later
+  // export shrink a saved list for the same bar: union with what is already on disk.
+  try {
+    const prev = JSON.parse(fs.readFileSync(out, 'utf8'));
+    if (prev && prev.bar_date === res.bar_date) {
+      for (const k of ['sid', 'ldc']) {
+        const have = new Set(res[k].map((r) => r.ticker));
+        for (const r of prev[k] || []) if (!have.has(r.ticker)) res[k].push(r);
+        res[k].sort((a, b) => a.ticker.localeCompare(b.ticker));
+      }
+    }
+  } catch (e) { /* no previous file */ }
   fs.writeFileSync(out, JSON.stringify(res, null, 1));
   process.stderr.write(`[sid-alert-log] bar ${barDate}: ${res.sid.length} SID ENTRY, ${res.ldc.length} LDC alerts → ${out}\n`);
 } catch (e) {
