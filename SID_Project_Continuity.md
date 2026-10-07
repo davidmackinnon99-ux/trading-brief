@@ -350,6 +350,10 @@ to the RSI-50 objective, then (2) do momentum/participation/context support taki
   files every ETF as sector "Miscellaneous"); bond/cash ETFs → Exclude (BOND_CASH_ETF); closed-end
   funds/trusts stay excluded. Sector ETFs (XL*) use their own rotation vs SPY. Conditionals sort with the
   fewest data gaps first. David filtered the ETF screener sections to equity ETFs only.
+- **Sector & events table (7 Oct pm):** review list now has a third table — Sector name, SPDR ETF and
+  Sector Support (🟢 Supported / ⚪ Neutral / 🔴 Unsupported = 3-day sector-vs-SPY rotation in the trade
+  direction), plus Event and Src. Fixed: history lookups broke when review rows became exchange-qualified
+  (NYSE:NKE) — saved scans are keyed by bare ticker, so DI shift/MA arrows had all gone n/a.
 
 ## 5. Open items (need input — not resolvable from files)
 - [ ] Reconcile the 300-trade manual journal (`analysis/sid-btw-universe/Backtesting_Sheet_300_SID.xlsx`) against `data/trades/trades_all.csv` and the automated BTW-universe backtest — three SID datasets now exist and haven't been cross-checked against each other.

@@ -124,27 +124,37 @@ test('DI control opposing alone is not a rejection; only the four tags are used'
   assert.ok(tags.has(t.di.control) && tags.has(t.di.shift));
 });
 
-test('earnings / after-hours move / missed entry → Learning only without erasing the signal', () => {
-  assert.equal(T.triageAlert(longBase({ earnings: { tradingDays: 2, date: '2026-10-09' } })).status, T.STATUS.LEARN);
-  assert.equal(T.triageAlert(longBase({ ahMovePct: 3 })).status, T.STATUS.LEARN);     // 3% / 2% ATR = 1.5 ATR
+test('earnings within 14 days / after-hours move / missed entry → Exclude today', () => {
+  assert.equal(T.triageAlert(longBase({ earnings: { tradingDays: 14, date: '2026-10-27' } })).status, T.STATUS.EXCL);
+  assert.equal(T.triageAlert(longBase({ earnings: { tradingDays: 15, date: '2026-10-28' } })).status, T.STATUS.REVIEW);
+  assert.equal(T.triageAlert(longBase({ ahMovePct: 3 })).status, T.STATUS.EXCL);     // 3% / 2% ATR = 1.5 ATR
   const m = T.triageAlert(longBase({ priorSignals: [{ tradingDaysAgo: 2, close: 97 }] }));   // +1.5 ATR since
-  assert.equal(m.status, T.STATUS.LEARN);
+  assert.equal(m.status, T.STATUS.EXCL);
   assert.ok(m.reasons.includes('ENTRY_MISSED'));
-  assert.match(T.appendixLine(m), /Learning only/);
+  assert.match(T.appendixLine(m), /Exclude today/);
 });
 
-test('hurdle closer than ROOM_MIN → Exclude; between MIN and OPEN → Conditional', () => {
-  assert.equal(T.triageAlert(longBase({ bbMid: 100.3 })).status, T.STATUS.EXCL);   // 0.15 ATR
+test('near hurdle is priority context, not an automatic exclusion', () => {
+  const limited = T.triageAlert(longBase({ bbMid: 100.3 }));                       // 0.15 ATR
+  assert.equal(limited.status, T.STATUS.COND);
+  assert.ok(limited.conditions.includes('LIMITED_INITIAL_ROOM'));
   const near = T.triageAlert(longBase({ bbMid: 101.2 }));                          // 0.6 ATR
   assert.equal(near.path, 'Hurdle near');
   assert.equal(near.status, T.STATUS.COND);
 });
 
-test('two open conditions → Exclude today with both reasons visible', () => {
+test('multiple open conditions remain Conditional and are all visible', () => {
   const t = T.triageAlert(longBase({ bbMid: 101.2, macd: { macd: -1, raw: -0.2, sep: 0.3, sepPrev: 0.5, rawPrev: -0.3, closingSpeed: 0.2, rawHist: [-0.4, -0.35, -0.3] } }));
-  assert.equal(t.status, T.STATUS.EXCL);
-  assert.ok(t.reasons.includes('MULTIPLE_OPEN_CONDITIONS'));
+  assert.equal(t.status, T.STATUS.COND);
+  assert.ok(!t.reasons.includes('MULTIPLE_OPEN_CONDITIONS'));
   assert.ok(t.reasons.includes('MACD_OPPOSED') && t.reasons.includes('HURDLE_NEAR'));
+});
+
+test('validated DI/ADX and Gap/ATR cautions are prominent warnings that lower priority', () => {
+  const t = T.triageAlert(shortBase({ gatr: 0.65, adx: 45, diPlus: 42, diMinus: 18 }));
+  assert.equal(t.status, T.STATUS.COND);
+  assert.deepEqual(t.warnings, ['GAP_ATR_TIGHT', 'SHORT_ADX_RUNOVER', 'SHORT_DI_WIDE']);
+  assert.match(T.whyLine(t), /validated short warning/);
 });
 
 test('data gaps cap at Conditional but are not counted as open conditions', () => {

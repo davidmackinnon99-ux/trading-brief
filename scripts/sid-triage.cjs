@@ -16,22 +16,19 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 const CFG = {
-  VERSION: 'sid-triage-1.0 (7 Oct 2026)',
+  VERSION: 'sid-triage-1.1 (7 Oct 2026)',
   ROOM_OPEN_ATR: 1.0,        // room to first hurdle >= this → path "Open"/"Cleared"; below → "Hurdle near"
-  ROOM_MIN_ATR: 0.25,        // room below this → no useful path today → Exclude
+  ROOM_MIN_ATR: 0.25,        // room below this → limited initial room (priority context, not a gate)
   CLUSTER_ATR: 0.5,          // levels within this of the first hurdle form a cluster
   MA_FLAT_ATR: 0.05,         // 3-bar MA move smaller than this (in ATR) = flat
   MA_GAP_STABLE_ATR: 0.10,   // 3-bar change in SMA50–SMA200 gap smaller than this = stable
   MACD_FAST: 0.15,           // MACD Sep v1.4 "Closing Speed" (1-bar change in separation) >= this → Fast
   MACD_STABLE: 0.02,         // 1-bar separation change smaller than this = stable
-  MACD_CHOP_FLIPS: 2,        // >= this many MACD/signal side flips ...
-  MACD_CHOP_LOOKBACK: 6,     // ... across this many daily snapshots (incl. today) = chop
   DI_SHIFT_PTS: 1.0,         // 3-bar change in DI gap beyond ±this = a shift
-  EARNINGS_TRADING_DAYS: 5,  // earnings within this many trading days → Learning only
-  OVERNIGHT_MOVE_ATR: 1.0,   // after-hours move >= this many ATR → Learning only
+  EARNINGS_TRADING_DAYS: 14, // earnings within this many trading days → Exclude today
+  OVERNIGHT_MOVE_ATR: 1.0,   // after-hours move >= this many ATR → Exclude today
   ENTRY_MISSED_LOOKBACK: 3,  // same-direction SID alert within this many trading days earlier ...
   ENTRY_MISSED_ATR: 1.0,     // ... and price already moved this far in the trade direction since → missed
-  MAX_OPEN_CONDITIONS: 1,    // Conditional = at most one named open condition (plus any data gaps); more → Exclude today
   RVOL_LOW: 0.8,             // participation caution only (not a gate)
 };
 
@@ -177,7 +174,7 @@ function diCell(d) {
 
 // ── MACD (spec §5.4) — no "SPEED"/"SEP" wording in output ──────────────────
 function macdState(dir, m) {
-  const out = { side: 'n/a', aligned: null, trend: 'n/a', pace: null, zero: 'n/a', chop: false, flips: null, sep: m.sep ?? null };
+  const out = { side: 'n/a', aligned: null, trend: 'n/a', pace: null, zero: 'n/a', sep: m.sep ?? null };
   if (!isNum(m.raw)) return out;
   out.side = m.raw >= 0 ? 'above signal' : 'below signal';
   out.aligned = dir === 'long' ? m.raw >= 0 : m.raw < 0;
@@ -196,20 +193,13 @@ function macdState(dir, m) {
   }
   if (isNum(m.fastSlow)) out.pace = m.fastSlow >= 1 ? 'Fast' : 'Slow';
   else if (isNum(m.closingSpeed)) out.pace = m.closingSpeed >= CFG.MACD_FAST ? 'Fast' : 'Slow';
-  const series = [...(m.rawHist || []), m.raw].filter(isNum).slice(-CFG.MACD_CHOP_LOOKBACK);
-  if (series.length >= 3) {
-    let flips = 0;
-    for (let i = 1; i < series.length; i++) if (Math.sign(series[i]) !== Math.sign(series[i - 1])) flips++;
-    out.flips = flips;
-    out.chop = flips >= CFG.MACD_CHOP_FLIPS;
-  }
   return out;
 }
 function macdCell(s) {
   if (s.aligned == null) return 'n/a';
   const t = s.trend !== 'n/a' ? `, ${s.trend}` : '';
   const p = s.pace && (s.trend === 'converging' || s.trend === 'expanding') ? ` (${s.pace.toLowerCase()})` : '';
-  return `${s.aligned ? 'Aligned' : 'Opposed'}${t}${p}${s.chop ? ' · chop' : ''}`;
+  return `${s.aligned ? 'Aligned' : 'Opposed'}${t}${p}`;
 }
 
 // ── Participation (spec §5.5) ───────────────────────────────────────────────
@@ -244,6 +234,7 @@ function triageAlert(a) {
   const reasons = [];        // stable reason codes
   const conditions = [];     // named open conditions (for Conditional)
   const dataGaps = [];       // missing inputs — block Review now, not counted as conditions
+  const warnings = [];       // validated or established risk context, used to rank rather than auto-reject
   const notes = [];          // short human evidence lines
 
   const supply = zone(a.cap?.supBot, a.cap?.supTop);
@@ -266,6 +257,12 @@ function triageAlert(a) {
   const di = diState(a.diPlus, a.diMinus, a.hist?.diGap, a.adx, a.hist?.adxPrev);
   const mc = macdState(dir, a.macd || {});
   const part = participation(dir, a.rvol, a.vd);
+  if (isNum(a.gatr) && a.gatr < 1.5) warnings.push('GAP_ATR_TIGHT');
+  if (dir === 'short' && isNum(a.adx) && a.adx >= 40 && a.adx < 50) warnings.push('SHORT_ADX_RUNOVER');
+  if (dir === 'short' && isNum(di.gap) && di.gap >= 20) warnings.push('SHORT_DI_WIDE');
+  if (dir === 'long' && isNum(di.gap) && di.gap < -20) warnings.push('LONG_DI_EARLY');
+  if (dir === 'long' && isNum(di.gap) && di.gap > -5) warnings.push('LONG_DI_LATE');
+  if (isNum(a.adx) && a.adx >= 20 && a.adx <= 25) warnings.push('ADX_NO_MANS_LAND');
 
   // ── Path state ──
   let path;
@@ -320,9 +317,6 @@ function triageAlert(a) {
   } else if (path === 'Inside opposition') {
     status = STATUS.EXCL; reasons.push('INSIDE_OPPOSING_ZONE');
     notes.push(`${dir} begins inside ${dir === 'long' ? 'supply' : 'demand'} ${fmtP(opp.zone.lo)}–${fmtP(opp.zone.hi)}`);
-  } else if (isNum(roomAtr) && roomAtr < CFG.ROOM_MIN_ATR) {
-    status = STATUS.EXCL; reasons.push('HURDLE_NEAR');
-    notes.push(`first hurdle ${fh.hurdle.label} ${fmtP(fh.hurdle.price)} only ${roomAtr.toFixed(2)} ATR away`);
   } else if (mc.aligned === false && mc.trend !== 'n/a' && !(mc.trend === 'converging' && mc.pace === 'Fast')) {
     // Opposing MACD is a material practical exclusion (spec §5.4). Only an opposed MACD that is
     // converging FAST toward its signal line is treated as a single open condition (Conditional).
@@ -330,12 +324,11 @@ function triageAlert(a) {
     const how = mc.trend === 'converging' ? 'converging slowly' : mc.trend;
     notes.push(`MACD ${mc.side} (${how}) — against the ${dir}`);
   } else if (events.length) {
-    status = STATUS.LEARN; reasons.push(...events);
+    status = STATUS.EXCL; reasons.push(...events);
   } else {
     // second-pass open conditions
-    if (path === 'Hurdle near') { conditions.push('HURDLE_NEAR'); }
+    if (path === 'Hurdle near') conditions.push(isNum(roomAtr) && roomAtr < CFG.ROOM_MIN_ATR ? 'LIMITED_INITIAL_ROOM' : 'HURDLE_NEAR');
     if (mc.aligned === false) conditions.push('MACD_OPPOSED');
-    if (mc.chop) conditions.push('MACD_CHOP');
     const wantShift = dir === 'long' ? 'DI Shift – Sellers' : 'DI Shift – Buyers';
     if (di.shift === wantShift) conditions.push('DI_SHIFT_OPPOSED');
     if (bb.inDirection === false) conditions.push('BB_MID_BEHIND');
@@ -347,8 +340,7 @@ function triageAlert(a) {
     // Opposed MACD with unknown convergence stays one open condition + a data gap (≤ Conditional).
     if (mc.trend === 'n/a') dataGaps.push('MACD_STATE_NA');
 
-    if (conditions.length > CFG.MAX_OPEN_CONDITIONS) { status = STATUS.EXCL; reasons.push('MULTIPLE_OPEN_CONDITIONS', ...conditions, ...dataGaps); }
-    else if (conditions.length || dataGaps.length) { status = STATUS.COND; reasons.push(...conditions, ...dataGaps); }
+    if (conditions.length || dataGaps.length || warnings.length) { status = STATUS.COND; reasons.push(...conditions, ...warnings, ...dataGaps); }
     else { status = STATUS.REVIEW; reasons.push(path === 'Cleared' ? 'PATH_CLEARED' : 'PATH_OPEN'); }
   }
 
@@ -364,7 +356,7 @@ function triageAlert(a) {
     : a.sectorRotation === 'Neutral' ? 'Rotation neutral' : 'Rotation n/a';
 
   return {
-    sym: a.sym, dir, status, reasons, conditions, dataGaps, notes, isFund: !!(a.isFund || a.isBondEtf), isEtf: !!a.isEtf, source: a.source || 'Scan',
+    sym: a.sym, dir, status, reasons, conditions, warnings, dataGaps, notes, isFund: !!(a.isFund || a.isBondEtf), isEtf: !!a.isEtf, source: a.source || 'Scan',
     path, roomAtr,
     hurdle: fh.hurdle ? { label: fh.hurdle.label, price: r2(fh.hurdle.price), distAtr: r2(fh.hurdle.distAtr) } : null,
     levelsAhead: fh.ahead.map((x) => ({ name: x.name, price: r2(x.price), distAtr: r2(x.distAtr) })),
@@ -393,9 +385,9 @@ function triageAlert(a) {
 
 // ── Plain-language explanations ─────────────────────────────────────────────
 const REASON_TEXT = {
+  LIMITED_INITIAL_ROOM: 'limited initial room — needs a reaction check at the first hurdle',
   HURDLE_NEAR: 'first hurdle is close — needs to clear it',
   MACD_OPPOSED: 'MACD still on the wrong side of signal — needs the cross',
-  MACD_CHOP: 'MACD has flipped sides repeatedly — chop risk',
   DI_SHIFT_OPPOSED: 'DI shift is still moving against the trade',
   CAP_NA: 'CAP zones not captured — check supply/demand on chart',
   BB_MID_BEHIND: 'price already beyond BB mid (RSI-50 proxy behind it)',
@@ -404,6 +396,12 @@ const REASON_TEXT = {
   EARNINGS_NEAR: 'earnings soon',
   OVERNIGHT_MOVE_LARGE: 'large after-hours move',
   ENTRY_MISSED: 'original entry was an earlier alert and price has already moved',
+  GAP_ATR_TIGHT: 'Gap/ATR below 1.5 — stop room is tight',
+  SHORT_ADX_RUNOVER: 'validated short warning: ADX 40–50 run-over zone',
+  SHORT_DI_WIDE: 'validated short warning: DI spread at least 20',
+  LONG_DI_EARLY: 'long DI gap below -20 — downtrend may still dominate',
+  LONG_DI_LATE: 'long DI gap above -5 — reversal window may have passed',
+  ADX_NO_MANS_LAND: 'ADX 20–25 no-man\'s-land',
 };
 
 function whyLine(t) {
@@ -418,7 +416,8 @@ function whyLine(t) {
   if (t.status === STATUS.REVIEW) return `Why review now: ${base}`;
   const open = t.conditions.map((c) => REASON_TEXT[c] || c).join('; ');
   const gaps = (t.dataGaps || []).map((c) => REASON_TEXT[c] || c).join('; ');
-  return `Why conditional: ${base}${open ? ` Open condition: ${open}.` : ''}${gaps ? ` Data gap (blocks Review now): ${gaps}.` : ''}`;
+  const warns = (t.warnings || []).map((c) => REASON_TEXT[c] || c).join('; ');
+  return `Why conditional: ${base}${open ? ` Needs check: ${open}.` : ''}${warns ? ` Warning: ${warns}.` : ''}${gaps ? ` Data gap (blocks Review now): ${gaps}.` : ''}`;
 }
 
 function appendixLine(t) {
@@ -429,9 +428,12 @@ function appendixLine(t) {
     if (t.reasons.includes('OVERNIGHT_MOVE_LARGE')) ev.push(`after-hours move ${signed(t.events.ahMoveAtr)} ATR`);
     if (t.reasons.includes('ENTRY_MISSED')) ev.push(`first alerted ${t.events.entryMissed.tradingDaysAgo}d ago, already ${signed(t.events.entryMissed.movedAtr)} ATR in favour`);
     parts.push(`path ${t.path.toLowerCase()}${t.hurdle ? ` (${t.hurdle.label} ${fmtA(t.hurdle.distAtr)} ATR)` : ''}, but ${ev.join('; ')}`);
-  } else if (t.reasons.includes('MULTIPLE_OPEN_CONDITIONS')) {
-    parts.push(`${t.conditions.length} open conditions — ${t.conditions.map((c) => REASON_TEXT[c] || c).join('; ')}`);
-    if (t.hurdle) parts.push(`first hurdle ${t.hurdle.label} ${fmtA(t.hurdle.distAtr)} ATR`);
+  } else if (t.reasons.some(r => ['EARNINGS_NEAR', 'OVERNIGHT_MOVE_LARGE', 'ENTRY_MISSED'].includes(r))) {
+    const ev = [];
+    if (t.reasons.includes('EARNINGS_NEAR')) ev.push(`earnings in ${t.events.earnings.tradingDays} trading days`);
+    if (t.reasons.includes('OVERNIGHT_MOVE_LARGE')) ev.push(`after-hours move ${signed(t.events.ahMoveAtr)} ATR`);
+    if (t.reasons.includes('ENTRY_MISSED')) ev.push(`first alerted ${t.events.entryMissed.tradingDaysAgo}d ago, already ${signed(t.events.entryMissed.movedAtr)} ATR in favour`);
+    parts.push(ev.join('; '));
   } else {
     parts.push(...t.notes);
   }
@@ -445,6 +447,8 @@ function sortTriaged(list) {
   const rank = (s) => STATUS_ORDER.indexOf(s);
   return [...list].sort((a, b) => rank(a.status) - rank(b.status)
     || (a.isFund ? 1 : 0) - (b.isFund ? 1 : 0)
+    || (a.warnings || []).length - (b.warnings || []).length   // validated warnings visibly lower priority
+    || (a.conditions || []).length - (b.conditions || []).length
     || (a.dataGaps || []).length - (b.dataGaps || []).length   // best-evidenced Conditionals first
     || (isNum(b.roomAtr) ? b.roomAtr : -1) - (isNum(a.roomAtr) ? a.roomAtr : -1)
     || a.sym.localeCompare(b.sym));

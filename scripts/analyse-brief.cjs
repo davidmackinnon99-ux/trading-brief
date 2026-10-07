@@ -990,18 +990,30 @@ function loadSidAlertLog() {
   } catch (e) { process.stderr.write(`[sid-alerts] unreadable (${e.message})\n`); return null; }
 }
 function sidReviewSet(scanFired, alertLog) {
-  const byBare = new Map(sidResults.filter(r => !r.error).map(r => [bareSym(r.sym), r]));
+  const qualified = (r) => String(r?.triageRaw?.resolvedSymbol || r?.sym || '').toUpperCase();
+  const alertKey = (a) => String(a?.pro_symbol || a?.ticker || '').toUpperCase();
+  const isUs = (key) => US_EXCH.has(String(key).split(':')[0]);
+  const byQualified = new Map(sidResults.filter(r => !r.error).map(r => [qualified(r), r]));
+  const byUsBare = new Map(sidResults.filter(r => !r.error && isUs(qualified(r))).map(r => [bareSym(qualified(r)), r]));
   const out = [];
-  const alerted = new Map(((alertLog && alertLog.sid) || []).map(a => [a.ticker, a]));
-  const scanSet = new Set(scanFired.map(r => bareSym(r.sym)));
-  for (const r of scanFired) out.push({ ...r, sidSource: alertLog ? (alerted.has(bareSym(r.sym)) ? 'Alert + scan' : 'Scan only') : 'Scan', alertInfo: alerted.get(bareSym(r.sym)) || null });
-  for (const [t, a] of alerted) {
-    if (scanSet.has(t)) continue;
-    const r = byBare.get(t);
-    if (!r) { out.push({ sym: t, notScanned: true, isLongPass: true, isShortPass: false, sidSource: 'Alert only', alertInfo: a, triageRaw: {} }); continue; }
+  const alerted = new Map(((alertLog && alertLog.sid) || []).map(a => [alertKey(a), a]));
+  const alertedByBare = new Map([...alerted].map(([key, a]) => [bareSym(key), [key, a]]));
+  const matchedAlerts = new Set();
+  for (const r of scanFired) {
+    const key = qualified(r);
+    const fallback = isUs(key) ? alertedByBare.get(bareSym(key)) : null;
+    const matchedKey = alerted.has(key) ? key : fallback?.[0];
+    const a = matchedKey ? alerted.get(matchedKey) : null;
+    if (matchedKey) matchedAlerts.add(matchedKey);
+    out.push({ ...r, sym: key || r.sym, sidSource: alertLog ? (a ? 'Alert + scan' : 'Scan only') : 'Scan', alertInfo: a });
+  }
+  for (const [key, a] of alerted) {
+    if (matchedAlerts.has(key)) continue;
+    const r = byQualified.get(key) || (isUs(key) ? byUsBare.get(bareSym(key)) : null);
+    if (!r) { out.push({ sym: key, notScanned: true, isLongPass: true, isShortPass: false, sidSource: 'Alert only', alertInfo: a, triageRaw: {} }); continue; }
     const tr = r.triageRaw || {};
     const dir = (tr.armedShort === 1 && tr.armedLong !== 1) ? 'short' : (tr.armedLong === 1 && tr.armedShort !== 1) ? 'long' : (tr.rsi != null && tr.rsi > 50 ? 'short' : 'long');
-    out.push({ ...r, isLongPass: dir === 'long', isShortPass: dir === 'short', sidSource: 'Alert only', alertInfo: a, alertDirInferred: true });
+    out.push({ ...r, sym: key, isLongPass: dir === 'long', isShortPass: dir === 'short', sidSource: 'Alert only', alertInfo: a, alertDirInferred: true });
   }
   return out;
 }
@@ -1022,7 +1034,7 @@ function rotationForEtf(etf, direction) {
 
 function buildSidTriage(fired) {
   const T = sidTriageLib;
-  const hist = loadSidHistory(new Set(fired.map(r => r.sym)));
+  const hist = loadSidHistory(new Set(fired.map(r => bareSym(r.sym))));  // saved scans key rows by bare ticker
   const events = fetchSidEvents([...new Set(fired.map(r => bareSym(r.sym)))]);
   const pick = (arr, prefs) => { for (const p of prefs) { const h = arr.find(x => x.tdAgo === p); if (h) return h; } return null; };
   const triaged = fired.map(r => {
@@ -1030,7 +1042,7 @@ function buildSidTriage(fired) {
     const tr = r.triageRaw || {};
     const close = tr.close ?? r.price;
     const atr = (r.atrPct != null && close != null) ? r.atrPct / 100 * close : null;
-    const h = hist.get(r.sym) || [];
+    const h = hist.get(bareSym(r.sym)) || [];
     const h3 = pick(h, [3, 4, 2]);
     const h1 = pick(h, [1, 2]);
     const ev = events.get(bareSym(r.sym));
@@ -1049,7 +1061,6 @@ function buildSidTriage(fired) {
         sep: tr.macdSep, closingSpeed: tr.macdClosingSpeed, barsSinceCross: tr.macdBarsSinceCross,
         fastSlow: tr.macdFastSlow, gapState: tr.macdGapState,
         rawPrev: h1 ? h1.macdRaw : null, sepPrev: h1 ? h1.macdSep : null,
-        rawHist: h.filter(x => x.tdAgo <= T.CFG.MACD_CHOP_LOOKBACK - 1).slice().reverse().map(x => x.macdRaw),
       },
       diPlus: r.diPlus, diMinus: r.diMinus, adx: r.adx, rvol: r.rvol, vd: r.vd,
       sectorRotation: SECTOR_ETFS.has(bareSym(r.sym)) ? rotationForEtf(bareSym(r.sym), dir) : sectorSupportTag(bareSym(r.sym), dir),
@@ -2457,23 +2468,40 @@ if (!VERBOSE) {
       const srcTag = t => t.source === 'Alert + scan' ? 'A+S' : t.source === 'Alert only' ? 'A' : t.source === 'Scan only' ? 'S' : '-';
       console.log(`\n*Review now + Conditional (${primary.length}) — open these charts first:*\n`);
       console.log('**1. Path & status**\n');
-      mdTable(['Ticker', 'Side', 'Price', 'Status', 'Path', 'First hurdle', 'Room', 'CAP', 'MACD'],
+      const warningCell = t => (t.warnings || []).map(w => ({
+        GAP_ATR_TIGHT: 'Gap/ATR<1.5', SHORT_ADX_RUNOVER: 'ADX 40–50', SHORT_DI_WIDE: 'DI≥20',
+        LONG_DI_EARLY: 'DI<−20', LONG_DI_LATE: 'DI>−5', ADX_NO_MANS_LAND: 'ADX 20–25',
+      }[w] || w)).join(', ') || '—';
+      mdTable(['Ticker', 'Side', 'Price', 'Status', 'Path', 'First hurdle', 'Room', 'CAP', 'MACD', 'Warnings'],
         primary.map(t => {
           const r = rowOf.get(t.sym);
           return [T.bare(t.sym), t.dir === 'long' ? 'Long' : 'Short', fmt(r.triageRaw.close ?? r.price), t.status, t.path,
             t.hurdle ? `${t.hurdle.label} ${t.hurdle.price.toFixed(2)}` : '-',
-            t.hurdle && t.hurdle.distAtr != null ? t.hurdle.distAtr.toFixed(1) : '-', t.cells.cap, short(t.cells.macd)];
+            t.hurdle && t.hurdle.distAtr != null ? t.hurdle.distAtr.toFixed(1) : '-', t.cells.cap, short(t.cells.macd), warningCell(t)];
         }), new Set([2, 6]));
       console.log('\n**2. Context**\n');
-      mdTable(['Ticker', 'BB mid', 'SMA50 / SMA200 (ATR)', 'DI', 'ADX', 'RVOL', 'Gap/ATR', 'Sector', 'Event', 'Src'],
+      mdTable(['Ticker', 'BB mid', 'SMA50 / SMA200 (ATR)', 'DI', 'ADX', 'RVOL', 'Gap/ATR'],
         primary.map(t => {
           const r = rowOf.get(t.sym);
           return [T.bare(t.sym), t.cells.bb.replace(' ATR', ''), t.cells.ma.replace('50 ', '').replace(' · 200 ', ' / ').replace(' · gap ', ' · '),
-            t.cells.di.replace('Shift–', 'Sh ').replace('Control–', 'Ct ').replace('Buyers', 'Buy').replace('Sellers', 'Sell'),
+            t.cells.di.replace('Shift–', 'Sh ').replace('Control–', 'Ct ').replace(/Buyers/g, 'Buy').replace(/Sellers/g, 'Sell'),
             t.cells.adx.replace('rising', '↑').replace('falling', '↓').replace('flat', '→'), t.cells.rvol,
-            r.gatrRatio == null ? '-' : r.gatrRatio.toFixed(2), t.cells.sector.replace('Rot. ', ''), t.cells.event, srcTag(t)];
+            r.gatrRatio == null ? '-' : r.gatrRatio.toFixed(2)];
         }), new Set([5, 6]));
-      console.log('\n*Key: Room = ATR to first hurdle · MACD Opp/Aln = opposed/aligned to the trade, conv/exp = converging/expanding · DI Sh = 3-bar shift, Ct = current control · Src A = TV alert, S = scan.*\n');
+      // David (7 Oct 2026): Sector name, its SPDR ETF and the Sector Support verdict (3-day
+      // sector-vs-SPY rotation, direction-aware) restored from the pre-triage SID table.
+      console.log('\n**3. Sector & events**\n');
+      const supportCell = t => {
+        const rot = t.sector && t.sector.rotation;
+        return rot === 'Rotation supportive' ? '🟢 Supported' : rot === 'Rotation opposed' ? '🔴 Unsupported'
+             : rot === 'Rotation neutral' ? '⚪ Neutral' : 'n/a';
+      };
+      mdTable(['Ticker', 'Sector', 'ETF', 'Sector Support', 'Event', 'Src'],
+        primary.map(t => [T.bare(t.sym),
+          (t.sector && t.sector.name && t.sector.name !== 'n/a' && t.sector.name !== 'Miscellaneous') ? t.sector.name : (t.isEtf ? 'ETF' : 'n/a'),
+          (t.sector && t.sector.etf && t.sector.etf !== 'n/a') ? t.sector.etf : 'n/a',
+          supportCell(t), t.cells.event, srcTag(t)]));
+      console.log('\n*Key: Room = ATR to first hurdle · MACD Opp/Aln = opposed/aligned to the trade, conv/exp = converging/expanding · DI Sh = 3-bar shift, Ct = current control · Src A = TV alert, S = scan · Sector Support = sector ETF vs SPY over the last 3 sector scans, in the trade direction (rotation only — not sector chart structure).*\n');
       primary.forEach(t => console.log(`- **${T.bare(t.sym)}** — ${T.whyLine(t)}`));
 
       // Validated cautions (unchanged logic) — shown for the reviewed rows only.
@@ -2514,7 +2542,7 @@ if (!VERBOSE) {
     const sma50N = triaged.filter(t => t.ma.d50 != null).length;
     const C = T.CFG;
     console.log(`*Data: CAP zones captured for ${capN}/${triaged.length} alerts · SMA50/200 (MA Ribbon MA #2/#4) for ${sma50N}/${triaged.length} · BB mid = path proxy for RSI 50 (not a guaranteed target) · Pivots, pattern targets, Weekly MACD and sector structure/turn are not in the SID Data Window → n/a · WT3D/OBV-MACD excluded by design.*`);
-    console.log(`*Thresholds: Open/Cleared ≥${C.ROOM_OPEN_ATR} ATR room · no path <${C.ROOM_MIN_ATR} ATR · cluster ${C.CLUSTER_ATR} ATR · MACD fast ≥${C.MACD_FAST} · chop ≥${C.MACD_CHOP_FLIPS} flips/${C.MACD_CHOP_LOOKBACK} days · DI shift ±${C.DI_SHIFT_PTS} pts over 3 bars · earnings ≤${C.EARNINGS_TRADING_DAYS} trading days · after-hours move ≥${C.OVERNIGHT_MOVE_ATR} ATR · missed entry = earlier alert ≤${C.ENTRY_MISSED_LOOKBACK}d and ≥${C.ENTRY_MISSED_ATR} ATR in favour · Conditional = ${C.MAX_OPEN_CONDITIONS} open condition (more → Exclude today).*\n`);
+    console.log(`*Thresholds: Open/Cleared ≥${C.ROOM_OPEN_ATR} ATR room · limited initial room <${C.ROOM_MIN_ATR} ATR (context, not an automatic exclusion) · cluster ${C.CLUSTER_ATR} ATR · MACD fast ≥${C.MACD_FAST} · DI shift ±${C.DI_SHIFT_PTS} pts over 3 bars · earnings ≤${C.EARNINGS_TRADING_DAYS} trading days · after-hours move ≥${C.OVERNIGHT_MOVE_ATR} ATR · missed entry = earlier alert ≤${C.ENTRY_MISSED_LOOKBACK}d and ≥${C.ENTRY_MISSED_ATR} ATR in favour · multiple context conditions lower review priority but do not create an exclusion.*\n`);
   }
   // SPY Regime Gate removed 28 Aug 2026 — see extraction removal note near top of file.
 

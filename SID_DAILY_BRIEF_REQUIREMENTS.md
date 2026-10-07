@@ -160,6 +160,29 @@ For each candidate, derive a concise path assessment:
 
 Show the first hurdle, its price, distance in ATR and the evidence forming it. Never reduce this to colour alone.
 
+#### First-list room requirement (pending implementation)
+
+Initial room controls promotion into the first chart-review list, without being represented as a validated SID signal failure:
+
+- **Below 1.0 ATR:** do not promote to the first review list. Place the candidate in the compact appendix as `Defer — insufficient initial room`, naming the hurdle and distance. DRSK at 0.3 ATR is the reference example.
+- **1.0 ATR or more:** acceptable initial room for first-list consideration, subject to the remaining structural and timing evidence.
+
+This is a review-workload rule, not an automatic `Exclude today` rule. It refines which candidates deserve immediate chart time while preserving nearby hurdles as possible destinations rather than assuming they are always barriers.
+
+#### Entry-candle CAP intersection (pending implementation)
+
+CAP contact must be tested against the complete entry candle (`low` through `high`), not only the closing price. Capture and retain the entry bar's open, high, low and close from the existing SID scan payload.
+
+If the entry candle overlaps any current CAP supply or demand zone, do not promote the candidate to the first review list. Place it in the compact appendix as `Watchlist — entry candle intersects CAP`, naming the intersected zone. This applies even when the close finishes outside the zone, because the entry bar has already encountered that structure.
+
+Reference examples from the 7 October 2026 review:
+
+- **PRLB short:** candle `96.39–99.96` intersects supply `98.26–98.50`.
+- **RVTY short:** candle `151.45–166.25` intersects supply `157.90–158.28`.
+- **FORM short:** candle `140.88–148.41` intersects supply `145.77–146.11`.
+
+This is a first-pass workload rule and watchlist classification, not an automatic claim that the SID signal failed. Momentum and validated warnings are assessed only after candidates survive this structural first pass.
+
 ### 5.2 MA-path state
 
 Report separately:
