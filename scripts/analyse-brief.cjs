@@ -865,6 +865,8 @@ const sidResults = sidBrief ? sidBrief.symbols_scanned.filter(s => !EXCLUDED_TIC
     macdSep: exactNum(msepSt, 'MACD Separation'),
     macdClosingSpeed: exactNum(msepSt, 'MACD Closing Speed'),
     macdBarsSinceCross: exactNum(msepSt, 'Bars Since Cross'),
+    macdFastSlow: exactNum(msepSt, 'MACD Fast Slow State'),   // v1.5: 1 FAST, 0 SLOW
+    macdGapState: exactNum(msepSt, 'MACD Gap State'),         // v1.5: -1 CLOSING, 0 STABLE, 1 EXPANDING
   };
 
   return {
@@ -956,18 +958,18 @@ function fetchSidEvents(bareTickers) {
   try {
     const body = JSON.stringify({
       filter: [{ left: 'name', operation: 'in_range', right: bareTickers }],
-      columns: ['name', 'exchange', 'earnings_release_next_date', 'postmarket_change', 'gap'],
+      columns: ['name', 'exchange', 'earnings_release_next_date', 'postmarket_change', 'gap', 'typespecs', 'description'],
     });
     const res = require('child_process').execFileSync('curl', ['-s', '--max-time', '20', '-X', 'POST',
       'https://scanner.tradingview.com/america/scan', '-H', 'Content-Type: application/json', '-d', body], { encoding: 'utf8' });
     const MAJOR = ['NYSE', 'NASDAQ', 'AMEX', 'NYSE ARCA', 'CBOE'];
     for (const row of (JSON.parse(res).data || [])) {
-      const [name, exch, earnTs, ah, gap] = row.d || [];
+      const [name, exch, earnTs, ah, gap, typespecs, description] = row.d || [];
       if (!name) continue;
       const prev = out.get(name);
       const isMajor = MAJOR.includes(String(exch || '').toUpperCase());
       if (prev && prev.isMajor && !isMajor) continue;
-      out.set(name, { earnTs, ah, gap, isMajor, exch });
+      out.set(name, { earnTs, ah, gap, isMajor, exch, isEtf: Array.isArray(typespecs) && typespecs.includes('etf'), description: description || '' });
     }
     process.stderr.write(`[sid-triage] events: ${out.size}/${bareTickers.length} tickers returned by scanner\n`);
   } catch (e) {
@@ -1004,6 +1006,20 @@ function sidReviewSet(scanFired, alertLog) {
   return out;
 }
 
+// David (7 Oct 2026): TradingView files EVERY ETF under sector "Miscellaneous", so the
+// 17 Sep fund/trust rule was removing equity ETFs too (XLF, XLRE, HDV…), against the
+// "prefer ETFs" rule. Now: equity ETFs are reviewed; bond/cash ETFs go to the appendix.
+const BOND_CASH_ETF_RE = /\b(bond|treasury|treasuries|muni|municipal|aggregate|fixed income|t-?bill|money market|ultra[- ]short|short[- ]term|floating rate|govt|government|credit|corporate|mortgage|tips|duration|high yield)\b/i;
+const SECTOR_ETFS = new Set(['XLK', 'XLF', 'XLY', 'XLU', 'XLV', 'XLC', 'XLB', 'XLRE', 'XLI', 'XLP', 'XLE']);
+function rotationForEtf(etf, direction) {
+  if (!etf || sectorHistoryData.length < SECTOR_HISTORY_DAYS) return null;
+  const rels = sectorHistoryData.map(d => sectorRelPctFor(d, etf));
+  if (rels.some(r => r == null)) return null;
+  const sup = rel => direction === 'long' ? rel > SECTOR_REL_THRESHOLD : rel < -SECTOR_REL_THRESHOLD;
+  const uns = rel => direction === 'long' ? rel < -SECTOR_REL_THRESHOLD : rel > SECTOR_REL_THRESHOLD;
+  return rels.every(sup) ? 'Supported' : rels.every(uns) ? 'Unsupported' : 'Neutral';
+}
+
 function buildSidTriage(fired) {
   const T = sidTriageLib;
   const hist = loadSidHistory(new Set(fired.map(r => r.sym)));
@@ -1031,18 +1047,24 @@ function buildSidTriage(fired) {
       macd: {
         macd: r.macd, sig: r.macdSig, raw: tr.macdRaw ?? ((r.macd != null && r.macdSig != null) ? r.macd - r.macdSig : null),
         sep: tr.macdSep, closingSpeed: tr.macdClosingSpeed, barsSinceCross: tr.macdBarsSinceCross,
+        fastSlow: tr.macdFastSlow, gapState: tr.macdGapState,
         rawPrev: h1 ? h1.macdRaw : null, sepPrev: h1 ? h1.macdSep : null,
         rawHist: h.filter(x => x.tdAgo <= T.CFG.MACD_CHOP_LOOKBACK - 1).slice().reverse().map(x => x.macdRaw),
       },
       diPlus: r.diPlus, diMinus: r.diMinus, adx: r.adx, rvol: r.rvol, vd: r.vd,
-      sectorRotation: sectorSupportTag(bareSym(r.sym), dir), sectorEtf: sectorEtfCodeDisplay(bareSym(r.sym)), sectorName: sectorNameDisplay(bareSym(r.sym)),
+      sectorRotation: SECTOR_ETFS.has(bareSym(r.sym)) ? rotationForEtf(bareSym(r.sym), dir) : sectorSupportTag(bareSym(r.sym), dir),
+      sectorEtf: SECTOR_ETFS.has(bareSym(r.sym)) ? bareSym(r.sym) : sectorEtfCodeDisplay(bareSym(r.sym)), sectorName: sectorNameDisplay(bareSym(r.sym)),
       earnings, ahMovePct: ev ? ev.ah : null, gapPct: ev ? ev.gap : null,
       hist: h3 || h1 ? {
         bars: h3 ? h3.tdAgo : null, close: h3?.close ?? null, sma50: h3?.sma50 ?? null, sma200: h3?.sma200 ?? null,
         bbMid: h1?.bbMid ?? null, diGap: h3?.diGap ?? null, adxPrev: h1?.adx ?? null,
       } : {},
       priorSignals: h.filter(x => dir === 'long' ? x.longSig : x.shortSig).map(x => ({ tradingDaysAgo: x.tdAgo, close: x.close })),
-      isFund: isFundOrTrust(r.sym),
+      isEtf: !!(ev && ev.isEtf),
+      isBondEtf: !!(ev && ev.isEtf && BOND_CASH_ETF_RE.test(ev.description)),
+      etfName: ev ? ev.description : null,
+      // non-ETF "Miscellaneous" (closed-end funds, trusts) stay excluded per the 17 Sep rule
+      isFund: isFundOrTrust(r.sym) && !(ev && ev.isEtf),
       source: r.sidSource || 'Scan',
       notScanned: !!r.notScanned,
       instrumentMismatch: (() => {
@@ -2398,7 +2420,7 @@ if (!VERBOSE) {
     const by = s => triaged.filter(t => t.status === s);
     const nL = triaged.filter(t => t.dir === 'long').length, nS = triaged.length - nL;
     const nFund = triaged.filter(t => t.isFund).length;
-    console.log(`**⚡ SID — ${triaged.length} signals** *(${nL} Long · ${nS} Short${nFund ? ` · incl. ${nFund} fund/trust` : ''})* — triage ${T.CFG.VERSION}`);
+    console.log(`**⚡ SID — ${triaged.length} signals** *(${nL} Long · ${nS} Short${nFund ? ` · incl. ${nFund} fund/bond ETF` : ''})* — triage ${T.CFG.VERSION}`);
     if (alertLog) {
       const al = (alertLog.sid || []).map(a => a.ticker);
       const scanOnly = triaged.filter(t => t.source === 'Scan only').map(t => T.bare(t.sym));

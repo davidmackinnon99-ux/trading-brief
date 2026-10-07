@@ -187,6 +187,13 @@ Also show the signed DI gap, 3-bar gap change, and ADX value/direction. A revers
 
 ### 5.4 MACD state
 
+Use the direct Data Window exports from **MACD Separation & Convergence v1.5**:
+
+- `MACD Fast Slow State` — `1 = FAST`, `0 = SLOW`
+- `MACD Gap State` — `-1 = CLOSING`, `0 = STABLE`, `1 = EXPANDING`
+
+These are the only new MACD exports required. Existing MACD line, signal line, normalised separation and cross-quality outputs remain unchanged. Do not classify a ticker as `Data incomplete` merely because an earlier saved scan is unavailable.
+
 Report:
 
 - MACD side of signal;

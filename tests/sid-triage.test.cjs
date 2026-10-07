@@ -163,10 +163,22 @@ test('MA path reports SMA50 and SMA200 separately', () => {
   assert.equal(t.ma.gapTrend, 'closing'); // |16|/2=8 now vs |16.7|/2=8.35 3 bars ago
 });
 
-test('opposed MACD with no prior-day reading → Data incomplete (not silently excluded)', () => {
+test('opposed MACD with no state available → Conditional with data gap, never Data incomplete', () => {
   const t = T.triageAlert(longBase({ macd: { macd: -1, raw: -0.2, sep: 0.3, closingSpeed: 0.2 } }));
-  assert.equal(t.status, T.STATUS.DATA);
-  assert.ok(t.reasons.includes('MACD_HISTORY_NA'));
+  assert.equal(t.status, T.STATUS.COND);
+  assert.ok(t.dataGaps.includes('MACD_STATE_NA'));
+});
+
+test('v1.5 exports drive MACD state: Gap State -1 + Fast → Conditional; Gap State 1 → Exclude', () => {
+  const c = T.triageAlert(longBase({ macd: { macd: -1, raw: -0.2, sep: 0.3, gapState: -1, fastSlow: 1, barsSinceCross: 12 } }));
+  assert.equal(c.macd.trend, 'converging'); assert.equal(c.macd.pace, 'Fast'); assert.equal(c.macd.source, 'v1.5');
+  assert.equal(c.status, T.STATUS.COND);
+  const slow = T.triageAlert(longBase({ macd: { macd: -1, raw: -0.2, sep: 0.3, gapState: -1, fastSlow: 0, barsSinceCross: 12 } }));
+  assert.equal(slow.status, T.STATUS.EXCL);
+  const e = T.triageAlert(longBase({ macd: { macd: -1, raw: -0.2, sep: 0.3, gapState: 1, fastSlow: 1, barsSinceCross: 12 } }));
+  assert.equal(e.status, T.STATUS.EXCL);
+  const f = T.triageAlert(longBase({ macd: { macd: 1, raw: 0.05, sep: 0.1, gapState: 1, fastSlow: 1, barsSinceCross: 1 } }));
+  assert.equal(f.macd.trend, 'fresh cross');
 });
 
 test('instrument mismatch and not-scanned alerts → Data incomplete with reason', () => {
@@ -177,4 +189,11 @@ test('instrument mismatch and not-scanned alerts → Data incomplete with reason
   const n = T.triageAlert({ sym: 'ZZZ', dir: 'long', notScanned: true, cap: {}, macd: {} });
   assert.equal(n.status, T.STATUS.DATA);
   assert.ok(n.reasons.includes('NOT_SCANNED'));
+});
+
+test('bond/cash ETF → Exclude with its own reason; equity ETF is reviewed normally', () => {
+  const b = T.triageAlert(longBase({ isEtf: true, isBondEtf: true, etfName: 'iShares Core U.S. Aggregate Bond ETF' }));
+  assert.equal(b.status, T.STATUS.EXCL); assert.ok(b.reasons.includes('BOND_CASH_ETF'));
+  const e = T.triageAlert(longBase({ isEtf: true }));
+  assert.equal(e.status, T.STATUS.REVIEW);
 });

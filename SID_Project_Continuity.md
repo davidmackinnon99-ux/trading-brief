@@ -343,6 +343,13 @@ to the RSI-50 objective, then (2) do momentum/participation/context support taki
   `sync-watchlist.cjs` writes `watchlist_qualified` (bare→EXCHANGE:TICKER) to rules.json and
   `morning.js` loads the qualified symbol (affects LORP scan too — correct instruments). Mismatched
   rows are flagged Data incomplete (INSTRUMENT_MISMATCH). (d) Review table split into two narrow tables.
+- **Spec rev. 2 (7 Oct, David):** MACD state now read from **MACD Separation & Convergence v1.5** exports
+  `MACD Gap State` (−1 closing / 0 stable / 1 expanding) and `MACD Fast Slow State` (1 fast / 0 slow);
+  saved-scan history is only a fallback, and a missing earlier scan never makes a row Data incomplete
+  (opposed MACD with unknown state = Conditional + data gap). Equity ETFs are now reviewed (TradingView
+  files every ETF as sector "Miscellaneous"); bond/cash ETFs → Exclude (BOND_CASH_ETF); closed-end
+  funds/trusts stay excluded. Sector ETFs (XL*) use their own rotation vs SPY. Conditionals sort with the
+  fewest data gaps first. David filtered the ETF screener sections to equity ETFs only.
 
 ## 5. Open items (need input — not resolvable from files)
 - [ ] Reconcile the 300-trade manual journal (`analysis/sid-btw-universe/Backtesting_Sheet_300_SID.xlsx`) against `data/trades/trades_all.csv` and the automated BTW-universe backtest — three SID datasets now exist and haven't been cross-checked against each other.

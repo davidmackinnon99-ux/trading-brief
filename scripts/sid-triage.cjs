@@ -182,12 +182,20 @@ function macdState(dir, m) {
   out.side = m.raw >= 0 ? 'above signal' : 'below signal';
   out.aligned = dir === 'long' ? m.raw >= 0 : m.raw < 0;
   if (isNum(m.macd)) out.zero = m.macd >= 0 ? 'above zero' : 'below zero';
-  if (isNum(m.rawPrev) && Math.sign(m.rawPrev) !== Math.sign(m.raw) && m.rawPrev !== 0) out.trend = 'fresh cross';
+  // Spec §5.4 (rev. 7 Oct): MACD Separation & Convergence v1.5 exports the states directly —
+  //   "MACD Gap State": -1 CLOSING, 0 STABLE, 1 EXPANDING · "MACD Fast Slow State": 1 FAST, 0 SLOW.
+  // Prefer those; fall back to prior-day saved scans / Closing Speed only for older scans.
+  out.source = 'n/a';
+  const freshByBars = isNum(m.barsSinceCross) && m.barsSinceCross <= 1;
+  if (freshByBars || (isNum(m.rawPrev) && Math.sign(m.rawPrev) !== Math.sign(m.raw) && m.rawPrev !== 0)) { out.trend = 'fresh cross'; out.source = freshByBars ? 'v1.5' : 'history'; }
+  else if (isNum(m.gapState)) { out.trend = m.gapState < 0 ? 'converging' : m.gapState > 0 ? 'expanding' : 'stable'; out.source = 'v1.5'; }
   else if (isNum(m.sep) && isNum(m.sepPrev)) {
     const d = m.sep - m.sepPrev;
     out.trend = Math.abs(d) < CFG.MACD_STABLE ? 'stable' : d < 0 ? 'converging' : 'expanding';
+    out.source = 'history';
   }
-  if (isNum(m.closingSpeed)) out.pace = m.closingSpeed >= CFG.MACD_FAST ? 'Fast' : 'Slow';
+  if (isNum(m.fastSlow)) out.pace = m.fastSlow >= 1 ? 'Fast' : 'Slow';
+  else if (isNum(m.closingSpeed)) out.pace = m.closingSpeed >= CFG.MACD_FAST ? 'Fast' : 'Slow';
   const series = [...(m.rawHist || []), m.raw].filter(isNum).slice(-CFG.MACD_CHOP_LOOKBACK);
   if (series.length >= 3) {
     let flips = 0;
@@ -300,6 +308,9 @@ function triageAlert(a) {
   } else if (a.instrumentMismatch) {
     status = STATUS.DATA; reasons.push('DATA_INCOMPLETE', 'INSTRUMENT_MISMATCH');
     notes.push(a.instrumentMismatch);
+  } else if (a.isBondEtf) {
+    status = STATUS.EXCL; reasons.push('BOND_CASH_ETF');
+    notes.push(`bond/cash ETF${a.etfName ? ` (${a.etfName})` : ''} — SID targets equity mean-reversion`);
   } else if (a.isFund) {
     status = STATUS.EXCL; reasons.push('FUND_OR_TRUST');
     notes.push('fund/trust (TradingView sector "Miscellaneous") — existing SID rule');
@@ -312,12 +323,7 @@ function triageAlert(a) {
   } else if (isNum(roomAtr) && roomAtr < CFG.ROOM_MIN_ATR) {
     status = STATUS.EXCL; reasons.push('HURDLE_NEAR');
     notes.push(`first hurdle ${fh.hurdle.label} ${fmtP(fh.hurdle.price)} only ${roomAtr.toFixed(2)} ATR away`);
-  } else if (mc.aligned === false && mc.trend === 'n/a') {
-    // Opposed MACD but no prior-day reading to judge convergence (e.g. ticker new to the
-    // watchlist) — not enough to classify; never silently excluded or passed.
-    status = STATUS.DATA; reasons.push('DATA_INCOMPLETE', 'MACD_HISTORY_NA');
-    notes.push(`MACD ${mc.side}; no prior-day MACD reading to judge convergence (ticker not in earlier scans)`);
-  } else if (mc.aligned === false && !(mc.trend === 'converging' && mc.pace === 'Fast')) {
+  } else if (mc.aligned === false && mc.trend !== 'n/a' && !(mc.trend === 'converging' && mc.pace === 'Fast')) {
     // Opposing MACD is a material practical exclusion (spec §5.4). Only an opposed MACD that is
     // converging FAST toward its signal line is treated as a single open condition (Conditional).
     status = STATUS.EXCL; reasons.push('MACD_OPPOSED');
@@ -337,7 +343,9 @@ function triageAlert(a) {
     // any gap caps the status at Conditional (and is named in the note).
     if (!capAvailable) dataGaps.push('CAP_NA');
     if (di.gapChange3 == null) dataGaps.push('DI_HISTORY_NA');
-    if (mc.trend === 'n/a') dataGaps.push('MACD_HISTORY_NA');
+    // Spec §5.4: a missing earlier scan is never on its own a reason for Data incomplete.
+    // Opposed MACD with unknown convergence stays one open condition + a data gap (≤ Conditional).
+    if (mc.trend === 'n/a') dataGaps.push('MACD_STATE_NA');
 
     if (conditions.length > CFG.MAX_OPEN_CONDITIONS) { status = STATUS.EXCL; reasons.push('MULTIPLE_OPEN_CONDITIONS', ...conditions, ...dataGaps); }
     else if (conditions.length || dataGaps.length) { status = STATUS.COND; reasons.push(...conditions, ...dataGaps); }
@@ -356,7 +364,7 @@ function triageAlert(a) {
     : a.sectorRotation === 'Neutral' ? 'Rotation neutral' : 'Rotation n/a';
 
   return {
-    sym: a.sym, dir, status, reasons, conditions, dataGaps, notes, isFund: !!a.isFund, source: a.source || 'Scan',
+    sym: a.sym, dir, status, reasons, conditions, dataGaps, notes, isFund: !!(a.isFund || a.isBondEtf), isEtf: !!a.isEtf, source: a.source || 'Scan',
     path, roomAtr,
     hurdle: fh.hurdle ? { label: fh.hurdle.label, price: r2(fh.hurdle.price), distAtr: r2(fh.hurdle.distAtr) } : null,
     levelsAhead: fh.ahead.map((x) => ({ name: x.name, price: r2(x.price), distAtr: r2(x.distAtr) })),
@@ -392,7 +400,7 @@ const REASON_TEXT = {
   CAP_NA: 'CAP zones not captured — check supply/demand on chart',
   BB_MID_BEHIND: 'price already beyond BB mid (RSI-50 proxy behind it)',
   DI_HISTORY_NA: 'no 3-bar DI history',
-  MACD_HISTORY_NA: 'no prior-day MACD reading',
+  MACD_STATE_NA: 'MACD closing/expanding state unavailable (no v1.5 export or prior scan)',
   EARNINGS_NEAR: 'earnings soon',
   OVERNIGHT_MOVE_LARGE: 'large after-hours move',
   ENTRY_MISSED: 'original entry was an earlier alert and price has already moved',
@@ -437,6 +445,7 @@ function sortTriaged(list) {
   const rank = (s) => STATUS_ORDER.indexOf(s);
   return [...list].sort((a, b) => rank(a.status) - rank(b.status)
     || (a.isFund ? 1 : 0) - (b.isFund ? 1 : 0)
+    || (a.dataGaps || []).length - (b.dataGaps || []).length   // best-evidenced Conditionals first
     || (isNum(b.roomAtr) ? b.roomAtr : -1) - (isNum(a.roomAtr) ? a.roomAtr : -1)
     || a.sym.localeCompare(b.sym));
 }
