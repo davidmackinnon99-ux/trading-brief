@@ -307,6 +307,20 @@ async function main() {
   rules.watchlist = sorted;
   // Save section assignments so analyse-brief.cjs can split by source
   rules.watchlist_sections = included;
+  // 7 Oct 2026: keep each ticker's exchange-qualified symbol from the TV watchlist so the
+  // scan loads the RIGHT instrument. With bare tickers TradingView resolved e.g. AIR →
+  // EURONEXT_DLY:AIR (Airbus), NHC → ASX_DLY:NHC, SU → EURONEXT_DLY:SU. US listings win
+  // when the same bare ticker appears under two exchanges.
+  const US = ['NYSE', 'NASDAQ', 'AMEX', 'NYSE ARCA', 'ARCA', 'BATS', 'CBOE'];
+  const qualified = {};
+  for (const rawName of sectionNames) {
+    for (const full of (allSections[rawName] || [])) {
+      if (!isValidTicker(full) || isExcluded(full)) continue;
+      const t = extractTicker(full), ex = full.split(':')[0].toUpperCase();
+      if (!qualified[t] || (!US.includes(qualified[t].split(':')[0].toUpperCase()) && US.includes(ex))) qualified[t] = full;
+    }
+  }
+  rules.watchlist_qualified = qualified;
   fs.writeFileSync(RULES_PATH, JSON.stringify(rules, null, 2));
 
   log(`rules.json updated: ${prev} → ${sorted.length} symbols`);

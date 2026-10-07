@@ -334,6 +334,15 @@ to the RSI-50 objective, then (2) do momentum/participation/context support taki
   an opposing MACD as a practical exclusion for live review. Implemented per spec (fast-converging
   carve-out), audit records will show whether excluded MACD-opposed longs actually worked.
 - 7 Oct morning SID scan failed (SID layout XN1LuowU not open at 7am); re-run manually same morning.
+- **Follow-ups same day (David):** (a) SMA50/SMA200 now read from Moving Average Ribbon MA #2/#4
+  (his chart reference), not SID Strategy. (b) Review list = TradingView alert-fire log ∪ scan entries:
+  `scripts/sid-alert-log.mjs` saves `brief-DATE-sid-alerts.json` ("SID ENTRY" fires for the latest bar)
+  after the SID scan; rows tagged A+S / A (alert only) / S (scan only). 6 Oct bar: 35 alerts vs 34 scan
+  entries (AIR, FTSM alert-only; GOVI scan-only). (c) **Wrong-instrument bug:** bare watchlist tickers
+  resolved to foreign listings (AIR→EURONEXT Airbus, NHC→ASX, SU→EURONEXT, ~25 symbols). Fixed:
+  `sync-watchlist.cjs` writes `watchlist_qualified` (bare→EXCHANGE:TICKER) to rules.json and
+  `morning.js` loads the qualified symbol (affects LORP scan too — correct instruments). Mismatched
+  rows are flagged Data incomplete (INSTRUMENT_MISMATCH). (d) Review table split into two narrow tables.
 
 ## 5. Open items (need input — not resolvable from files)
 - [ ] Reconcile the 300-trade manual journal (`analysis/sid-btw-universe/Backtesting_Sheet_300_SID.xlsx`) against `data/trades/trades_all.csv` and the automated BTW-universe backtest — three SID datasets now exist and haven't been cross-checked against each other.

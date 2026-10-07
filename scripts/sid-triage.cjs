@@ -294,7 +294,13 @@ function triageAlert(a) {
   if (mc.aligned == null) missingCore.push('MACD');
   if (!capAvailable && !isNum(a.bbMid)) missingCore.push('CAP + BB mid');
 
-  if (a.isFund) {
+  if (a.notScanned) {
+    status = STATUS.DATA; reasons.push('DATA_INCOMPLETE', 'NOT_SCANNED');
+    notes.push('TradingView alert received but ticker not in today\'s scan (not on the synced watchlist?)');
+  } else if (a.instrumentMismatch) {
+    status = STATUS.DATA; reasons.push('DATA_INCOMPLETE', 'INSTRUMENT_MISMATCH');
+    notes.push(a.instrumentMismatch);
+  } else if (a.isFund) {
     status = STATUS.EXCL; reasons.push('FUND_OR_TRUST');
     notes.push('fund/trust (TradingView sector "Miscellaneous") — existing SID rule');
   } else if (missingCore.length) {
@@ -350,7 +356,7 @@ function triageAlert(a) {
     : a.sectorRotation === 'Neutral' ? 'Rotation neutral' : 'Rotation n/a';
 
   return {
-    sym: a.sym, dir, status, reasons, conditions, dataGaps, notes, isFund: !!a.isFund,
+    sym: a.sym, dir, status, reasons, conditions, dataGaps, notes, isFund: !!a.isFund, source: a.source || 'Scan',
     path, roomAtr,
     hurdle: fh.hurdle ? { label: fh.hurdle.label, price: r2(fh.hurdle.price), distAtr: r2(fh.hurdle.distAtr) } : null,
     levelsAhead: fh.ahead.map((x) => ({ name: x.name, price: r2(x.price), distAtr: r2(x.distAtr) })),
@@ -421,7 +427,8 @@ function appendixLine(t) {
   } else {
     parts.push(...t.notes);
   }
-  return `${bare(t.sym)} (${t.dir === 'long' ? 'L' : 'S'}) — ${t.status}: ${parts.join('; ')}.`;
+  const src = t.source === 'Alert only' ? ' [alert only]' : t.source === 'Scan only' ? ' [scan only — no TV alert]' : '';
+  return `${bare(t.sym)} (${t.dir === 'long' ? 'L' : 'S'})${src} — ${t.status}: ${parts.join('; ')}.`;
 }
 
 function bare(sym) { return sym.includes(':') ? sym.split(':')[1] : sym; }

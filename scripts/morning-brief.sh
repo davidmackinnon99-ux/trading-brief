@@ -167,6 +167,9 @@ if [ $SID_SCAN_EXIT -ne 0 ] && tail -5 "$LOGFILE" | grep -q "REQUIRED STUDY MISS
 fi
 if [ $SID_SCAN_EXIT -eq 0 ] && [ -s "$OUTFILE_SID" ]; then
     echo "[$(date)] SID scan complete" >> "$LOGFILE"
+    # 7 Oct 2026: save TradingView's own SID ENTRY alert log for the latest bar so the brief
+    # reviews exactly the alerts that were sent (union with the scan's entry signals).
+    "$NODE" "$TV_DIR/scripts/sid-alert-log.mjs" "$BRIEFS_DIR/brief-$DATE-sid-alerts.json" 2>> "$LOGFILE" || true
 else
     echo "[$(date)] SID scan failed or empty" >> "$LOGFILE"
 fi

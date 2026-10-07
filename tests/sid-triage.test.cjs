@@ -168,3 +168,13 @@ test('opposed MACD with no prior-day reading → Data incomplete (not silently e
   assert.equal(t.status, T.STATUS.DATA);
   assert.ok(t.reasons.includes('MACD_HISTORY_NA'));
 });
+
+test('instrument mismatch and not-scanned alerts → Data incomplete with reason', () => {
+  const m = T.triageAlert(longBase({ instrumentMismatch: 'scan read EURONEXT_DLY:AIR, not NYSE:AIR', source: 'Alert only' }));
+  assert.equal(m.status, T.STATUS.DATA);
+  assert.ok(m.reasons.includes('INSTRUMENT_MISMATCH'));
+  assert.match(T.appendixLine(m), /alert only/);
+  const n = T.triageAlert({ sym: 'ZZZ', dir: 'long', notScanned: true, cap: {}, macd: {} });
+  assert.equal(n.status, T.STATUS.DATA);
+  assert.ok(n.reasons.includes('NOT_SCANNED'));
+});

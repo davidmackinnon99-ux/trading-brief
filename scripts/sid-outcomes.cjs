@@ -59,8 +59,8 @@ function scanIndex(date) {
         const sts = s.indicators?.studies || [];
         const ex = (pre) => sts.find((x) => String(x.name || '').startsWith(pre));
         const v = (st, k) => (st && st.values && Object.prototype.hasOwnProperty.call(st.values, k) ? num(st.values[k]) : null);
-        const pro = ex('SID Trading Signals Pro'), bb = ex('Bollinger Bands'), strat = ex('SID Strategy');
-        m.set(s.symbol, { rsi: v(pro, 'RSI (0-100)'), bb: v(bb, 'Basis'), sma50: v(strat, 'SMA50 Value'), sma200: v(pro, 'SMA200'),
+        const pro = ex('SID Trading Signals Pro'), bb = ex('Bollinger Bands'), strat = ex('SID Strategy'), rib = ex('Moving Average Ribbon');
+        m.set(s.symbol, { rsi: v(pro, 'RSI (0-100)'), bb: v(bb, 'Basis'), sma50: v(rib, 'MA #2') ?? v(strat, 'SMA50 Value'), sma200: v(rib, 'MA #4') ?? v(pro, 'SMA200'),
           close: num(s.quote?.close ?? s.quote?.last), high: num(s.quote?.high), low: num(s.quote?.low) });
       }
     }

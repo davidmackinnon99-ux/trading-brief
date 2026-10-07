@@ -71,6 +71,7 @@ export async function runBrief({ rules_path, sections } = {}) {
   const {
     watchlist = [],
     watchlist_sections = {},
+    watchlist_qualified = {},
     default_timeframe = "1D",
     scan_delay_ms: rules_scan_delay_ms = 1000,
     symbol_timeout_ms = 30000,
@@ -188,7 +189,9 @@ export async function runBrief({ rules_path, sections } = {}) {
 
   for (const symbol of filteredWatchlist) {
     const scanOne = async () => {
-      await chart.setSymbol({ symbol });
+      // 7 Oct 2026: load the exchange-qualified symbol from the TV watchlist when known
+      // (bare tickers can resolve to a foreign listing). Result keeps the bare `symbol`.
+      await chart.setSymbol({ symbol: watchlist_qualified[symbol] || symbol });
       await new Promise((r) => setTimeout(r, scan_delay_ms));
 
       if (!timeframeConfirmed) {

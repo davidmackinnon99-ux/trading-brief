@@ -844,11 +844,17 @@ const sidResults = sidBrief ? sidBrief.symbols_scanned.filter(s => !EXCLUDED_TIC
   const bbSt   = exactStudy('Bollinger Bands');
   const capSt  = exactStudy('CAP Tools Supplement');
   const msepSt = exactStudy('MACD Separation & Convergence');
+  // David (7 Oct 2026): SMA50/SMA200 come from the Moving Average Ribbon (MA #2 = SMA50,
+  // MA #4 = SMA200) — the values he uses on the chart.
+  const ribbonSt = exactStudy('Moving Average Ribbon');
   const triageRaw = {
+    ma50: exactNum(ribbonSt, 'MA #2'), ma200: exactNum(ribbonSt, 'MA #4'),
+    resolvedSymbol: s.state?.symbol || null,
     close: s.quote?.close ?? s.quote?.last ?? null,
     open:  s.quote?.open ?? null,
     barTime: s.quote?.time ?? null,
     rsi:   exactNum(sidCSt, 'RSI (0-100)'),
+    armedLong: exactNum(sidCSt, 'SID Armed Long'), armedShort: exactNum(sidCSt, 'SID Armed Short'),
     bbMid: exactNum(bbSt, 'Basis'), bbUp: exactNum(bbSt, 'Upper'), bbLo: exactNum(bbSt, 'Lower'),
     cap: {
       supBot: exactNum(capSt, 'Near Supply Bot'), supTop: exactNum(capSt, 'Near Supply Top'),
@@ -922,12 +928,12 @@ function loadSidHistory(symSet) {
         const ex = (p) => sts.find(x => String(x.name || '').startsWith(p));
         const num = (st, k) => (st && st.values && Object.prototype.hasOwnProperty.call(st.values, k)) ? parseNum(st.values[k]) : null;
         const pro = ex('SID Trading Signals Pro'), strat = ex('SID Strategy'), bb = ex('Bollinger Bands');
-        const ms = ex('MACD Separation & Convergence'), adxS = ex('ADX and DI');
+        const ms = ex('MACD Separation & Convergence'), adxS = ex('ADX and DI'), rib = ex('Moving Average Ribbon');
         const dip = num(adxS, 'DI+'), dim = num(adxS, 'DI-');
         const rec = {
           tdAgo, date,
           close: s.quote?.close ?? s.quote?.last ?? null, high: s.quote?.high ?? null, low: s.quote?.low ?? null,
-          sma50: num(strat, 'SMA50 Value'), sma200: num(pro, 'SMA200'), bbMid: num(bb, 'Basis'),
+          sma50: num(rib, 'MA #2') ?? num(strat, 'SMA50 Value'), sma200: num(rib, 'MA #4') ?? num(pro, 'SMA200'), bbMid: num(bb, 'Basis'),
           diGap: (dip != null && dim != null) ? dip - dim : null, adx: num(adxS, 'ADX') ?? num(pro, 'ADX'),
           macdRaw: num(ms, 'Raw MACD-Signal Distance'), macdSep: num(ms, 'MACD Separation'),
           longSig: num(pro, 'Long Entry Signal') === 1, shortSig: num(pro, 'Short Entry Signal') === 1,
@@ -970,6 +976,34 @@ function fetchSidEvents(bareTickers) {
   return out;
 }
 
+// David (7 Oct 2026): review exactly what TradingView SENT. brief-DATE-sid-alerts.json is
+// written by scripts/sid-alert-log.mjs (TradingView alert-fire log, "SID ENTRY" alerts for the
+// latest bar). The review list = alert log ∪ scan entry signals; each row carries its source.
+const US_EXCH = new Set(['BATS', 'NYSE', 'NASDAQ', 'AMEX', 'NYSE ARCA', 'ARCA', 'CBOE']);
+function loadSidAlertLog() {
+  try {
+    const p = (sidBriefFile || '').replace(/-sid\.json$/, '-sid-alerts.json');
+    if (!p || p === sidBriefFile || !fs.existsSync(p)) return null;
+    return JSON.parse(fs.readFileSync(p, 'utf8'));
+  } catch (e) { process.stderr.write(`[sid-alerts] unreadable (${e.message})\n`); return null; }
+}
+function sidReviewSet(scanFired, alertLog) {
+  const byBare = new Map(sidResults.filter(r => !r.error).map(r => [bareSym(r.sym), r]));
+  const out = [];
+  const alerted = new Map(((alertLog && alertLog.sid) || []).map(a => [a.ticker, a]));
+  const scanSet = new Set(scanFired.map(r => bareSym(r.sym)));
+  for (const r of scanFired) out.push({ ...r, sidSource: alertLog ? (alerted.has(bareSym(r.sym)) ? 'Alert + scan' : 'Scan only') : 'Scan', alertInfo: alerted.get(bareSym(r.sym)) || null });
+  for (const [t, a] of alerted) {
+    if (scanSet.has(t)) continue;
+    const r = byBare.get(t);
+    if (!r) { out.push({ sym: t, notScanned: true, isLongPass: true, isShortPass: false, sidSource: 'Alert only', alertInfo: a, triageRaw: {} }); continue; }
+    const tr = r.triageRaw || {};
+    const dir = (tr.armedShort === 1 && tr.armedLong !== 1) ? 'short' : (tr.armedLong === 1 && tr.armedShort !== 1) ? 'long' : (tr.rsi != null && tr.rsi > 50 ? 'short' : 'long');
+    out.push({ ...r, isLongPass: dir === 'long', isShortPass: dir === 'short', sidSource: 'Alert only', alertInfo: a, alertDirInferred: true });
+  }
+  return out;
+}
+
 function buildSidTriage(fired) {
   const T = sidTriageLib;
   const hist = loadSidHistory(new Set(fired.map(r => r.sym)));
@@ -992,7 +1026,7 @@ function buildSidTriage(fired) {
     }
     const a = {
       sym: r.sym, dir, close, open: tr.open, atr, atrPct: r.atrPct, gatr: r.gatrRatio, rsi: tr.rsi,
-      bbMid: tr.bbMid, bbUp: tr.bbUp, bbLo: tr.bbLo, sma50: r.sma50, sma200: r.sma200,
+      bbMid: tr.bbMid, bbUp: tr.bbUp, bbLo: tr.bbLo, sma50: tr.ma50 ?? r.sma50, sma200: tr.ma200 ?? r.sma200,
       cap: tr.cap || {},
       macd: {
         macd: r.macd, sig: r.macdSig, raw: tr.macdRaw ?? ((r.macd != null && r.macdSig != null) ? r.macd - r.macdSig : null),
@@ -1009,6 +1043,14 @@ function buildSidTriage(fired) {
       } : {},
       priorSignals: h.filter(x => dir === 'long' ? x.longSig : x.shortSig).map(x => ({ tradingDaysAgo: x.tdAgo, close: x.close })),
       isFund: isFundOrTrust(r.sym),
+      source: r.sidSource || 'Scan',
+      notScanned: !!r.notScanned,
+      instrumentMismatch: (() => {
+        const ex = String(tr.resolvedSymbol || '').split(':')[0].toUpperCase();
+        if (!tr.resolvedSymbol || US_EXCH.has(ex)) return null;
+        const want = r.alertInfo ? r.alertInfo.pro_symbol : 'the US listing';
+        return `scan read ${tr.resolvedSymbol}, not ${want}`;
+      })(),
     };
     const t = T.triageAlert(a);
     t._input = a;
@@ -2346,14 +2388,26 @@ if (!VERBOSE) {
   } else if (!sidIndicatorFound && sidBrief) {
     console.log('**⚡ SID — ⚠️ SID indicator not found in data window**\n');
     console.log('*Add "SID Trading Signals Pro" (v8.5.17+) to the SID layout and enable its data window outputs.*\n');
-  } else if (sidAllFired.length === 0) {
+  } else if (sidAllFired.length === 0 && !(((loadSidAlertLog() || {}).sid) || []).length) {
     console.log('**⚡ SID — 0 signals** *(no entry signals fired today)*\n');
   } else {
     const T = sidTriageLib;
-    const triaged = buildSidTriage(sidAllFired);
+    const alertLog = loadSidAlertLog();
+    const reviewSet = sidReviewSet(sidAllFired, alertLog);
+    const triaged = buildSidTriage(reviewSet);
     const by = s => triaged.filter(t => t.status === s);
-    const nL = sidLongs.length, nS = sidShorts.length;
-    console.log(`**⚡ SID — ${sidPass.length} signals** *(${nL} Long · ${nS} Short${triaged.length !== sidPass.length ? ` · ${triaged.length - sidPass.length} fund/trust in appendix` : ''})* — triage ${T.CFG.VERSION}`);
+    const nL = triaged.filter(t => t.dir === 'long').length, nS = triaged.length - nL;
+    const nFund = triaged.filter(t => t.isFund).length;
+    console.log(`**⚡ SID — ${triaged.length} signals** *(${nL} Long · ${nS} Short${nFund ? ` · incl. ${nFund} fund/trust` : ''})* — triage ${T.CFG.VERSION}`);
+    if (alertLog) {
+      const al = (alertLog.sid || []).map(a => a.ticker);
+      const scanOnly = triaged.filter(t => t.source === 'Scan only').map(t => T.bare(t.sym));
+      const alertOnly = triaged.filter(t => t.source === 'Alert only').map(t => T.bare(t.sym));
+      console.log(`*TradingView sent ${al.length} SID ENTRY alerts for the ${alertLog.bar_date} bar; the scan found ${sidAllFired.length} entry signals. All ${triaged.length} are reviewed below.${alertOnly.length ? ` Alert only (scan saw no entry): ${alertOnly.join(', ')}.` : ''}${scanOnly.length ? ` Scan only (no TV alert): ${scanOnly.join(', ')}.` : ''}*`);
+      console.log(`*Alerts received: ${al.join(' · ')}*`);
+    } else {
+      console.log('*TradingView alert log not available this run — list is the scan\'s entry signals only.*');
+    }
     console.log('*Statuses organise the morning review — they are not trade grades and do not replace the chart check.*\n');
     console.log('```');
     console.log(`SID alerts:      ${triaged.length}`);
@@ -2366,24 +2420,38 @@ if (!VERBOSE) {
     { const _rs = readReminders('sid'); if (_rs.length) console.log('\n' + _rs.map(x => `📌 ${x}`).join('\n') + '\n'); }
 
     const primary = triaged.filter(t => t.status === T.STATUS.REVIEW || t.status === T.STATUS.COND);
-    const rowOf = new Map(sidAllFired.map(r => [r.sym, r]));
+    const rowOf = new Map(reviewSet.map(r => [r.sym, r]));
     if (primary.length) {
-      const hdr = ['Ticker','Side','Price','Path','First hurdle','Room ATR','Gap/ATR','CAP','BB mid','MA path (ATR)','MACD','DI','ADX','RVOL','Sector','Event','Status'];
-      const cells = primary.map(t => {
-        const r = rowOf.get(t.sym);
-        return [T.bare(t.sym), t.dir === 'long' ? 'Long' : 'Short', '$' + fmt(r.triageRaw.close ?? r.price), t.path,
-          t.hurdle ? `${t.hurdle.label} ${t.hurdle.price.toFixed(2)}` : '—',
-          t.hurdle && t.hurdle.distAtr != null ? t.hurdle.distAtr.toFixed(1) : '—',
-          r.gatrRatio == null ? '—' : r.gatrRatio.toFixed(2),
-          t.cells.cap, t.cells.bb, t.cells.ma, t.cells.macd, t.cells.di, t.cells.adx, t.cells.rvol, t.cells.sector, t.cells.event, t.status];
-      });
-      const w = hdr.map((h, i) => Math.max(h.length, ...cells.map(c => String(c[i]).length)));
-      const pad = (x, i) => String(x) + ' '.repeat(Math.max(0, w[i] - String(x).length));
+      // David (7 Oct 2026): one 17-column table wrapped in the terminal/email — split into
+      // two narrow tables (≤ ~110 chars each) keyed by ticker, then one note per ticker.
+      const mdTable = (hdr, rows, right = new Set()) => {
+        const w = hdr.map((h, i) => Math.max(h.length, ...rows.map(c => String(c[i]).length)));
+        const pad = (x, i) => { const sx = String(x), g = ' '.repeat(Math.max(0, w[i] - sx.length)); return right.has(i) ? g + sx : sx + g; };
+        console.log('| ' + hdr.map(pad).join(' | ') + ' |');
+        console.log('|' + w.map((x, i) => right.has(i) ? '-'.repeat(x + 1) + ':' : '-'.repeat(x + 2)).join('|') + '|');
+        rows.forEach(c => console.log('| ' + c.map(pad).join(' | ') + ' |'));
+      };
+      const short = (x) => String(x).replace('Opposed, ', 'Opp, ').replace('Aligned, ', 'Aln, ').replace('converging', 'conv').replace('expanding', 'exp').replace(' (fast)', ' fast').replace(' (slow)', ' slow');
+      const srcTag = t => t.source === 'Alert + scan' ? 'A+S' : t.source === 'Alert only' ? 'A' : t.source === 'Scan only' ? 'S' : '-';
       console.log(`\n*Review now + Conditional (${primary.length}) — open these charts first:*\n`);
-      console.log('| ' + hdr.map(pad).join(' | ') + ' |');
-      console.log('|-' + w.map(x => '-'.repeat(x)).join('-|-') + '-|');
-      cells.forEach(c => console.log('| ' + c.map(pad).join(' | ') + ' |'));
-      console.log('');
+      console.log('**1. Path & status**\n');
+      mdTable(['Ticker', 'Side', 'Price', 'Status', 'Path', 'First hurdle', 'Room', 'CAP', 'MACD'],
+        primary.map(t => {
+          const r = rowOf.get(t.sym);
+          return [T.bare(t.sym), t.dir === 'long' ? 'Long' : 'Short', fmt(r.triageRaw.close ?? r.price), t.status, t.path,
+            t.hurdle ? `${t.hurdle.label} ${t.hurdle.price.toFixed(2)}` : '-',
+            t.hurdle && t.hurdle.distAtr != null ? t.hurdle.distAtr.toFixed(1) : '-', t.cells.cap, short(t.cells.macd)];
+        }), new Set([2, 6]));
+      console.log('\n**2. Context**\n');
+      mdTable(['Ticker', 'BB mid', 'SMA50 / SMA200 (ATR)', 'DI', 'ADX', 'RVOL', 'Gap/ATR', 'Sector', 'Event', 'Src'],
+        primary.map(t => {
+          const r = rowOf.get(t.sym);
+          return [T.bare(t.sym), t.cells.bb.replace(' ATR', ''), t.cells.ma.replace('50 ', '').replace(' · 200 ', ' / ').replace(' · gap ', ' · '),
+            t.cells.di.replace('Shift–', 'Sh ').replace('Control–', 'Ct ').replace('Buyers', 'Buy').replace('Sellers', 'Sell'),
+            t.cells.adx.replace('rising', '↑').replace('falling', '↓').replace('flat', '→'), t.cells.rvol,
+            r.gatrRatio == null ? '-' : r.gatrRatio.toFixed(2), t.cells.sector.replace('Rot. ', ''), t.cells.event, srcTag(t)];
+        }), new Set([5, 6]));
+      console.log('\n*Key: Room = ATR to first hurdle · MACD Opp/Aln = opposed/aligned to the trade, conv/exp = converging/expanding · DI Sh = 3-bar shift, Ct = current control · Src A = TV alert, S = scan.*\n');
       primary.forEach(t => console.log(`- **${T.bare(t.sym)}** — ${T.whyLine(t)}`));
 
       // Validated cautions (unchanged logic) — shown for the reviewed rows only.
@@ -2423,7 +2491,7 @@ if (!VERBOSE) {
     const capN = triaged.filter(t => t.cap.available).length;
     const sma50N = triaged.filter(t => t.ma.d50 != null).length;
     const C = T.CFG;
-    console.log(`*Data: CAP zones captured for ${capN}/${triaged.length} alerts · SMA50 for ${sma50N}/${triaged.length}${sma50N === 0 ? ' (SID Strategy study hidden or not computing on the SID layout)' : ''} · BB mid = path proxy for RSI 50 (not a guaranteed target) · Pivots, pattern targets, Weekly MACD and sector structure/turn are not in the SID Data Window → n/a · WT3D/OBV-MACD excluded by design.*`);
+    console.log(`*Data: CAP zones captured for ${capN}/${triaged.length} alerts · SMA50/200 (MA Ribbon MA #2/#4) for ${sma50N}/${triaged.length} · BB mid = path proxy for RSI 50 (not a guaranteed target) · Pivots, pattern targets, Weekly MACD and sector structure/turn are not in the SID Data Window → n/a · WT3D/OBV-MACD excluded by design.*`);
     console.log(`*Thresholds: Open/Cleared ≥${C.ROOM_OPEN_ATR} ATR room · no path <${C.ROOM_MIN_ATR} ATR · cluster ${C.CLUSTER_ATR} ATR · MACD fast ≥${C.MACD_FAST} · chop ≥${C.MACD_CHOP_FLIPS} flips/${C.MACD_CHOP_LOOKBACK} days · DI shift ±${C.DI_SHIFT_PTS} pts over 3 bars · earnings ≤${C.EARNINGS_TRADING_DAYS} trading days · after-hours move ≥${C.OVERNIGHT_MOVE_ATR} ATR · missed entry = earlier alert ≤${C.ENTRY_MISSED_LOOKBACK}d and ≥${C.ENTRY_MISSED_ATR} ATR in favour · Conditional = ${C.MAX_OPEN_CONDITIONS} open condition (more → Exclude today).*\n`);
   }
   // SPY Regime Gate removed 28 Aug 2026 — see extraction removal note near top of file.
