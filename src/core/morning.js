@@ -180,6 +180,11 @@ export async function runBrief({ rules_path, sections } = {}) {
   const REQUIRED_STUDY = (process.env.READY_REQUIRE_STUDY || '').toLowerCase();
   const MAX_CONSECUTIVE_MISSING = 8;
   let consecutiveMissing = 0;
+  const SOFT_STUDIES = (process.env.READY_SOFT_STUDIES || '').split(',').map((x) => x.trim().toLowerCase()).filter(Boolean);
+  const SOFT_WAIT_TRIES = 3;
+  const SOFT_GIVE_UP = 12;
+  let softWaitEnabled = true;
+  let softMisses = 0;
 
   for (const symbol of filteredWatchlist) {
     const scanOne = async () => {
@@ -207,6 +212,28 @@ export async function runBrief({ rules_path, sections } = {}) {
           await new Promise((r) => setTimeout(r, 2000));
           indicators = await data.getStudyValues();
         }
+      }
+
+      // 7 Oct 2026 (SID brief triage): CAP Tools Supplement zone exports (Near Supply/Demand
+      // Top/Bot) were absent from every SID scan 2–6 Oct even though CAP was on the chart.
+      // Soft-wait briefly for studies listed in READY_SOFT_STUDIES (comma list, name
+      // substrings) when they are ON the chart but not yet in the data window. Bounded:
+      // max SOFT_WAIT_TRIES x 1s per symbol, and disabled for the rest of the run after
+      // SOFT_GIVE_UP consecutive misses, so a study that never computes can't add runtime.
+      if (SOFT_STUDIES.length && softWaitEnabled) {
+        const onChart = (state?.studies || []).map((x) => String(x.name || '').toLowerCase());
+        const wanted = SOFT_STUDIES.filter((w) => onChart.some((n) => n.includes(w)));
+        const missing = (iv) => wanted.filter((w) => !(iv?.studies || []).some((x) => String(x.name || '').toLowerCase().includes(w)));
+        for (let i = 0; i < SOFT_WAIT_TRIES && missing(indicators).length; i++) {
+          await new Promise((r) => setTimeout(r, 1000));
+          indicators = await data.getStudyValues();
+        }
+        if (wanted.length && missing(indicators).length) {
+          if (++softMisses >= SOFT_GIVE_UP) {
+            softWaitEnabled = false;
+            process.stderr.write(`[brief] soft-wait: ${missing(indicators).join(', ')} missing on ${softMisses} consecutive symbols — no longer waiting for it this run\n`);
+          }
+        } else softMisses = 0;
       }
 
       return { symbol, timeframe: default_timeframe, state, indicators, quote };

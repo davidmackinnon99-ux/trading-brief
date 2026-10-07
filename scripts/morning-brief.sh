@@ -152,7 +152,7 @@ fi
 # NOTE: the SID scan can hang indefinitely on some symbols — the root cause is
 # a per-symbol hang in the CDP scan (needs per-symbol timeout in the scan code).
 echo "[$(date)] Scanning SID layout (XN1LuowU) — full watchlist..." >> "$LOGFILE"
-TRADINGVIEW_LAYOUT_ID="XN1LuowU" READY_REQUIRE_STUDY="SID Trading Signals" \
+TRADINGVIEW_LAYOUT_ID="XN1LuowU" READY_REQUIRE_STUDY="SID Trading Signals" READY_SOFT_STUDIES="CAP Tools Supplement" \
   "$NODE" "$TV_DIR/src/cli/index.js" brief > "$OUTFILE_SID" 2>> "$LOGFILE"
 SID_SCAN_EXIT=$?
 # 24 Sep 2026: if the SID indicator wasn't computing (scan aborts with REQUIRED STUDY
@@ -161,7 +161,7 @@ if [ $SID_SCAN_EXIT -ne 0 ] && tail -5 "$LOGFILE" | grep -q "REQUIRED STUDY MISS
     echo "[$(date)] SID indicator not computing — reloading SID tab and retrying once" >> "$LOGFILE"
     TRADINGVIEW_LAYOUT_ID="XN1LuowU" READY_REQUIRE_STUDY="SID Trading Signals" "$NODE" "$TV_DIR/src/cli/index.js" ui eval --code 'location.reload(); 1' >/dev/null 2>> "$LOGFILE" || true
     sleep 90
-    TRADINGVIEW_LAYOUT_ID="XN1LuowU" READY_REQUIRE_STUDY="SID Trading Signals" \
+    TRADINGVIEW_LAYOUT_ID="XN1LuowU" READY_REQUIRE_STUDY="SID Trading Signals" READY_SOFT_STUDIES="CAP Tools Supplement" \
       "$NODE" "$TV_DIR/src/cli/index.js" brief > "$OUTFILE_SID" 2>> "$LOGFILE"
     SID_SCAN_EXIT=$?
 fi
@@ -257,6 +257,9 @@ if [ $BRIEF_EXIT -eq 0 ] && [ -s "$OUTFILE_LORP" ]; then
     CSV_OUT="$BRIEFS_DIR/brief-$DATE-data.csv"
     echo "[$(date)] Generating tables..." >> "$LOGFILE"
     "$NODE" "$TV_DIR/scripts/analyse-brief.cjs" "$OUTFILE_LORP" "$OUTFILE_SID" "$OUTFILE_REGIME" "" "" "$OUTFILE_SECTORS" > "$TABLES_OUT" 2>> "$LOGFILE"
+    # 7 Oct 2026: SID triage audit — fill outcome fields (RSI50 / BB mid / MFE / MAE) in past
+    # brief-*-sid-audit.json files from the SID scans already saved. No extra TV scans.
+    "$NODE" "$TV_DIR/scripts/sid-outcomes.cjs" "$BRIEFS_DIR" 2>> "$LOGFILE" || true
     # ── LORP open-trade monitor removed 27 Aug 2026 (David) — open_trades.csv was a
     # manually-maintained file nobody was updating (AJG entry dated 6/7/2026, ~3 months
     # stale; YUM/AMGN dated 10/7/2026, a future date). David monitors positions directly

@@ -836,7 +836,33 @@ const sidResults = sidBrief ? sidBrief.symbols_scanned.filter(s => !EXCLUDED_TIC
   const inSIDBrief    = sidBriefSet.has(s.symbol);
   const inBTW         = btwSet.has(s.symbol);
 
+  // ── SID triage raw inputs (David, 7 Oct 2026 — SID_DAILY_BRIEF_REQUIREMENTS.md) ──
+  // Exact study names + exact Data Window keys only (no fuzzy getVal fallback — see the
+  // SMA50 '0' collision note above). All of these are already in this same SID scan payload.
+  const exactStudy = (prefix) => studies.find(x => String(x.name || '').startsWith(prefix));
+  const exactNum   = (st, key) => (st && st.values && Object.prototype.hasOwnProperty.call(st.values, key)) ? parseNum(st.values[key]) : null;
+  const bbSt   = exactStudy('Bollinger Bands');
+  const capSt  = exactStudy('CAP Tools Supplement');
+  const msepSt = exactStudy('MACD Separation & Convergence');
+  const triageRaw = {
+    close: s.quote?.close ?? s.quote?.last ?? null,
+    open:  s.quote?.open ?? null,
+    barTime: s.quote?.time ?? null,
+    rsi:   exactNum(sidCSt, 'RSI (0-100)'),
+    bbMid: exactNum(bbSt, 'Basis'), bbUp: exactNum(bbSt, 'Upper'), bbLo: exactNum(bbSt, 'Lower'),
+    cap: {
+      supBot: exactNum(capSt, 'Near Supply Bot'), supTop: exactNum(capSt, 'Near Supply Top'),
+      demTop: exactNum(capSt, 'Near Demand Top'), demBot: exactNum(capSt, 'Near Demand Bot'),
+    },
+    capOnChart: !!capSt,
+    macdRaw: exactNum(msepSt, 'Raw MACD-Signal Distance'),
+    macdSep: exactNum(msepSt, 'MACD Separation'),
+    macdClosingSpeed: exactNum(msepSt, 'MACD Closing Speed'),
+    macdBarsSinceCross: exactNum(msepSt, 'Bars Since Cross'),
+  };
+
   return {
+    triageRaw,
     sym: s.symbol, price, isLongPass, isShortPass, isArmed,
     sidArmedLong, sidArmedShort, sidLongExit, sidShortExit,
     wrsi, sma200, aboveSMA200, sma200Pct,
@@ -848,6 +874,173 @@ const sidResults = sidBrief ? sidBrief.symbols_scanned.filter(s => !EXCLUDED_TIC
     high: s.quote?.high, low: s.quote?.low,
   };
 }) : [];
+
+
+// ── SID triage glue (David, 7 Oct 2026) ───────────────────────────────────────
+// Builds the triage inputs for each SID alert from data ALREADY captured:
+//   • today's SID-layout scan (sidResults.triageRaw)
+//   • prior SID-layout scan files in the briefs dir (3-bar DI/MA/BB history, MACD
+//     prior-day state, earlier alerts) — no new chart scans
+//   • ONE batched TradingView scanner HTTP call for earnings date + after-hours move
+//     (same endpoint the sector lookup already uses; not a chart scan)
+// Writes brief-YYYY-MM-DD-sid-audit.json next to the SID scan (spec §8).
+const sidTriageLib = require('./sid-triage.cjs');
+
+function etDateOf(epochSec) {
+  if (epochSec == null) return null;
+  return new Date(epochSec * 1000).toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
+}
+
+function sidBriefDateStr() {
+  const m = (sidBriefFile || briefFile || '').match(/brief-(\d{4}-\d{2}-\d{2})/);
+  return m ? m[1] : localDateStr();
+}
+
+function loadSidHistory(symSet) {
+  const out = new Map(); // sym -> [{tdAgo, date, ...}] (newest first)
+  try {
+    const dir = sidBriefFile ? path.dirname(sidBriefFile) : briefsDir;
+    const today = sidBriefDateStr();
+    const files = fs.readdirSync(dir)
+      .filter(f => /^brief-\d{4}-\d{2}-\d{2}-sid\.json$/.test(f))
+      .map(f => ({ f, date: f.slice(6, 16) }))
+      .filter(x => x.date < today)
+      .sort((a, b) => b.date.localeCompare(a.date))
+      .slice(0, 8);
+    for (const { f, date } of files) {
+      const tdAgo = countTradingDays(date, today);
+      if (tdAgo < 1 || tdAgo > 7) continue;
+      let j;
+      try {
+        const st = fs.statSync(path.join(dir, f));
+        if (!st.size) continue;
+        j = loadFirstJSON(path.join(dir, f));
+      } catch (e) { process.stderr.write(`[sid-triage] history ${f} unreadable (${e.message})\n`); continue; }
+      for (const s of (j.symbols_scanned || [])) {
+        if (s.error || !symSet.has(s.symbol)) continue;
+        const sts = s.indicators?.studies || [];
+        const ex = (p) => sts.find(x => String(x.name || '').startsWith(p));
+        const num = (st, k) => (st && st.values && Object.prototype.hasOwnProperty.call(st.values, k)) ? parseNum(st.values[k]) : null;
+        const pro = ex('SID Trading Signals Pro'), strat = ex('SID Strategy'), bb = ex('Bollinger Bands');
+        const ms = ex('MACD Separation & Convergence'), adxS = ex('ADX and DI');
+        const dip = num(adxS, 'DI+'), dim = num(adxS, 'DI-');
+        const rec = {
+          tdAgo, date,
+          close: s.quote?.close ?? s.quote?.last ?? null, high: s.quote?.high ?? null, low: s.quote?.low ?? null,
+          sma50: num(strat, 'SMA50 Value'), sma200: num(pro, 'SMA200'), bbMid: num(bb, 'Basis'),
+          diGap: (dip != null && dim != null) ? dip - dim : null, adx: num(adxS, 'ADX') ?? num(pro, 'ADX'),
+          macdRaw: num(ms, 'Raw MACD-Signal Distance'), macdSep: num(ms, 'MACD Separation'),
+          longSig: num(pro, 'Long Entry Signal') === 1, shortSig: num(pro, 'Short Entry Signal') === 1,
+        };
+        if (!out.has(s.symbol)) out.set(s.symbol, []);
+        out.get(s.symbol).push(rec);
+      }
+    }
+    for (const arr of out.values()) arr.sort((a, b) => a.tdAgo - b.tdAgo);
+    process.stderr.write(`[sid-triage] history: ${files.length} prior SID scan file(s) considered\n`);
+  } catch (e) {
+    process.stderr.write(`[sid-triage] history unavailable (${e.message}) — 3-bar fields will show n/a\n`);
+  }
+  return out;
+}
+
+function fetchSidEvents(bareTickers) {
+  const out = new Map();
+  if (!bareTickers.length) return out;
+  try {
+    const body = JSON.stringify({
+      filter: [{ left: 'name', operation: 'in_range', right: bareTickers }],
+      columns: ['name', 'exchange', 'earnings_release_next_date', 'postmarket_change', 'gap'],
+    });
+    const res = require('child_process').execFileSync('curl', ['-s', '--max-time', '20', '-X', 'POST',
+      'https://scanner.tradingview.com/america/scan', '-H', 'Content-Type: application/json', '-d', body], { encoding: 'utf8' });
+    const MAJOR = ['NYSE', 'NASDAQ', 'AMEX', 'NYSE ARCA', 'CBOE'];
+    for (const row of (JSON.parse(res).data || [])) {
+      const [name, exch, earnTs, ah, gap] = row.d || [];
+      if (!name) continue;
+      const prev = out.get(name);
+      const isMajor = MAJOR.includes(String(exch || '').toUpperCase());
+      if (prev && prev.isMajor && !isMajor) continue;
+      out.set(name, { earnTs, ah, gap, isMajor, exch });
+    }
+    process.stderr.write(`[sid-triage] events: ${out.size}/${bareTickers.length} tickers returned by scanner\n`);
+  } catch (e) {
+    process.stderr.write(`[sid-triage] earnings/after-hours fetch failed (${e.message}) — Event column will show n/a\n`);
+  }
+  return out;
+}
+
+function buildSidTriage(fired) {
+  const T = sidTriageLib;
+  const hist = loadSidHistory(new Set(fired.map(r => r.sym)));
+  const events = fetchSidEvents([...new Set(fired.map(r => bareSym(r.sym)))]);
+  const pick = (arr, prefs) => { for (const p of prefs) { const h = arr.find(x => x.tdAgo === p); if (h) return h; } return null; };
+  const triaged = fired.map(r => {
+    const dir = r.isLongPass ? 'long' : 'short';
+    const tr = r.triageRaw || {};
+    const close = tr.close ?? r.price;
+    const atr = (r.atrPct != null && close != null) ? r.atrPct / 100 * close : null;
+    const h = hist.get(r.sym) || [];
+    const h3 = pick(h, [3, 4, 2]);
+    const h1 = pick(h, [1, 2]);
+    const ev = events.get(bareSym(r.sym));
+    const barDate = etDateOf(tr.barTime);
+    let earnings = null;
+    if (ev && ev.earnTs) {
+      const ed = etDateOf(ev.earnTs);
+      if (barDate && ed && ed >= barDate) earnings = { date: ed, tradingDays: countTradingDays(barDate, ed) };
+    }
+    const a = {
+      sym: r.sym, dir, close, open: tr.open, atr, atrPct: r.atrPct, gatr: r.gatrRatio, rsi: tr.rsi,
+      bbMid: tr.bbMid, bbUp: tr.bbUp, bbLo: tr.bbLo, sma50: r.sma50, sma200: r.sma200,
+      cap: tr.cap || {},
+      macd: {
+        macd: r.macd, sig: r.macdSig, raw: tr.macdRaw ?? ((r.macd != null && r.macdSig != null) ? r.macd - r.macdSig : null),
+        sep: tr.macdSep, closingSpeed: tr.macdClosingSpeed, barsSinceCross: tr.macdBarsSinceCross,
+        rawPrev: h1 ? h1.macdRaw : null, sepPrev: h1 ? h1.macdSep : null,
+        rawHist: h.filter(x => x.tdAgo <= T.CFG.MACD_CHOP_LOOKBACK - 1).slice().reverse().map(x => x.macdRaw),
+      },
+      diPlus: r.diPlus, diMinus: r.diMinus, adx: r.adx, rvol: r.rvol, vd: r.vd,
+      sectorRotation: sectorSupportTag(bareSym(r.sym), dir), sectorEtf: sectorEtfCodeDisplay(bareSym(r.sym)), sectorName: sectorNameDisplay(bareSym(r.sym)),
+      earnings, ahMovePct: ev ? ev.ah : null, gapPct: ev ? ev.gap : null,
+      hist: h3 || h1 ? {
+        bars: h3 ? h3.tdAgo : null, close: h3?.close ?? null, sma50: h3?.sma50 ?? null, sma200: h3?.sma200 ?? null,
+        bbMid: h1?.bbMid ?? null, diGap: h3?.diGap ?? null, adxPrev: h1?.adx ?? null,
+      } : {},
+      priorSignals: h.filter(x => dir === 'long' ? x.longSig : x.shortSig).map(x => ({ tradingDaysAgo: x.tdAgo, close: x.close })),
+      isFund: isFundOrTrust(r.sym),
+    };
+    const t = T.triageAlert(a);
+    t._input = a;
+    t._barDate = barDate;
+    return t;
+  });
+  const sorted = T.sortTriaged(triaged);
+
+  // ── Audit record (spec §8) ──
+  try {
+    const auditPath = (sidBriefFile || '').replace(/-sid\.json$/, '-sid-audit.json');
+    if (auditPath && auditPath !== sidBriefFile) {
+      const records = sorted.map(t => {
+        const { _input, _barDate, cells, ...derived } = t;
+        const r = fired.find(x => x.sym === t.sym);
+        return {
+          symbol: t.sym, direction: t.dir, bar_date: _barDate, brief_date: sidBriefDateStr(),
+          signal: { long_entry: r.sidArmedLong, short_entry: r.sidArmedShort, src: normalizeSrc(r) },
+          raw: _input,
+          derived, status: t.status, reason_codes: t.reasons,
+          in_detailed_review: t.status === T.STATUS.REVIEW || t.status === T.STATUS.COND,
+          outcome: null, // filled later by scripts/sid-outcomes.cjs from subsequent SID scans
+        };
+      });
+      fs.writeFileSync(auditPath, JSON.stringify({ version: T.CFG.VERSION, generated_at: new Date().toISOString(), config: T.CFG, records }, null, 1));
+      process.stderr.write(`[sid-triage] audit written: ${auditPath} (${records.length} alerts)\n`);
+    }
+  } catch (e) {
+    process.stderr.write(`[sid-triage] audit write failed (${e.message})\n`);
+  }
+  return sorted;
+}
 
 // ── Helpers ──────────────────────────────────────────────────────
 function getStudy(studies, ...substrings) {
@@ -2130,144 +2323,108 @@ if (!VERBOSE) {
   }
   } // end retired SID Market Breadth (David, 27 Aug 2026)
 
-  // ── SID ──
+  // ── SID ── (rebuilt 7 Oct 2026: triage & review — see scripts/sid-triage.cjs and
+  // SID_DAILY_BRIEF_REQUIREMENTS.md. Old score-led tables replaced by plain-language
+  // statuses; every alert is kept in the review table or the compact appendix.)
   console.log('---\n');
-  const sidPass = sidResults.filter(r => !r.error && (r.isLongPass || r.isShortPass)).filter(r => {
-  if (isFundOrTrust(r.sym)) { process.stderr.write(`[SID rejected] ${r.sym}: fund/trust (sector=Miscellaneous), not a real equity for SID\n`); return false; }
-  return true;
-});
+  const sidAllFired = sidResults.filter(r => !r.error && (r.isLongPass || r.isShortPass));
+  // Funds/trusts are still not SID candidates (17 Sep 2026 rule) but are now kept in the
+  // appendix instead of being dropped silently.
+  const sidPass = sidAllFired.filter(r => {
+    if (isFundOrTrust(r.sym)) { process.stderr.write(`[SID rejected] ${r.sym}: fund/trust (sector=Miscellaneous), not a real equity for SID\n`); return false; }
+    return true;
+  });
   const sidLongs  = sidPass.filter(r => r.isLongPass);
   const sidShorts = sidPass.filter(r => r.isShortPass);
   // Populate cross-strategy SID membership sets (used by alsoTag)
   sidLongs.forEach(r  => _sidLongSyms.add(r.sym));
   sidShorts.forEach(r => _sidShortSyms.add(r.sym));
 
-  // Indicator detected if ANY symbol has a non-null sidArmedLong value.
-  // v8.5 'SID Armed Long' = 0 when not armed (still non-null → detected).
-  // v10.5 'Long Entry' = '0.0000' when no signal → parseNum → 0 (non-null → detected).
   const sidIndicatorFound = sidResults.some(r => !r.error && r.sidArmedLong != null);
   if (!sidBrief) {
     console.log('**⚡ SID — no SID scan data** *(SID layout not scanned)*\n');
   } else if (!sidIndicatorFound && sidBrief) {
     console.log('**⚡ SID — ⚠️ SID indicator not found in data window**\n');
     console.log('*Add "SID Trading Signals Pro" (v8.5.17+) to the SID layout and enable its data window outputs.*\n');
-  } else if (sidPass.length === 0) {
+  } else if (sidAllFired.length === 0) {
     console.log('**⚡ SID — 0 signals** *(no entry signals fired today)*\n');
   } else {
-    console.log(`**⚡ SID — ${sidPass.length} signals** *(${sidLongs.length} Long · ${sidShorts.length} Short)*`);
-    console.log('*SID entry signal fired — verify Gap/ATR Ratio manually before acting.*');
-    console.log('*Gap/ATR = SL distance in ATRs (how far the stop sits from entry). Per STRATEGIES.md: ≥2.0 ideal (sound stop room) · <1.5 avoid (stop too tight, noise-vulnerable). Shown as an approximate starting point (~); calculate the real value manually before acting — no auto-flag, no hard reject. ATR% alone has low predictive value.*\n');
-    { const _rs = readReminders('sid'); if (_rs.length) console.log('\n' + _rs.map(x => `\uD83D\uDCCC ${x}`).join('\n') + '\n'); }
+    const T = sidTriageLib;
+    const triaged = buildSidTriage(sidAllFired);
+    const by = s => triaged.filter(t => t.status === s);
+    const nL = sidLongs.length, nS = sidShorts.length;
+    console.log(`**⚡ SID — ${sidPass.length} signals** *(${nL} Long · ${nS} Short${triaged.length !== sidPass.length ? ` · ${triaged.length - sidPass.length} fund/trust in appendix` : ''})* — triage ${T.CFG.VERSION}`);
+    console.log('*Statuses organise the morning review — they are not trade grades and do not replace the chart check.*\n');
+    console.log('```');
+    console.log(`SID alerts:      ${triaged.length}`);
+    console.log(`Review now:      ${by(T.STATUS.REVIEW).length}`);
+    console.log(`Conditional:     ${by(T.STATUS.COND).length}`);
+    console.log(`Learning only:   ${by(T.STATUS.LEARN).length}`);
+    console.log(`Excluded today:  ${by(T.STATUS.EXCL).length}`);
+    console.log(`Data incomplete: ${by(T.STATUS.DATA).length}`);
+    console.log('```');
+    { const _rs = readReminders('sid'); if (_rs.length) console.log('\n' + _rs.map(x => `📌 ${x}`).join('\n') + '\n'); }
 
-    const sidHeaders = ['Ticker','Sig','Price','MACD0','Gap/ATR','ADX','DI','SMA200','SMA50','RVOL','Src','Score','Sector','ETF','Sector Support','MACD Cross'];
-    const sidRightAlign = new Set([2, 9]);  // Price, RVOL (SMA50 inserted at idx 8 -> RVOL shifts to 9)
-
-    function sidRowCells(r) {
-      const D = '-';
-      const sig    = r.isLongPass ? '🟢 Long' : '🔴 Short';  // fired SID entry signal (🟢 long / 🔴 short)
-      const sma200 = r.aboveSMA200 === true  ? ('Abv ' + (r.sma200Pct != null ? '+' + r.sma200Pct.toFixed(1) + '%' : '')).trim()
-                   : r.aboveSMA200 === false ? ('Blw ' + (r.sma200Pct != null ? r.sma200Pct.toFixed(1) + '%' : '')).trim()
-                   : D;
-      // David (28 Aug 2026): SMA50 column, same formatting pattern as SMA200.
-      const sma50  = r.aboveSMA50 === true  ? ('Abv ' + (r.sma50Pct != null ? '+' + r.sma50Pct.toFixed(1) + '%' : '')).trim()
-                   : r.aboveSMA50 === false ? ('Blw ' + (r.sma50Pct != null ? r.sma50Pct.toFixed(1) + '%' : '')).trim()
-                   : D;
-      const di     = (r.diPlus != null && r.diMinus != null) ? `${r.diPlus.toFixed(0)}/${r.diMinus.toFixed(0)}` : D;
-      const adx    = r.adx == null ? D
-                   : (r.adx >= 20 && r.adx <= 25) ? r.adx.toFixed(1) + ' NML'
-                   : r.adx.toFixed(1);
-      const atr    = r.atrPct != null ? r.atrPct.toFixed(1) + '%' : D;
-      // Gap/ATR is the swing approximation — a starting-point reference only; the real value
-      // (entry-SL)/entry / ATR% is worked out manually. No absolute >=2 reject (matches confluence_check.py).
-      const gatr   = r.gatrRatio == null ? D : r.gatrRatio.toFixed(2);
-      const rvol   = r.rvol   != null ? r.rvol.toFixed(1) : D;
-      const vdDir     = r.vdPos === true ? 'Buy' : r.vdPos === false ? 'Sell' : null;
-      const vdAligned = r.isLongPass ? (r.vdPos === true) : (r.vdPos === false);
-      const vd     = vdDir == null ? D : (vdDir + ' ' + (vdAligned ? 'ok' : 'x'));
-      const src    = normalizeSrc(r);
-      // Weekly RSI + Weekly MACD removed from the brief entirely (weekly indicator deleted on TV).
-      // MACD0 = RAW (MACD - Signal), matching the chart and the LORP brief convention (STRATEGIES.md).
-      // The %-of-price normalisation is used only inside the short-gate flags for cross-ticker comparability.
-      const macd0Raw = (r.macd != null && r.macdSig != null) ? (r.macd - r.macdSig) : null;
-      const macd0Str = macd0Raw == null ? D : (macd0Raw >= 0 ? '+' : '') + macd0Raw.toFixed(2);
-      const sidDirection = r.isLongPass ? 'long' : 'short';
-      const sectorStr = sectorTagDisplay(bareSym(r.sym), sidDirection);
-      const sectorNameStr = sectorNameDisplay(bareSym(r.sym));
-      const sectorEtfStr = sectorEtfCodeDisplay(bareSym(r.sym));
-      const macdXStr = macdCrossDisplay(macdSepSid, r.sym, sidDirection);
-      return [r.sym, sig, '$' + fmt(r.price), macd0Str, gatr, adx, di, sma200, sma50, rvol, src, sidScore(r), sectorNameStr, sectorEtfStr, sectorStr, macdXStr];
-    }
-
-    function printSIDTable(rows) {
-      const cells = rows.map(sidRowCells);
-      const widths = sidHeaders.map((h, i) => Math.max(h.length, ...cells.map(c => String(c[i]).length)));
-      const pad = (x, i) => { const sx = String(x); const g = Math.max(0, widths[i] - sx.length); return sidRightAlign.has(i) ? ' '.repeat(g) + sx : sx + ' '.repeat(g); };
-      console.log('| ' + sidHeaders.map((h, i) => pad(h, i)).join(' | ') + ' |');
-      console.log('|-' + widths.map(w => '-'.repeat(w)).join('-|-') + '-|');
-      cells.forEach(c => console.log('| ' + c.map((x, i) => pad(x, i)).join(' | ') + ' |'));
-    }
-
-    function extendedCaution(rows, swingWord) {
-      // Per STRATEGIES.md: Gap/ATR >= 2.0 is IDEAL (stop room); < 1.5 is the caution (stop too tight).
-      const tight = rows.filter(r => r.gatrRatio != null && r.gatrRatio < 1.5).sort((a, b) => a.gatrRatio - b.gatrRatio);
-      if (!tight.length) return;
+    const primary = triaged.filter(t => t.status === T.STATUS.REVIEW || t.status === T.STATUS.COND);
+    const rowOf = new Map(sidAllFired.map(r => [r.sym, r]));
+    if (primary.length) {
+      const hdr = ['Ticker','Side','Price','Path','First hurdle','Room ATR','Gap/ATR','CAP','BB mid','MA path (ATR)','MACD','DI','ADX','RVOL','Sector','Event','Status'];
+      const cells = primary.map(t => {
+        const r = rowOf.get(t.sym);
+        return [T.bare(t.sym), t.dir === 'long' ? 'Long' : 'Short', '$' + fmt(r.triageRaw.close ?? r.price), t.path,
+          t.hurdle ? `${t.hurdle.label} ${t.hurdle.price.toFixed(2)}` : '—',
+          t.hurdle && t.hurdle.distAtr != null ? t.hurdle.distAtr.toFixed(1) : '—',
+          r.gatrRatio == null ? '—' : r.gatrRatio.toFixed(2),
+          t.cells.cap, t.cells.bb, t.cells.ma, t.cells.macd, t.cells.di, t.cells.adx, t.cells.rvol, t.cells.sector, t.cells.event, t.status];
+      });
+      const w = hdr.map((h, i) => Math.max(h.length, ...cells.map(c => String(c[i]).length)));
+      const pad = (x, i) => String(x) + ' '.repeat(Math.max(0, w[i] - String(x).length));
+      console.log(`\n*Review now + Conditional (${primary.length}) — open these charts first:*\n`);
+      console.log('| ' + hdr.map(pad).join(' | ') + ' |');
+      console.log('|-' + w.map(x => '-'.repeat(x)).join('-|-') + '-|');
+      cells.forEach(c => console.log('| ' + c.map(pad).join(' | ') + ' |'));
       console.log('');
-      console.log(`> \ud83d\udea9 TIGHT STOP \u2014 Gap/ATR < 1.5; stop sits too close to entry (noise-vulnerable), avoid: ${tight.map(r => `${r.sym} (${r.gatrRatio.toFixed(2)})`).join(', ')}`);
-    }
+      primary.forEach(t => console.log(`- **${T.bare(t.sym)}** — ${T.whyLine(t)}`));
 
-    function adxCaution(rows) {
-      const nml = rows.filter(r => r.adx != null && r.adx >= 20 && r.adx <= 25);
-      if (!nml.length) return;
-      console.log('');
-      console.log(`> ⚠️ ADX no-man's-land (20–25) — neither coiling (<20) nor trending (≥25); directional read unreliable: ${nml.map(r => `${r.sym} (${r.adx.toFixed(1)})`).join(', ')}`);
-    }
-
-    // Validated SID short guards (sid-adx-analysis): ADX 40-50 run-over, MACD0 >= +0.25% premature fade.
-    function sidShortCaution(rows) {
-      const runover = rows.filter(r => r.adx != null && r.adx >= 40 && r.adx < 50);
-      const premature = rows.filter(r => r.macd != null && r.macdSig != null && r.price && ((r.macd - r.macdSig) / r.price * 100) >= 0.25);
-      if (runover.length) { console.log(''); console.log(`> ⛔ SHORT run-over zone — ADX 40–50 (validated −3.16%/trade, avg loss −13.6%): ${runover.map(r => `${r.sym} (${r.adx.toFixed(1)})`).join(', ')}`); }
-      if (premature.length) { console.log(''); console.log(`> ⚠️ Premature fade — MACD0 ≥ +0.25% above signal (validated −0.81%/trade): ${premature.map(r => r.sym).join(', ')}`); }
-      const diSpread = r => (r.diPlus != null && r.diMinus != null) ? (r.diPlus - r.diMinus) : null;
-      const diWide = rows.filter(r => { const sp = diSpread(r); return sp != null && sp >= 20; });
-      const diMod  = rows.filter(r => { const sp = diSpread(r); return sp != null && sp >= 10 && sp < 20; });
-      if (diWide.length) { console.log(''); console.log(`> ⛔ SHORT run-over — DI spread ≥ 20 (fading a strong uptrend, validated −1.02%/trade): ${diWide.map(r => `${r.sym} (${diSpread(r).toFixed(0)})`).join(', ')}`); }
-      if (diMod.length)  { console.log(''); console.log(`> ⚠️ Weak short — DI spread 10–20 (negative-edge zone; SID shorts want spread < ~10, ideally a small POSITIVE spread of 0–10, not deeply negative): ${diMod.map(r => `${r.sym} (${diSpread(r).toFixed(0)})`).join(', ')}`); }
-    }
-
-    // David (8 Sep 2026): long-side equivalent of sidShortCaution, added after realising
-    // the brief had zero DI-Gap guidance for longs despite the validated favourable zone
-    // (SID Strategy Pine indicator input defaults, 12 Aug 2026 analysis): DI gap -20 to -5
-    // is favourable for longs — i.e. DI- still moderately ahead of DI+, NOT DI+ > DI- as
-    // "the general view" would suggest. A positive gap means the downtrend has already
-    // fully reverted by the time RSI touches oversold — the early-reversal window SID is
-    // designed to catch has likely already passed. A gap more extreme than -20 means the
-    // downtrend is still dominant, too early/dangerous to catch. No specific %/trade figures
-    // are quoted here (unlike the short-side warnings) since that granular backtest wasn't
-    // run for the long side — this reflects the favourable ZONE only, not validated P&L.
-    function sidLongCaution(rows) {
+      // Validated cautions (unchanged logic) — shown for the reviewed rows only.
+      const rv = primary.map(t => rowOf.get(t.sym));
+      const rvL = rv.filter(r => r.isLongPass), rvS = rv.filter(r => r.isShortPass);
+      const nml = rv.filter(r => r.adx != null && r.adx >= 20 && r.adx <= 25);
+      if (nml.length) console.log(`\n> ⚠️ ADX no-man's-land (20–25): ${nml.map(r => `${T.bare(r.sym)} (${r.adx.toFixed(1)})`).join(', ')}`);
       const diGap = r => (r.diPlus != null && r.diMinus != null) ? (r.diPlus - r.diMinus) : null;
-      const tooLate = rows.filter(r => { const g = diGap(r); return g != null && g > -5; });
-      const tooEarly = rows.filter(r => { const g = diGap(r); return g != null && g < -20; });
-      if (tooLate.length)  { console.log(''); console.log(`> ⚠️ DI gap > -5 (outside favourable -20/-5 zone) — downtrend may have already reverted before this RSI touch, early-reversal window likely passed: ${tooLate.map(r => `${r.sym} (${diGap(r).toFixed(0)})`).join(', ')}`); }
-      if (tooEarly.length) { console.log(''); console.log(`> ⚠️ DI gap < -20 (outside favourable -20/-5 zone) — downtrend still strongly dominant, may be too early to catch the reversal: ${tooEarly.map(r => `${r.sym} (${diGap(r).toFixed(0)})`).join(', ')}`); }
+      const late = rvL.filter(r => { const g = diGap(r); return g != null && g > -5; });
+      const early = rvL.filter(r => { const g = diGap(r); return g != null && g < -20; });
+      if (late.length)  console.log(`\n> ⚠️ Long DI gap > −5 (outside favourable −20/−5 zone — reversal window may have passed): ${late.map(r => `${T.bare(r.sym)} (${diGap(r).toFixed(0)})`).join(', ')}`);
+      if (early.length) console.log(`\n> ⚠️ Long DI gap < −20 (outside favourable −20/−5 zone — downtrend still dominant): ${early.map(r => `${T.bare(r.sym)} (${diGap(r).toFixed(0)})`).join(', ')}`);
+      const runover = rvS.filter(r => r.adx != null && r.adx >= 40 && r.adx < 50);
+      if (runover.length) console.log(`\n> ⛔ SHORT run-over zone — ADX 40–50 (validated −3.16%/trade): ${runover.map(r => `${T.bare(r.sym)} (${r.adx.toFixed(1)})`).join(', ')}`);
+      const diWide = rvS.filter(r => { const g = diGap(r); return g != null && g >= 20; });
+      if (diWide.length) console.log(`\n> ⛔ SHORT run-over — DI spread ≥ 20 (validated −1.02%/trade): ${diWide.map(r => `${T.bare(r.sym)} (${diGap(r).toFixed(0)})`).join(', ')}`);
+      const tight = rv.filter(r => r.gatrRatio != null && r.gatrRatio < 1.5);
+      if (tight.length) console.log(`\n> 🚩 Gap/ATR < 1.5 (stop too tight — per STRATEGIES.md): ${tight.map(r => `${T.bare(r.sym)} (${r.gatrRatio.toFixed(2)})`).join(', ')}`);
+    } else {
+      console.log('\n*No alert reached Review now or Conditional today — see the appendix for every alert and its reason.*');
     }
 
-    if (sidLongs.length > 0) {
-      console.log(`*Long candidates (${sidLongs.length}):*\n`);
-      printSIDTable(sidLongs);
-      adxCaution(sidLongs);
-      sidLongCaution(sidLongs);
-      console.log('');
+    // ── Compact appendix — every non-promoted alert, with its primary reason ──
+    const rest = triaged.filter(t => t.status !== T.STATUS.REVIEW && t.status !== T.STATUS.COND);
+    if (rest.length) {
+      console.log(`\n*Appendix — not promoted today (${rest.length}):*\n`);
+      for (const st of [T.STATUS.LEARN, T.STATUS.EXCL, T.STATUS.DATA]) {
+        const g = rest.filter(t => t.status === st);
+        if (!g.length) continue;
+        console.log(`**${st} (${g.length})**`);
+        g.forEach(t => console.log(`- ${T.appendixLine(t)}`));
+        console.log('');
+      }
     }
 
-    if (sidShorts.length > 0) {
-      console.log(`*Short candidates (${sidShorts.length}):*\n`);
-      printSIDTable(sidShorts);
-      adxCaution(sidShorts);
-      sidShortCaution(sidShorts);
-      console.log('');
-    }
+    // ── Data availability + thresholds (so nothing is buried in code) ──
+    const capN = triaged.filter(t => t.cap.available).length;
+    const sma50N = triaged.filter(t => t.ma.d50 != null).length;
+    const C = T.CFG;
+    console.log(`*Data: CAP zones captured for ${capN}/${triaged.length} alerts · SMA50 for ${sma50N}/${triaged.length}${sma50N === 0 ? ' (SID Strategy study hidden or not computing on the SID layout)' : ''} · BB mid = path proxy for RSI 50 (not a guaranteed target) · Pivots, pattern targets, Weekly MACD and sector structure/turn are not in the SID Data Window → n/a · WT3D/OBV-MACD excluded by design.*`);
+    console.log(`*Thresholds: Open/Cleared ≥${C.ROOM_OPEN_ATR} ATR room · no path <${C.ROOM_MIN_ATR} ATR · cluster ${C.CLUSTER_ATR} ATR · MACD fast ≥${C.MACD_FAST} · chop ≥${C.MACD_CHOP_FLIPS} flips/${C.MACD_CHOP_LOOKBACK} days · DI shift ±${C.DI_SHIFT_PTS} pts over 3 bars · earnings ≤${C.EARNINGS_TRADING_DAYS} trading days · after-hours move ≥${C.OVERNIGHT_MOVE_ATR} ATR · missed entry = earlier alert ≤${C.ENTRY_MISSED_LOOKBACK}d and ≥${C.ENTRY_MISSED_ATR} ATR in favour · Conditional = ${C.MAX_OPEN_CONDITIONS} open condition (more → Exclude today).*\n`);
   }
   // SPY Regime Gate removed 28 Aug 2026 — see extraction removal note near top of file.
 

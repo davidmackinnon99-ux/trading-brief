@@ -14,6 +14,11 @@ the corrected watchlist-sections note in Section 8 below and SID_Project_Continu
 ║ beneath as history)                                                ║
 ╚═══════════════════════════════════════════════════════════════════════╝
 
+PIPELINE NOTE — 7 October 2026: the SID section of analyse-brief.cjs was rebuilt as a
+triage & review list (see SID_Project_Continuity.md §1l). LORP, ADX and Pullback output are
+unchanged. src/core/morning.js gained an opt-in soft-wait (READY_SOFT_STUDIES) used only by
+the SID scan; the LORP scan is unaffected. 7 Oct morning SID scan failed (SID layout not open).
+
 STATUS: Active development. Bar set by David: LORP stays in the toolkit
 only if it produces reversion winners with losses controlled.
 

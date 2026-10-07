@@ -1,7 +1,7 @@
 # SID Strategy — Project Continuity
 
 **Living doc — git is the version history (no more numbered copies).**
-**Last updated:** 29 September 2026
+**Last updated:** 7 October 2026
 **Supersedes:** SID_Project_Continuity_9 (29 Mar 2026) + the iCloud `v10` draft — both archive only.
 **Strategy:** SID Strategy v10.5.18 (backtest) · **Indicator:** SID Trading Signals Pro v8.5.18 (entry+confluence) — code in `~/Trading Indicators` repo
 
@@ -303,6 +303,38 @@ Re-run with MACD crossover entry (Pine option, ±5 bars of RSI touch): 2,988 tra
 shorts 58% / -0.11% — crossover lifts win rate and shorts vs slope mode. Patterns/exhaustion still no help.
 Only 9% of trades_all.csv match this crossover rule — David's crossover definition to be confirmed.
 
+## 1l. SID brief rebuilt as triage & review — 7 October 2026
+Spec: `SID_DAILY_BRIEF_REQUIREMENTS.md` (David with Sid & ChatGPT). Problem: OS alert "feast" (16–44/day)
+— too many to review. SID section of `analyse-brief.cjs` now answers (1) is there a credible price path
+to the RSI-50 objective, then (2) do momentum/participation/context support taking it now.
+- **Code:** logic in `scripts/sid-triage.cjs` (pure functions, all thresholds in `CFG`, printed in the
+  brief footer); glue `buildSidTriage()` in `analyse-brief.cjs`; tests `tests/sid-triage.test.cjs`
+  (long/short × below/inside/above CAP, missing data, MACD, DI, events — `node --test`).
+- **Statuses (workload aid, not grades):** Review now · Conditional (≤1 named open condition; data gaps
+  cap at Conditional) · Learning only (earnings ≤5 trading days, after-hours move ≥1 ATR, missed entry)
+  · Exclude today (inside opposing CAP zone, hurdle <0.25 ATR, MACD opposed unless converging *fast*,
+  2+ open conditions, fund/trust) · Data incomplete. Every alert stays in the table or appendix.
+- **Path:** first hurdle = nearest direction-ahead level among BB mid (RSI-50 proxy), SMA50, SMA200,
+  opposing CAP zone edge; levels within 0.5 ATR cluster. Open/Cleared ≥1 ATR room, Hurdle near <1 ATR.
+- **DI:** only the four tags (DI Control/Shift – Buyers/Sellers); control alone never rejects.
+  **MACD:** Aligned/Opposed · converging/expanding/stable/fresh cross · fast/slow (MACD Sep v1.4
+  Closing Speed ≥0.15) · chop (≥2 side flips in 6 daily snapshots). No SPEED/SEP wording.
+- **History** (3-bar DI/MA, prior-day MACD, earlier alerts) comes from prior saved SID scan files — no
+  extra scans. Earnings date + after-hours move from ONE batched TV scanner call (same endpoint as sectors).
+- **Scan fix:** CAP Tools v1.7 zone exports were missing from every SID scan 2–6 Oct (on chart, not read
+  in time). `src/core/morning.js` now soft-waits ≤3 s for studies in `READY_SOFT_STUDIES` (set to
+  "CAP Tools Supplement" for the SID scan in `morning-brief.sh`); stops waiting after 12 consecutive misses.
+- **Not available in the SID Data Window → n/a:** pivots (Pivot points standard exports nothing),
+  pattern targets (Pattern Finder exports Pattern Bias only), Weekly MACD, sector structure/turn.
+  Sector result relabelled "Rotation supportive/opposed/neutral". WT3D/OBV-MACD excluded by design.
+- **Audit:** `brief-YYYY-MM-DD-sid-audit.json` (briefs dir) per alert — raw inputs, derived states,
+  status, reason codes. `scripts/sid-outcomes.cjs` (run by morning-brief.sh after the tables) fills
+  RSI50/BB-mid/SMA reached + bars, MFE/MAE (ATR), CAP touch; expiry 15 bars.
+- **Known tension to test with outcomes:** 1b found MACD0 does NOT gate SID longs; the new spec treats
+  an opposing MACD as a practical exclusion for live review. Implemented per spec (fast-converging
+  carve-out), audit records will show whether excluded MACD-opposed longs actually worked.
+- 7 Oct morning SID scan failed (SID layout XN1LuowU not open at 7am); re-run manually same morning.
+
 ## 5. Open items (need input — not resolvable from files)
 - [ ] Reconcile the 300-trade manual journal (`analysis/sid-btw-universe/Backtesting_Sheet_300_SID.xlsx`) against `data/trades/trades_all.csv` and the automated BTW-universe backtest — three SID datasets now exist and haven't been cross-checked against each other.
 - [x] ~30% of brief candidates were funds/trusts, not equities — fixed 17 Sep 2026 by excluding sector "Miscellaneous" tickers from both `lorpAll` and `sidPass` in `analyse-brief.cjs`; see `LORP_Project_Continuity.md`'s 17 Sep entry for the full writeup (applies to both strategies).
@@ -310,6 +342,8 @@ Only 9% of trades_all.csv match this crossover rule — David's crossover defini
 - [ ] Watch: SID shorts with a bull order block within 1 ATR below (SMC study 1g) — revisit with more trades before any rule.
 - [ ] Strategy changes v10.5.4.12 → .15 detail (what changed since 29 Mar).
 - [ ] BTW universe re-export status (v10.5.4.10+, Ticker Regime ON).
+- [ ] SID triage (1l): after ~4–6 weeks of audit records, test whether CAP room, BB-mid distance, MACD
+      opposition/chop, DI shift and event risk improve selection; only then consider upstream alert changes.
 - [ ] Recent live-trade findings (39-trade journal is in `SID DATA/`; losers catalogued in
       `scripts/sid_factor_grade.py`).
 
