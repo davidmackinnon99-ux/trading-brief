@@ -228,6 +228,12 @@ const TV_SECTOR_TO_ETF = {
   'real estate': 'XLRE',
   // 'government' and 'miscellaneous' intentionally left unmapped — no sane ETF
   // equivalent; those tickers just show 'n/a'.
+  // David (8 Oct 2026): GICS-style names, as used by the old hand-built map (TNK/PTEN
+  // were "Energy" → ETF n/a). Kept as aliases so any such entry still resolves.
+  'energy': 'XLE', 'healthcare': 'XLV', 'health care': 'XLV', 'technology': 'XLK',
+  'information technology': 'XLK', 'consumer discretionary': 'XLY', 'consumer staples': 'XLP',
+  'financials': 'XLF', 'financial services': 'XLF', 'industrials': 'XLI', 'materials': 'XLB',
+  'basic materials': 'XLB', 'communication services': 'XLC',
 };
 
 // David (22 Sep 2026): caught XHR showing sector "Finance" / ETF XLF when it's
@@ -250,6 +256,10 @@ function loadSectorCache() {
   const out = {};
   for (const [sym, info] of Object.entries(raw)) {
     if (sym.startsWith('_')) continue;
+    // 8 Oct 2026: entries from the pre-15-Sep hand-built map have no 'fetched' date and no
+    // 'etf' — drop them so they are re-fetched from the TradingView scanner like every other
+    // ticker (they were never refreshed, leaving ETF/Sector Support n/a, e.g. TNK).
+    if (info && typeof info === 'object' && !info.fetched && !info.etf) continue;
     out[sym] = info;
   }
   return out;
