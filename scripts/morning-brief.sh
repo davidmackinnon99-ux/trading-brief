@@ -260,6 +260,16 @@ if [ $BRIEF_EXIT -eq 0 ] && [ -s "$OUTFILE_LORP" ]; then
     CSV_OUT="$BRIEFS_DIR/brief-$DATE-data.csv"
     echo "[$(date)] Generating tables..." >> "$LOGFILE"
     "$NODE" "$TV_DIR/scripts/analyse-brief.cjs" "$OUTFILE_LORP" "$OUTFILE_SID" "$OUTFILE_REGIME" "" "" "$OUTFILE_SECTORS" > "$TABLES_OUT" 2>> "$LOGFILE"
+    # 8 Oct 2026: Rotation header — prepend a short summary of the cloud "Daily sector rotation
+    # report" (sector_rotation_<date>.json in ~/Downloads/Briefs) to the TOP of the brief, so it
+    # appears in the saved brief, the Downloads/Briefs copy and the email body. The script always
+    # prints a line ("no report found" / STALE) and never fails the run.
+    if [ -s "$TABLES_OUT" ]; then
+        ROT_TMP=$(mktemp)
+        { "$NODE" "$TV_DIR/scripts/rotation-header.cjs" "$HOME/Downloads/Briefs" 2>> "$LOGFILE" || echo "ROTATION: header unavailable (script error — see log)"; echo; cat "$TABLES_OUT"; } > "$ROT_TMP" \
+          && mv "$ROT_TMP" "$TABLES_OUT" || rm -f "$ROT_TMP"
+        echo "[$(date)] Rotation header added" >> "$LOGFILE"
+    fi
     # 7 Oct 2026: SID triage audit — fill outcome fields (RSI50 / BB mid / MFE / MAE) in past
     # brief-*-sid-audit.json files from the SID scans already saved. No extra TV scans.
     "$NODE" "$TV_DIR/scripts/sid-outcomes.cjs" "$BRIEFS_DIR" 2>> "$LOGFILE" || true
