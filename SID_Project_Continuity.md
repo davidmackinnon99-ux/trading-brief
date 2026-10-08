@@ -1,7 +1,7 @@
 # SID Strategy — Project Continuity
 
 **Living doc — git is the version history (no more numbered copies).**
-**Last updated:** 7 October 2026
+**Last updated:** 8 October 2026
 **Supersedes:** SID_Project_Continuity_9 (29 Mar 2026) + the iCloud `v10` draft — both archive only.
 **Strategy:** SID Strategy v10.5.18 (backtest) · **Indicator:** SID Trading Signals Pro v8.5.18 (entry+confluence) — code in `~/Trading Indicators` repo
 
@@ -354,6 +354,16 @@ to the RSI-50 objective, then (2) do momentum/participation/context support taki
   Sector Support (🟢 Supported / ⚪ Neutral / 🔴 Unsupported = 3-day sector-vs-SPY rotation in the trade
   direction), plus Event and Src. Fixed: history lookups broke when review rows became exchange-qualified
   (NYSE:NKE) — saved scans are keyed by bare ticker, so DI shift/MA arrows had all gone n/a.
+
+## 1m. Rotation header at the top of the brief — 8 October 2026
+- The cloud scheduled task "Daily sector rotation report" (16:15 NY) now also writes a JSON sidecar
+  `sector_rotation_<date>.json` (fixed schema) next to the .md in `~/Downloads/Briefs/`.
+- New `scripts/rotation-header.cjs` reads the newest sidecar and prints a 7-line ROTATION header: SPY 5D vs
+  prior month and groups beating SPY · SID triggers · SID setups (+ watch) · money in (flags inflows still
+  below both 50/200-day) · money out (heavy volume) · overbought (+ near) · path to the full report.
+- `morning-brief.sh` prepends it to the brief right after `analyse-brief.cjs`, so it is at the top of the
+  saved brief, the Downloads/Briefs copy and the email body. Missing JSON → "no report found" line; older
+  than 4 days → STALE flag; never fails the run. Sector-level context only — not a SID entry signal.
 
 ## 5. Open items (need input — not resolvable from files)
 - [ ] Reconcile the 300-trade manual journal (`analysis/sid-btw-universe/Backtesting_Sheet_300_SID.xlsx`) against `data/trades/trades_all.csv` and the automated BTW-universe backtest — three SID datasets now exist and haven't been cross-checked against each other.

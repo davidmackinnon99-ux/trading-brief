@@ -14,6 +14,11 @@ the corrected watchlist-sections note in Section 8 below and SID_Project_Continu
 ║ beneath as history)                                                ║
 ╚═══════════════════════════════════════════════════════════════════════╝
 
+PIPELINE NOTE — 8 October 2026: the brief now opens with a ROTATION header (scripts/
+rotation-header.cjs) summarising the cloud "Daily sector rotation report" from its JSON sidecar
+(sector_rotation_<date>.json in ~/Downloads/Briefs): SPY context, money in/out, SID stages,
+overbought groups. Context only — LORP tables and gates unchanged. Detail: SID continuity §1m.
+
 PIPELINE NOTE — 7 October 2026: the SID section of analyse-brief.cjs was rebuilt as a
 triage & review list (see SID_Project_Continuity.md §1l). LORP, ADX and Pullback output are
 unchanged. src/core/morning.js gained an opt-in soft-wait (READY_SOFT_STUDIES) used only by
@@ -351,6 +356,8 @@ The morning brief runs at 7:00 AM AEST Tue–Sat via launchd (updated 25 Sep 202
 guard in morning-brief.sh waits until 16:25 New York time if started before the close has settled
 (applies Nov–Mar, US standard time, when 7:00 AEST = 16:00 NY). A cloud scheduled task 'Daily sector
 rotation report' runs 16:15 NY (before the brief) with sector/sub-industry rotation + SID-stage flags.
+Since 8 Oct 2026 it also saves sector_rotation_<date>.json, which morning-brief.sh turns into the ROTATION
+header at the top of the brief (rotation-header.cjs).
 Script: ~/tradingview-mcp-jackson/scripts/morning-brief.sh
 Analyser: ~/tradingview-mcp-jackson/scripts/analyse-brief.cjs
 
