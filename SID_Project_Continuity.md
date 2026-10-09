@@ -365,6 +365,15 @@ to the RSI-50 objective, then (2) do momentum/participation/context support taki
   saved brief, the Downloads/Briefs copy and the email body. Missing JSON → "no report found" line; older
   than 4 days → STALE flag; never fails the run. Sector-level context only — not a SID entry signal.
 
+## 1n. SID Tramlines overlay — 9 October 2026
+- New stand-alone overlay `SID_Tramlines_v1.0.pine` (trading-indicators repo, `indicators/`): auto-drawn trend
+  channel over the last 10 candles (lookback adjustable) — no manual trendlines. Midline = linear regression of
+  closes; rails parallel, fitted to the window's extreme wicks (alt modes: Closes, StdDev). Redrawn every bar.
+- Label shows direction (UP/DOWN/FLAT, flat = |slope| < 0.05%/bar) and price position in the channel (0–100%).
+- BB use: triangle markers + alerts when price tags a tramline rail AND the same-side BB (set BB length/mult to
+  match the chart's BB). Data window exposes slope, state, position, rails for future brief use.
+- Status: on trial — visual aid only, not a SID gate. Assess after a few weeks of use.
+
 ## 5. Open items (need input — not resolvable from files)
 - [ ] Reconcile the 300-trade manual journal (`analysis/sid-btw-universe/Backtesting_Sheet_300_SID.xlsx`) against `data/trades/trades_all.csv` and the automated BTW-universe backtest — three SID datasets now exist and haven't been cross-checked against each other.
 - [x] ~30% of brief candidates were funds/trusts, not equities — fixed 17 Sep 2026 by excluding sector "Miscellaneous" tickers from both `lorpAll` and `sidPass` in `analyse-brief.cjs`; see `LORP_Project_Continuity.md`'s 17 Sep entry for the full writeup (applies to both strategies).
