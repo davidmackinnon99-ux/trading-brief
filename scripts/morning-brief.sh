@@ -152,6 +152,11 @@ fi
 # NOTE: the SID scan can hang indefinitely on some symbols — the root cause is
 # a per-symbol hang in the CDP scan (needs per-symbol timeout in the scan code).
 echo "[$(date)] Scanning SID layout (XN1LuowU) — full watchlist..." >> "$LOGFILE"
+# 9 Oct 2026: restore a maximized pane (lower-pane studies stop calculating) and log any
+# brief-critical study that is hidden on the SID layout.
+SID_CHECK=$(TRADINGVIEW_LAYOUT_ID="XN1LuowU" "$NODE" "$TV_DIR/src/cli/index.js" ui eval --code "$(cat "$TV_DIR/scripts/sid-layout-check.js")" 2>/dev/null | tr -d '\n')
+echo "[$(date)] SID layout check: $SID_CHECK" >> "$LOGFILE"
+sleep 5
 TRADINGVIEW_LAYOUT_ID="XN1LuowU" READY_REQUIRE_STUDY="SID Trading Signals" READY_SOFT_STUDIES="CAP Tools Supplement" \
   "$NODE" "$TV_DIR/src/cli/index.js" brief > "$OUTFILE_SID" 2>> "$LOGFILE"
 SID_SCAN_EXIT=$?
