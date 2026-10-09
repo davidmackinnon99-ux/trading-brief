@@ -373,6 +373,10 @@ to the RSI-50 objective, then (2) do momentum/participation/context support taki
 - BB use: triangle markers + alerts when price tags a tramline rail AND the same-side BB (set BB length/mult to
   match the chart's BB). Data window exposes slope, state, position, rails for future brief use.
 - Status: on trial — visual aid only, not a SID gate. Assess after a few weeks of use.
+- v1.1 (same day): v1.0 could never show a breakout (rails included the current bar and moved to contain it).
+  Channel now fitted to the 10 completed bars and projected one bar forward. Added: "BO" breakout markers +
+  alerts (optional ATR buffer), BB-midline cross diamonds + alerts, label shows distance to BB mid in ATR.
+  Use `SID_Tramlines_v1.1.pine`; v1.0 kept for history.
 
 ## 5. Open items (need input — not resolvable from files)
 - [ ] Reconcile the 300-trade manual journal (`analysis/sid-btw-universe/Backtesting_Sheet_300_SID.xlsx`) against `data/trades/trades_all.csv` and the automated BTW-universe backtest — three SID datasets now exist and haven't been cross-checked against each other.
