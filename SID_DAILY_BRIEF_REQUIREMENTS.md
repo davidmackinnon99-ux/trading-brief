@@ -220,13 +220,14 @@ These are the only new MACD exports required. Existing MACD line, signal line, n
 Report:
 
 - MACD side of signal;
+- normalised MACD0 distance: `(MACD − signal) / price × 100`;
 - Fast/Slow result using the revised MACD tags;
 - separation ratio;
 - converging, stable or expanding;
 - side of zero line;
 - repeated recent crossing/chop warning.
 
-Do not use the words `SPEED` or `SEP` in displayed tags. An opposing MACD is a material practical exclusion for the user's live review, but the raw state and reason must remain visible.
+Do not use the words `SPEED` or `SEP` in displayed tags. Apply the validated rules directionally: longs have no ADX, DI-spread or MACD0-distance veto; below-signal slow/expanding MACD is lower conviction only. For shorts, prefer DI spread below 10, warn at 10–20, flag 20 or more and ADX 40–50 as run-over risk, and warn when normalised MACD0 is at least +0.25% above signal. These are selection overlays, not changes to SID's mechanical entry rule.
 
 ### 5.5 Participation state
 

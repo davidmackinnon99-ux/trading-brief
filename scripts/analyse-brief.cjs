@@ -2481,8 +2481,8 @@ if (!VERBOSE) {
       console.log(`\n*Review now + Conditional (${primary.length}) — open these charts first:*\n`);
       console.log('**1. Path & status**\n');
       const warningCell = t => (t.warnings || []).map(w => ({
-        GAP_ATR_TIGHT: 'Gap/ATR<1.5', SHORT_ADX_RUNOVER: 'ADX 40–50', SHORT_DI_WIDE: 'DI≥20',
-        LONG_DI_EARLY: 'DI<−20', LONG_DI_LATE: 'DI>−5', ADX_NO_MANS_LAND: 'ADX 20–25',
+        SHORT_ADX_RUNOVER: 'ADX 40–50', SHORT_DI_RUNOVER: 'DI≥20', SHORT_DI_CAUTION: 'DI 10–20',
+        SHORT_MACD0_FAR_ABOVE: 'MACD0≥+0.25%', LONG_MACD_LOWER_CONVICTION: 'MACD slow/exp',
       }[w] || w)).join(', ') || '—';
       mdTable(['Ticker', 'Side', 'Price', 'Status', 'Path', 'First hurdle', 'Room', 'CAP', 'MACD', 'Warnings'],
         primary.map(t => {
@@ -2513,25 +2513,21 @@ if (!VERBOSE) {
           (t.sector && t.sector.name && t.sector.name !== 'n/a' && t.sector.name !== 'Miscellaneous') ? t.sector.name : (t.isEtf ? 'ETF' : 'n/a'),
           (t.sector && t.sector.etf && t.sector.etf !== 'n/a') ? t.sector.etf : 'n/a',
           supportCell(t), t.cells.event, srcTag(t)]));
-      console.log('\n*Key: Room = ATR to first hurdle · MACD Opp/Aln = opposed/aligned to the trade, conv/exp = converging/expanding · DI Sh = 3-bar shift, Ct = current control · Src A = TV alert, S = scan · Sector Support = sector ETF vs SPY over the last 3 sector scans, in the trade direction (rotation only — not sector chart structure).*\n');
+      console.log('\n*Key: Room = ATR to first hurdle · MACD0 = (MACD − signal) / price × 100; conv/exp = converging/expanding · DI Sh = 3-bar shift, Ct = current control · Src A = TV alert, S = scan · Sector Support = sector ETF vs SPY over the last 3 sector scans, in the trade direction (rotation only — not sector chart structure).*\n');
       primary.forEach(t => console.log(`- **${T.bare(t.sym)}** — ${T.whyLine(t)}`));
 
       // Validated cautions (unchanged logic) — shown for the reviewed rows only.
       const rv = primary.map(t => rowOf.get(t.sym));
       const rvL = rv.filter(r => r.isLongPass), rvS = rv.filter(r => r.isShortPass);
-      const nml = rv.filter(r => r.adx != null && r.adx >= 20 && r.adx <= 25);
-      if (nml.length) console.log(`\n> ⚠️ ADX no-man's-land (20–25): ${nml.map(r => `${T.bare(r.sym)} (${r.adx.toFixed(1)})`).join(', ')}`);
       const diGap = r => (r.diPlus != null && r.diMinus != null) ? (r.diPlus - r.diMinus) : null;
-      const late = rvL.filter(r => { const g = diGap(r); return g != null && g > -5; });
-      const early = rvL.filter(r => { const g = diGap(r); return g != null && g < -20; });
-      if (late.length)  console.log(`\n> ⚠️ Long DI gap > −5 (outside favourable −20/−5 zone — reversal window may have passed): ${late.map(r => `${T.bare(r.sym)} (${diGap(r).toFixed(0)})`).join(', ')}`);
-      if (early.length) console.log(`\n> ⚠️ Long DI gap < −20 (outside favourable −20/−5 zone — downtrend still dominant): ${early.map(r => `${T.bare(r.sym)} (${diGap(r).toFixed(0)})`).join(', ')}`);
       const runover = rvS.filter(r => r.adx != null && r.adx >= 40 && r.adx < 50);
       if (runover.length) console.log(`\n> ⛔ SHORT run-over zone — ADX 40–50 (validated −3.16%/trade): ${runover.map(r => `${T.bare(r.sym)} (${r.adx.toFixed(1)})`).join(', ')}`);
       const diWide = rvS.filter(r => { const g = diGap(r); return g != null && g >= 20; });
       if (diWide.length) console.log(`\n> ⛔ SHORT run-over — DI spread ≥ 20 (validated −1.02%/trade): ${diWide.map(r => `${T.bare(r.sym)} (${diGap(r).toFixed(0)})`).join(', ')}`);
-      const tight = rv.filter(r => r.gatrRatio != null && r.gatrRatio < 1.5);
-      if (tight.length) console.log(`\n> 🚩 Gap/ATR < 1.5 (stop too tight — per STRATEGIES.md): ${tight.map(r => `${T.bare(r.sym)} (${r.gatrRatio.toFixed(2)})`).join(', ')}`);
+      const diCaution = rvS.filter(r => { const g = diGap(r); return g != null && g >= 10 && g < 20; });
+      if (diCaution.length) console.log(`\n> ⚠️ SHORT DI spread 10–20 — preferred selection is below 10: ${diCaution.map(r => `${T.bare(r.sym)} (${diGap(r).toFixed(0)})`).join(', ')}`);
+      const macdFar = primary.filter(t => t.dir === 'short' && t.macd.normPct != null && t.macd.normPct >= 0.25);
+      if (macdFar.length) console.log(`\n> ⚠️ SHORT MACD0 far above signal — ≥ +0.25% of price: ${macdFar.map(t => `${T.bare(t.sym)} (${t.macd.normPct.toFixed(2)}%)`).join(', ')}`);
     } else {
       console.log('\n*No alert reached Review now or Conditional today — see the appendix for every alert and its reason.*');
     }

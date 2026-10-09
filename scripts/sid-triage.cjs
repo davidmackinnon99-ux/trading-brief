@@ -16,7 +16,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 const CFG = {
-  VERSION: 'sid-triage-1.1 (7 Oct 2026)',
+  VERSION: 'sid-triage-1.2 (9 Oct 2026)',
   ROOM_OPEN_ATR: 1.0,        // room to first hurdle >= this → path "Open"/"Cleared"; below → "Hurdle near"
   ROOM_MIN_ATR: 0.25,        // room below this → limited initial room (priority context, not a gate)
   CLUSTER_ATR: 0.5,          // levels within this of the first hurdle form a cluster
@@ -174,10 +174,11 @@ function diCell(d) {
 
 // ── MACD (spec §5.4) — no "SPEED"/"SEP" wording in output ──────────────────
 function macdState(dir, m) {
-  const out = { side: 'n/a', aligned: null, trend: 'n/a', pace: null, zero: 'n/a', sep: m.sep ?? null };
+  const out = { side: 'n/a', aligned: null, trend: 'n/a', pace: null, zero: 'n/a', sep: m.sep ?? null, normPct: null };
   if (!isNum(m.raw)) return out;
   out.side = m.raw >= 0 ? 'above signal' : 'below signal';
   out.aligned = dir === 'long' ? m.raw >= 0 : m.raw < 0;
+  if (isNum(m.price) && m.price !== 0) out.normPct = m.raw / m.price * 100;
   if (isNum(m.macd)) out.zero = m.macd >= 0 ? 'above zero' : 'below zero';
   // Spec §5.4 (rev. 7 Oct): MACD Separation & Convergence v1.5 exports the states directly —
   //   "MACD Gap State": -1 CLOSING, 0 STABLE, 1 EXPANDING · "MACD Fast Slow State": 1 FAST, 0 SLOW.
@@ -196,10 +197,11 @@ function macdState(dir, m) {
   return out;
 }
 function macdCell(s) {
-  if (s.aligned == null) return 'n/a';
+  if (s.side === 'n/a') return 'n/a';
   const t = s.trend !== 'n/a' ? `, ${s.trend}` : '';
   const p = s.pace && (s.trend === 'converging' || s.trend === 'expanding') ? ` (${s.pace.toLowerCase()})` : '';
-  return `${s.aligned ? 'Aligned' : 'Opposed'}${t}${p}`;
+  const n = isNum(s.normPct) ? ` · MACD0 ${signed(s.normPct, 2)}%` : '';
+  return `${s.side}${t}${p}${n}`;
 }
 
 // ── Participation (spec §5.5) ───────────────────────────────────────────────
@@ -255,14 +257,13 @@ function triageAlert(a) {
   const ma = maPath(dir, close, atr, a.sma50, a.sma200, a.hist || {});
   if (fh.hurdle && fh.hurdle.components.some((c) => c.name === 'BB mid') && fh.hurdle.components.some((c) => c.name === 'SMA50')) ma.baseline = 'cluster';
   const di = diState(a.diPlus, a.diMinus, a.hist?.diGap, a.adx, a.hist?.adxPrev);
-  const mc = macdState(dir, a.macd || {});
+  const mc = macdState(dir, { ...(a.macd || {}), price: close });
   const part = participation(dir, a.rvol, a.vd);
-  if (isNum(a.gatr) && a.gatr < 1.5) warnings.push('GAP_ATR_TIGHT');
   if (dir === 'short' && isNum(a.adx) && a.adx >= 40 && a.adx < 50) warnings.push('SHORT_ADX_RUNOVER');
-  if (dir === 'short' && isNum(di.gap) && di.gap >= 20) warnings.push('SHORT_DI_WIDE');
-  if (dir === 'long' && isNum(di.gap) && di.gap < -20) warnings.push('LONG_DI_EARLY');
-  if (dir === 'long' && isNum(di.gap) && di.gap > -5) warnings.push('LONG_DI_LATE');
-  if (isNum(a.adx) && a.adx >= 20 && a.adx <= 25) warnings.push('ADX_NO_MANS_LAND');
+  if (dir === 'short' && isNum(di.gap) && di.gap >= 20) warnings.push('SHORT_DI_RUNOVER');
+  else if (dir === 'short' && isNum(di.gap) && di.gap >= 10) warnings.push('SHORT_DI_CAUTION');
+  if (dir === 'short' && isNum(mc.normPct) && mc.normPct >= 0.25) warnings.push('SHORT_MACD0_FAR_ABOVE');
+  if (dir === 'long' && mc.side === 'below signal' && (mc.trend === 'expanding' || (mc.trend === 'converging' && mc.pace === 'Slow'))) warnings.push('LONG_MACD_LOWER_CONVICTION');
 
   // ── Path state ──
   let path;
@@ -320,18 +321,11 @@ function triageAlert(a) {
   } else if (path === 'Inside opposition') {
     status = STATUS.EXCL; reasons.push('INSIDE_OPPOSING_ZONE');
     notes.push(`${dir} begins inside ${dir === 'long' ? 'supply' : 'demand'} ${fmtP(opp.zone.lo)}–${fmtP(opp.zone.hi)}`);
-  } else if (mc.aligned === false && mc.trend !== 'n/a' && !(mc.trend === 'converging' && mc.pace === 'Fast')) {
-    // Opposing MACD is a material practical exclusion (spec §5.4). Only an opposed MACD that is
-    // converging FAST toward its signal line is treated as a single open condition (Conditional).
-    status = STATUS.EXCL; reasons.push('MACD_OPPOSED');
-    const how = mc.trend === 'converging' ? 'converging slowly' : mc.trend;
-    notes.push(`MACD ${mc.side} (${how}) — against the ${dir}`);
   } else if (events.length) {
     status = STATUS.EXCL; reasons.push(...events);
   } else {
     // second-pass open conditions
     if (path === 'Hurdle near') conditions.push(isNum(roomAtr) && roomAtr < CFG.ROOM_MIN_ATR ? 'LIMITED_INITIAL_ROOM' : 'HURDLE_NEAR');
-    if (mc.aligned === false) conditions.push('MACD_OPPOSED');
     const wantShift = dir === 'long' ? 'DI Shift – Sellers' : 'DI Shift – Buyers';
     if (di.shift === wantShift) conditions.push('DI_SHIFT_OPPOSED');
     if (bb.inDirection === false) conditions.push('BB_MID_BEHIND');
@@ -390,7 +384,6 @@ function triageAlert(a) {
 const REASON_TEXT = {
   LIMITED_INITIAL_ROOM: 'limited initial room — needs a reaction check at the first hurdle',
   HURDLE_NEAR: 'first hurdle is close — needs to clear it',
-  MACD_OPPOSED: 'MACD still on the wrong side of signal — needs the cross',
   DI_SHIFT_OPPOSED: 'DI shift is still moving against the trade',
   CAP_NA: 'CAP zones not captured — check supply/demand on chart',
   BB_MID_BEHIND: 'price already beyond BB mid (RSI-50 proxy behind it)',
@@ -399,12 +392,11 @@ const REASON_TEXT = {
   EARNINGS_NEAR: 'earnings soon',
   OVERNIGHT_MOVE_LARGE: 'large after-hours move',
   ENTRY_MISSED: 'original entry was an earlier alert and price has already moved',
-  GAP_ATR_TIGHT: 'Gap/ATR below 1.5 — stop room is tight',
   SHORT_ADX_RUNOVER: 'validated short warning: ADX 40–50 run-over zone',
-  SHORT_DI_WIDE: 'validated short warning: DI spread at least 20',
-  LONG_DI_EARLY: 'long DI gap below -20 — downtrend may still dominate',
-  LONG_DI_LATE: 'long DI gap above -5 — reversal window may have passed',
-  ADX_NO_MANS_LAND: 'ADX 20–25 no-man\'s-land',
+  SHORT_DI_RUNOVER: 'validated short warning: DI spread at least 20 run-over zone',
+  SHORT_DI_CAUTION: 'short DI spread 10–20 — preferred selection is below 10',
+  SHORT_MACD0_FAR_ABOVE: 'short MACD0 at least +0.25% of price above signal — premature fade warning',
+  LONG_MACD_LOWER_CONVICTION: 'long MACD remains below signal and is slow or expanding — lower conviction, not a veto',
 };
 
 function whyLine(t) {

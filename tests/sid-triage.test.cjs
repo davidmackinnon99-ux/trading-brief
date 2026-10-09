@@ -94,20 +94,20 @@ test('missing MACD → Data incomplete; missing ATR → Data incomplete', () => 
   assert.equal(T.triageAlert(longBase({ atr: null })).status, T.STATUS.DATA);
 });
 
-test('MACD opposed converging slowly → Exclude (material exclusion)', () => {
+test('long MACD below signal is lower conviction, not a veto', () => {
   const slow = T.triageAlert(longBase({ macd: { macd: -1, raw: -0.2, sep: 0.45, sepPrev: 0.5, rawPrev: -0.3, closingSpeed: 0.05, rawHist: [-0.4, -0.35, -0.3] } }));
-  assert.equal(slow.status, T.STATUS.EXCL);
-  assert.match(T.appendixLine(slow), /converging slowly/);
+  assert.equal(slow.status, T.STATUS.COND);
+  assert.ok(slow.warnings.includes('LONG_MACD_LOWER_CONVICTION'));
+  assert.equal(slow.macd.normPct, -0.2);
 });
 
-test('MACD opposed but converging fast → Conditional; opposed and expanding → Exclude', () => {
+test('long MACD below signal: fast convergence is acceptable; expansion is lower conviction', () => {
   const conv = T.triageAlert(longBase({ macd: { macd: -1, raw: -0.2, sep: 0.3, sepPrev: 0.5, rawPrev: -0.3, closingSpeed: 0.2, rawHist: [-0.4, -0.35, -0.3] } }));
-  assert.equal(conv.status, T.STATUS.COND);
-  assert.deepEqual(conv.conditions, ['MACD_OPPOSED']);
-  assert.match(conv.cells.macd, /Opposed, converging \(fast\)/);
+  assert.equal(conv.status, T.STATUS.REVIEW);
+  assert.match(conv.cells.macd, /below signal, converging \(fast\).*MACD0 −0.20%/);
   const exp = T.triageAlert(longBase({ macd: { macd: -1, raw: -0.4, sep: 0.6, sepPrev: 0.4, rawPrev: -0.3, closingSpeed: 0.2, rawHist: [-0.1, -0.2, -0.3] } }));
-  assert.equal(exp.status, T.STATUS.EXCL);
-  assert.ok(exp.reasons.includes('MACD_OPPOSED'));
+  assert.equal(exp.status, T.STATUS.COND);
+  assert.ok(exp.warnings.includes('LONG_MACD_LOWER_CONVICTION'));
 });
 
 test('MACD tags never use SPEED or SEP wording', () => {
@@ -143,18 +143,33 @@ test('near hurdle is priority context, not an automatic exclusion', () => {
   assert.equal(near.status, T.STATUS.COND);
 });
 
-test('multiple open conditions remain Conditional and are all visible', () => {
+test('structural condition and MACD lower-conviction warning remain visible', () => {
   const t = T.triageAlert(longBase({ bbMid: 101.2, macd: { macd: -1, raw: -0.2, sep: 0.3, sepPrev: 0.5, rawPrev: -0.3, closingSpeed: 0.2, rawHist: [-0.4, -0.35, -0.3] } }));
   assert.equal(t.status, T.STATUS.COND);
   assert.ok(!t.reasons.includes('MULTIPLE_OPEN_CONDITIONS'));
-  assert.ok(t.reasons.includes('MACD_OPPOSED') && t.reasons.includes('HURDLE_NEAR'));
+  assert.ok(t.reasons.includes('HURDLE_NEAR'));
+  assert.ok(!t.reasons.includes('MACD_OPPOSED'));
 });
 
-test('validated DI/ADX and Gap/ATR cautions are prominent warnings that lower priority', () => {
+test('validated short DI/ADX and normalised MACD0 cautions lower priority', () => {
   const t = T.triageAlert(shortBase({ gatr: 0.65, adx: 45, diPlus: 42, diMinus: 18 }));
   assert.equal(t.status, T.STATUS.COND);
-  assert.deepEqual(t.warnings, ['GAP_ATR_TIGHT', 'SHORT_ADX_RUNOVER', 'SHORT_DI_WIDE']);
+  assert.deepEqual(t.warnings, ['SHORT_ADX_RUNOVER', 'SHORT_DI_RUNOVER']);
   assert.match(T.whyLine(t), /validated short warning/);
+});
+
+test('short DI 10–20 and MACD0 at least +0.25% are direction-specific warnings', () => {
+  const t = T.triageAlert(shortBase({ diPlus: 31, diMinus: 16, macd: { macd: 1, raw: 0.3, sep: 0.3, gapState: -1, fastSlow: 1 } }));
+  assert.equal(t.status, T.STATUS.COND);
+  assert.equal(t.macd.normPct, 0.3);
+  assert.deepEqual(t.warnings, ['SHORT_DI_CAUTION', 'SHORT_MACD0_FAR_ABOVE']);
+});
+
+test('long ADX, DI spread and normalised MACD0 distance are not vetoes', () => {
+  const t = T.triageAlert(longBase({ adx: 45, diPlus: 5, diMinus: 40, hist: { bars: 3, close: 98, sma50: 106.5, sma200: 89.8, bbMid: 103.2, diGap: -40, adxPrev: 44 }, macd: { macd: -1, raw: -0.8, sep: 0.8, gapState: -1, fastSlow: 1 } }));
+  assert.equal(t.status, T.STATUS.REVIEW);
+  assert.deepEqual(t.warnings, []);
+  assert.equal(t.macd.normPct, -0.8);
 });
 
 test('data gaps cap at Conditional but are not counted as open conditions', () => {
@@ -179,14 +194,14 @@ test('opposed MACD with no state available → Conditional with data gap, never 
   assert.ok(t.dataGaps.includes('MACD_STATE_NA'));
 });
 
-test('v1.5 exports drive MACD state: Gap State -1 + Fast → Conditional; Gap State 1 → Exclude', () => {
+test('v1.5 exports drive MACD state without turning signal-side into a veto', () => {
   const c = T.triageAlert(longBase({ macd: { macd: -1, raw: -0.2, sep: 0.3, gapState: -1, fastSlow: 1, barsSinceCross: 12 } }));
   assert.equal(c.macd.trend, 'converging'); assert.equal(c.macd.pace, 'Fast'); assert.equal(c.macd.source, 'v1.5');
-  assert.equal(c.status, T.STATUS.COND);
+  assert.equal(c.status, T.STATUS.REVIEW);
   const slow = T.triageAlert(longBase({ macd: { macd: -1, raw: -0.2, sep: 0.3, gapState: -1, fastSlow: 0, barsSinceCross: 12 } }));
-  assert.equal(slow.status, T.STATUS.EXCL);
+  assert.equal(slow.status, T.STATUS.COND);
   const e = T.triageAlert(longBase({ macd: { macd: -1, raw: -0.2, sep: 0.3, gapState: 1, fastSlow: 1, barsSinceCross: 12 } }));
-  assert.equal(e.status, T.STATUS.EXCL);
+  assert.equal(e.status, T.STATUS.COND);
   const f = T.triageAlert(longBase({ macd: { macd: 1, raw: 0.05, sep: 0.1, gapState: 1, fastSlow: 1, barsSinceCross: 1 } }));
   assert.equal(f.macd.trend, 'fresh cross');
 });
