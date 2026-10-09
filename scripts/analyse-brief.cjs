@@ -1020,6 +1020,7 @@ function sidReviewSet(scanFired, alertLog) {
   for (const [key, a] of alerted) {
     if (matchedAlerts.has(key)) continue;
     const r = byQualified.get(key) || (isUs(key) ? byUsBare.get(bareSym(key)) : null);
+    if (!r && SID_LEVERAGED_EXCLUDE.has(bareSym(key))) { out.push({ sym: key, leveragedEtf: true, isLongPass: true, isShortPass: false, sidSource: 'Alert only', alertInfo: a, triageRaw: {} }); continue; }
     if (!r) { out.push({ sym: key, notScanned: true, isLongPass: true, isShortPass: false, sidSource: 'Alert only', alertInfo: a, triageRaw: {} }); continue; }
     const tr = r.triageRaw || {};
     const dir = (tr.armedShort === 1 && tr.armedLong !== 1) ? 'short' : (tr.armedLong === 1 && tr.armedShort !== 1) ? 'long' : (tr.rsi != null && tr.rsi > 50 ? 'short' : 'long');
@@ -1088,6 +1089,7 @@ function buildSidTriage(fired) {
       isFund: isFundOrTrust(r.sym) && !(ev && ev.isEtf),
       source: r.sidSource || 'Scan',
       notScanned: !!r.notScanned,
+      leveragedEtf: !!r.leveragedEtf,
       instrumentMismatch: (() => {
         const ex = String(tr.resolvedSymbol || '').split(':')[0].toUpperCase();
         if (!tr.resolvedSymbol || US_EXCH.has(ex)) return null;

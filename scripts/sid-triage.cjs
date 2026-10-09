@@ -299,7 +299,10 @@ function triageAlert(a) {
   if (mc.aligned == null) missingCore.push('MACD');
   if (!capAvailable && !isNum(a.bbMid)) missingCore.push('CAP + BB mid');
 
-  if (a.notScanned) {
+  if (a.leveragedEtf) {
+    status = STATUS.EXCL; reasons.push('LEVERAGED_ETF');
+    notes.push('leveraged/inverse ETF — excluded from SID by the existing rule (net-negative for SID mean-reversion)');
+  } else if (a.notScanned) {
     status = STATUS.DATA; reasons.push('DATA_INCOMPLETE', 'NOT_SCANNED');
     notes.push('TradingView alert received but ticker not in today\'s scan (not on the synced watchlist?)');
   } else if (a.instrumentMismatch) {
