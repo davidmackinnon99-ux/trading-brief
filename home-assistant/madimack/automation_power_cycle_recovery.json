@@ -1,0 +1,118 @@
+{
+  "alias": "Madimack - Power-cycle recovery",
+  "description": "If still unavailable after 25 min, power-cycle the heat pump via the Outside Heat Pump Plug for 60 s, only if drawing <20 W. Max once per 2 h.",
+  "triggers": [
+    {
+      "trigger": "template",
+      "value_template": "{{ states('climate.spa_madimack_inverter_pool_heat_pump') in ['unavailable','unknown'] }}",
+      "for": "00:25:00"
+    }
+  ],
+  "conditions": [
+    {
+      "condition": "state",
+      "entity_id": "input_boolean.madimack_overnight_isolation",
+      "state": "off"
+    },
+    {
+      "condition": "template",
+      "value_template": "{{ this.attributes.last_triggered is none or (now() - this.attributes.last_triggered).total_seconds() > 7200 }}"
+    }
+  ],
+  "actions": [
+    {
+      "if": [
+        {
+          "condition": "template",
+          "value_template": "{{ states('sensor.outside_heat_pump_plug_power') | float(999) >= 20 }}"
+        }
+      ],
+      "then": [
+        {
+          "action": "notify.mobile_app_davids_iphone_17",
+          "data": {
+            "title": "Madimack still offline",
+            "message": "Not power-cycling: heat pump drawing power. Turn off in app, then cycle the Outside Heat Pump Plug.",
+            "data": {
+              "push": {
+                "interruption-level": "time-sensitive"
+              }
+            }
+          }
+        },
+        {
+          "stop": "Pump drawing power"
+        }
+      ]
+    },
+    {
+      "action": "notify.mobile_app_davids_iphone_17",
+      "data": {
+        "title": "Madimack recovery",
+        "message": "Offline 25 min - power-cycling the heat pump (60 s)."
+      }
+    },
+    {
+      "action": "switch.turn_off",
+      "target": {
+        "entity_id": "switch.outside_heat_pump_plug_outlet"
+      }
+    },
+    {
+      "delay": "00:01:00"
+    },
+    {
+      "action": "switch.turn_on",
+      "target": {
+        "entity_id": "switch.outside_heat_pump_plug_outlet"
+      }
+    },
+    {
+      "delay": "00:01:30"
+    },
+    {
+      "action": "homeassistant.reload_config_entry",
+      "data": {
+        "entry_id": "<Madimack tuya_local entry_id>"
+      },
+      "continue_on_error": true
+    },
+    {
+      "wait_template": "{{ states('climate.spa_madimack_inverter_pool_heat_pump') not in ['unavailable','unknown'] }}",
+      "timeout": "00:05:00",
+      "continue_on_timeout": true
+    },
+    {
+      "if": [
+        {
+          "condition": "template",
+          "value_template": "{{ wait.completed }}"
+        }
+      ],
+      "then": [
+        {
+          "action": "notify.mobile_app_davids_iphone_17",
+          "data": {
+            "title": "Madimack recovered",
+            "message": "Back online after power cycle."
+          }
+        }
+      ],
+      "else": [
+        {
+          "action": "notify.mobile_app_davids_iphone_17",
+          "data": {
+            "title": "Madimack recovery FAILED",
+            "message": "Still offline 5 min after power cycle.",
+            "data": {
+              "push": {
+                "interruption-level": "time-sensitive"
+              }
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "mode": "single"
+}
