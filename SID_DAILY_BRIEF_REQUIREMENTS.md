@@ -208,6 +208,10 @@ Use only these four directional DI tags:
 
 Also show the signed DI gap, 3-bar gap change, and ADX value/direction. A reversal candidate may have control still opposing the trade while the 3-bar shift supports it. Therefore current control must not be an automatic rejection by itself.
 
+Read `DI Gap` and `DI Gap Shift 3B` directly from the **ADX/DI Table 3** Data Window outputs. The direct three-bar shift is authoritative and does not require the ticker to have appeared in a previous scan. Retain the prior saved-scan calculation only as a compatibility fallback while charts are being upgraded to Table 3.
+
+For a long, show a practical `Countertrend long` warning when price is below both SMA50 and SMA200 while DI sellers still control. This combination means downside continuation risk remains live, especially when the three-bar DI shift is unavailable or still seller-directed. It lowers review priority but is not a validated automatic veto.
+
 ### 5.4 MACD state
 
 Use the direct Data Window exports from **MACD Separation & Convergence v1.5**:

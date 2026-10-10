@@ -124,6 +124,14 @@ test('DI control opposing alone is not a rejection; only the four tags are used'
   assert.ok(tags.has(t.di.control) && tags.has(t.di.shift));
 });
 
+test('direct Table 3 DI shift works without ticker history and takes precedence over saved scans', () => {
+  const t = T.triageAlert(longBase({ diGapShift3: 5, hist: { adxPrev: 29, diGap: 50 } }));
+  assert.equal(t.di.gapChange3, 5);
+  assert.equal(t.di.shift, 'DI Shift – Buyers');
+  assert.equal(t.di.shiftSource, 'data-window');
+  assert.ok(!t.dataGaps.includes('DI_HISTORY_NA'));
+});
+
 test('earnings within 14 days / after-hours move / missed entry → Exclude today', () => {
   assert.equal(T.triageAlert(longBase({ earnings: { tradingDays: 14, date: '2026-10-27' } })).status, T.STATUS.EXCL);
   assert.equal(T.triageAlert(longBase({ earnings: { tradingDays: 15, date: '2026-10-28' } })).status, T.STATUS.REVIEW);
@@ -170,6 +178,20 @@ test('long ADX, DI spread and normalised MACD0 distance are not vetoes', () => {
   assert.equal(t.status, T.STATUS.REVIEW);
   assert.deepEqual(t.warnings, []);
   assert.equal(t.macd.normPct, -0.8);
+});
+
+test('long below both SMA50 and SMA200 with seller DI control gets countertrend warning', () => {
+  const t = T.triageAlert(longBase({ sma50: 106, sma200: 104, diPlus: 18, diMinus: 26 }));
+  assert.equal(t.status, T.STATUS.COND);
+  assert.ok(t.warnings.includes('LONG_COUNTERTREND'));
+  assert.match(T.whyLine(t), /countertrend long/);
+});
+
+test('long countertrend warning requires both averages overhead and seller control', () => {
+  const oneAverage = T.triageAlert(longBase());
+  assert.ok(!oneAverage.warnings.includes('LONG_COUNTERTREND'));
+  const buyersControl = T.triageAlert(longBase({ sma50: 106, sma200: 104, diPlus: 30, diMinus: 20 }));
+  assert.ok(!buyersControl.warnings.includes('LONG_COUNTERTREND'));
 });
 
 test('data gaps cap at Conditional but are not counted as open conditions', () => {

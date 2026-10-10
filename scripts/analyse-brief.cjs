@@ -854,6 +854,7 @@ const sidResults = sidBrief ? sidBrief.symbols_scanned.filter(s => !EXCLUDED_TIC
   const bbSt   = exactStudy('Bollinger Bands');
   const capSt  = exactStudy('CAP Tools Supplement');
   const msepSt = exactStudy('MACD Separation & Convergence');
+  const adxExactSt = exactStudy('ADX and DI');
   // David (7 Oct 2026): SMA50/SMA200 come from the Moving Average Ribbon (MA #2 = SMA50,
   // MA #4 = SMA200) — the values he uses on the chart.
   const ribbonSt = exactStudy('Moving Average Ribbon');
@@ -871,6 +872,8 @@ const sidResults = sidBrief ? sidBrief.symbols_scanned.filter(s => !EXCLUDED_TIC
       demTop: exactNum(capSt, 'Near Demand Top'), demBot: exactNum(capSt, 'Near Demand Bot'),
     },
     capOnChart: !!capSt,
+    diGap: exactNum(adxExactSt, 'DI Gap'),
+    diGapShift3: exactNum(adxExactSt, 'DI Gap Shift 3B'),
     macdRaw: exactNum(msepSt, 'Raw MACD-Signal Distance'),
     macdSep: exactNum(msepSt, 'MACD Separation'),
     macdClosingSpeed: exactNum(msepSt, 'MACD Closing Speed'),
@@ -1073,7 +1076,7 @@ function buildSidTriage(fired) {
         fastSlow: tr.macdFastSlow, gapState: tr.macdGapState,
         rawPrev: h1 ? h1.macdRaw : null, sepPrev: h1 ? h1.macdSep : null,
       },
-      diPlus: r.diPlus, diMinus: r.diMinus, adx: r.adx, rvol: r.rvol, vd: r.vd,
+      diPlus: r.diPlus, diMinus: r.diMinus, diGapShift3: tr.diGapShift3, adx: r.adx, rvol: r.rvol, vd: r.vd,
       sectorRotation: SECTOR_ETFS.has(bareSym(r.sym)) ? rotationForEtf(bareSym(r.sym), dir) : sectorSupportTag(bareSym(r.sym), dir),
       sectorEtf: SECTOR_ETFS.has(bareSym(r.sym)) ? bareSym(r.sym) : sectorEtfCodeDisplay(bareSym(r.sym)), sectorName: sectorNameDisplay(bareSym(r.sym)),
       earnings, ahMovePct: ev ? ev.ah : null, gapPct: ev ? ev.gap : null,
@@ -2483,6 +2486,7 @@ if (!VERBOSE) {
       const warningCell = t => (t.warnings || []).map(w => ({
         SHORT_ADX_RUNOVER: 'ADX 40–50', SHORT_DI_RUNOVER: 'DI≥20', SHORT_DI_CAUTION: 'DI 10–20',
         SHORT_MACD0_FAR_ABOVE: 'MACD0≥+0.25%', LONG_MACD_LOWER_CONVICTION: 'MACD slow/exp',
+        LONG_COUNTERTREND: 'Below 50/200 + DI Sell',
       }[w] || w)).join(', ') || '—';
       mdTable(['Ticker', 'Side', 'Price', 'Status', 'Path', 'First hurdle', 'Room', 'CAP', 'MACD', 'Warnings'],
         primary.map(t => {
@@ -2518,7 +2522,7 @@ if (!VERBOSE) {
 
       // Validated cautions (unchanged logic) — shown for the reviewed rows only.
       const rv = primary.map(t => rowOf.get(t.sym));
-      const rvL = rv.filter(r => r.isLongPass), rvS = rv.filter(r => r.isShortPass);
+      const rvS = rv.filter(r => r.isShortPass);
       const diGap = r => (r.diPlus != null && r.diMinus != null) ? (r.diPlus - r.diMinus) : null;
       const runover = rvS.filter(r => r.adx != null && r.adx >= 40 && r.adx < 50);
       if (runover.length) console.log(`\n> ⛔ SHORT run-over zone — ADX 40–50 (validated −3.16%/trade): ${runover.map(r => `${T.bare(r.sym)} (${r.adx.toFixed(1)})`).join(', ')}`);
@@ -2709,10 +2713,12 @@ if (!VERBOSE) {
   console.log('         Sig = FRESH fires only — markers already in the prior brief are filtered as carried-over · ·Nc = N held-over markers suppressed\n');
   console.log('**SID:**  Long: RSI crossed below 30 (OS touch) · RSI rising  ');
   console.log('          Short: RSI crossed above 70 (OB touch) · RSI falling  ');
-  console.log('          SMA200 tier (HIGH CONVICTION ≥5% away) · ADX (<20 coiling ✓ · 20-25 NML ⚠️ · 25-40 trending)  ');
-  console.log('          Gap/ATR ≥2.0 ideal (stop room) · <1.5 avoid (stop too tight) · Src: SID·LORP·BTW  ');
-  console.log('**MACD Cross:** 🟢 right side of signal & separation ≥0.22× (holds ~90%) · ⚪ right side but weak/unconfirmed · 🔴 MACD against the trade  ');
-  console.log('          ATR% risk · Gap/ATR = SL distance in ATRs (per STRATEGIES.md: ≥2.0 ideal · <1.5 avoid) · VD (ref)\n');
+  console.log('          Mechanical confirmation: RSI and MACD reverse together inside the fresh-touch window; status is review context, not a new signal  ');
+  console.log('          Long context: below SMA50 + SMA200 with DI sellers = countertrend warning; slow/expanding below-signal MACD = lower conviction; no ADX/DI/MACD0-distance veto  ');
+  console.log('          Short context: prefer DI spread <10 · caution 10–20 · run-over ≥20 · ADX 40–50 run-over · MACD0 ≥+0.25% of price warning  ');
+  console.log('          Path: BB midpoint/CAP/MA first hurdle and ATR room · Gap/ATR is displayed execution context, not a validated selection gate  ');
+  console.log('**MACD State:** MACD0 = (MACD − signal) / price × 100 · distinguish converging/expanding and fast/slow; signal side alone is not an automatic SID veto  ');
+  console.log('          ATR%, RVOL, volume direction, sector rotation and MA position remain context unless a specific warning above applies\n');
 
   // ── CSV Export ──
   // Save alongside the LORP JSON but with standardised name for email attachment

@@ -16,7 +16,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 const CFG = {
-  VERSION: 'sid-triage-1.2 (9 Oct 2026)',
+  VERSION: 'sid-triage-1.3 (10 Oct 2026)',
   ROOM_OPEN_ATR: 1.0,        // room to first hurdle >= this → path "Open"/"Cleared"; below → "Hurdle near"
   ROOM_MIN_ATR: 0.25,        // room below this → limited initial room (priority context, not a gate)
   CLUSTER_ATR: 0.5,          // levels within this of the first hurdle form a cluster
@@ -153,15 +153,19 @@ function maCell(m) {
 }
 
 // ── DI / ADX (spec §5.3) — only the four agreed tags ────────────────────────
-function diState(diPlus, diMinus, diGap3, adx, adxPrev) {
-  const out = { gap: null, gapChange3: null, control: null, shift: null, adxDir: 'n/a' };
+function diState(diPlus, diMinus, diGap3, adx, adxPrev, diGapShift3) {
+  const out = { gap: null, gapChange3: null, shiftSource: null, control: null, shift: null, adxDir: 'n/a' };
   if (isNum(diPlus) && isNum(diMinus)) {
     out.gap = diPlus - diMinus;
     out.control = out.gap > 0 ? 'DI Control – Buyers' : out.gap < 0 ? 'DI Control – Sellers' : null;
-    if (isNum(diGap3)) {
+    if (isNum(diGapShift3)) {
+      out.gapChange3 = diGapShift3;
+      out.shiftSource = 'data-window';
+    } else if (isNum(diGap3)) {
       out.gapChange3 = out.gap - diGap3;
-      out.shift = out.gapChange3 > CFG.DI_SHIFT_PTS ? 'DI Shift – Buyers' : out.gapChange3 < -CFG.DI_SHIFT_PTS ? 'DI Shift – Sellers' : null;
+      out.shiftSource = 'saved-scan';
     }
+    if (isNum(out.gapChange3)) out.shift = out.gapChange3 > CFG.DI_SHIFT_PTS ? 'DI Shift – Buyers' : out.gapChange3 < -CFG.DI_SHIFT_PTS ? 'DI Shift – Sellers' : null;
   }
   if (isNum(adx) && isNum(adxPrev)) out.adxDir = adx > adxPrev + 0.05 ? 'rising' : adx < adxPrev - 0.05 ? 'falling' : 'flat';
   return out;
@@ -256,7 +260,7 @@ function triageAlert(a) {
   const fh = firstHurdle(dir, close, atr, { bbMid: a.bbMid, sma50: a.sma50, sma200: a.sma200, supply, demand });
   const ma = maPath(dir, close, atr, a.sma50, a.sma200, a.hist || {});
   if (fh.hurdle && fh.hurdle.components.some((c) => c.name === 'BB mid') && fh.hurdle.components.some((c) => c.name === 'SMA50')) ma.baseline = 'cluster';
-  const di = diState(a.diPlus, a.diMinus, a.hist?.diGap, a.adx, a.hist?.adxPrev);
+  const di = diState(a.diPlus, a.diMinus, a.hist?.diGap, a.adx, a.hist?.adxPrev, a.diGapShift3);
   const mc = macdState(dir, { ...(a.macd || {}), price: close });
   const part = participation(dir, a.rvol, a.vd);
   if (dir === 'short' && isNum(a.adx) && a.adx >= 40 && a.adx < 50) warnings.push('SHORT_ADX_RUNOVER');
@@ -264,6 +268,10 @@ function triageAlert(a) {
   else if (dir === 'short' && isNum(di.gap) && di.gap >= 10) warnings.push('SHORT_DI_CAUTION');
   if (dir === 'short' && isNum(mc.normPct) && mc.normPct >= 0.25) warnings.push('SHORT_MACD0_FAR_ABOVE');
   if (dir === 'long' && mc.side === 'below signal' && (mc.trend === 'expanding' || (mc.trend === 'converging' && mc.pace === 'Slow'))) warnings.push('LONG_MACD_LOWER_CONVICTION');
+  // Practical countertrend risk requested 10 Oct 2026. This is deliberately a warning,
+  // not a validated SID veto: longs often fire while price is below both averages and
+  // sellers still control DI, but the combination means continuation risk remains live.
+  if (dir === 'long' && isNum(ma.d50) && ma.d50 < 0 && isNum(ma.d200) && ma.d200 < 0 && isNum(di.gap) && di.gap < 0) warnings.push('LONG_COUNTERTREND');
 
   // ── Path state ──
   let path;
@@ -397,6 +405,7 @@ const REASON_TEXT = {
   SHORT_DI_CAUTION: 'short DI spread 10–20 — preferred selection is below 10',
   SHORT_MACD0_FAR_ABOVE: 'short MACD0 at least +0.25% of price above signal — premature fade warning',
   LONG_MACD_LOWER_CONVICTION: 'long MACD remains below signal and is slow or expanding — lower conviction, not a veto',
+  LONG_COUNTERTREND: 'countertrend long: price below SMA50 and SMA200 while sellers still control DI — continuation risk, not an automatic veto',
 };
 
 function whyLine(t) {
