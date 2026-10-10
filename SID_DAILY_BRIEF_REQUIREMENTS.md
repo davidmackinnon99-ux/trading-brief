@@ -136,6 +136,15 @@ Do not add a new sector-chart scan to the initial implementation. If sector stru
 
 Until that data exists, display structure and turn as `n/a`; do not infer them from rotation.
 
+Sector rotation must influence SID review priority in the proposed trade direction:
+
+- `Rotation supportive` ranks ahead of otherwise comparable neutral or unavailable cases.
+- `Rotation opposed` is a prominent lower-priority warning and makes an otherwise clean candidate `Conditional`; it is not by itself an `Exclude today` rule.
+- `Rotation neutral` and `Rotation n/a` remain explicit so absence of evidence cannot be mistaken for support.
+- Supportive rotation must never cancel validated ADX, DI-spread, MACD0, CAP, event or execution warnings.
+
+The market/SPY regime and sector rotation answer different questions. SPY describes the broad market background; the mapped sector ETF describes the candidate's immediate tide. `SPY supportive` must not be used as a substitute for `Sector rotation supportive`.
+
 ### 4.6 Event and execution risk
 
 Capture where reliable:

@@ -272,6 +272,10 @@ function triageAlert(a) {
   // not a validated SID veto: longs often fire while price is below both averages and
   // sellers still control DI, but the combination means continuation risk remains live.
   if (dir === 'long' && isNum(ma.d50) && ma.d50 < 0 && isNum(ma.d200) && ma.d200 < 0 && isNum(di.gap) && di.gap < 0) warnings.push('LONG_COUNTERTREND');
+  // Sector rotation is trade-direction context, not a new SID entry rule. An
+  // opposed sector lowers review priority; supportive rotation improves rank
+  // only among otherwise comparable candidates and never cancels a risk flag.
+  if (a.sectorRotation === 'Unsupported') warnings.push('SECTOR_ROTATION_OPPOSED');
 
   // ── Path state ──
   let path;
@@ -406,6 +410,7 @@ const REASON_TEXT = {
   SHORT_MACD0_FAR_ABOVE: 'short MACD0 at least +0.25% of price above signal — premature fade warning',
   LONG_MACD_LOWER_CONVICTION: 'long MACD remains below signal and is slow or expanding — lower conviction, not a veto',
   LONG_COUNTERTREND: 'countertrend long: price below SMA50 and SMA200 while sellers still control DI — continuation risk, not an automatic veto',
+  SECTOR_ROTATION_OPPOSED: 'sector rotation is opposed to the trade direction — lower priority, not an automatic veto',
 };
 
 function whyLine(t) {
@@ -416,7 +421,7 @@ function whyLine(t) {
       : 'CAP n/a')
     : 'CAP zones not captured';
   const diTxt = [t.di.shift, t.di.control].filter(Boolean).join(', ') || 'DI n/a';
-  const base = `Path ${t.path.toLowerCase()} to ${h}; ${capTxt}. MACD ${t.cells.macd.toLowerCase()}; ${diTxt}.`;
+  const base = `Path ${t.path.toLowerCase()} to ${h}; ${capTxt}. MACD ${t.cells.macd.toLowerCase()}; ${diTxt}; ${t.sector.rotation.toLowerCase()}.`;
   if (t.status === STATUS.REVIEW) return `Why review now: ${base}`;
   const open = t.conditions.map((c) => REASON_TEXT[c] || c).join('; ');
   const gaps = (t.dataGaps || []).map((c) => REASON_TEXT[c] || c).join('; ');
@@ -449,11 +454,15 @@ function bare(sym) { return sym.includes(':') ? sym.split(':')[1] : sym; }
 
 function sortTriaged(list) {
   const rank = (s) => STATUS_ORDER.indexOf(s);
+  const sectorRank = (t) => t?.sector?.rotation === 'Rotation supportive' ? 0
+    : t?.sector?.rotation === 'Rotation neutral' ? 1
+    : t?.sector?.rotation === 'Rotation n/a' ? 2 : 3;
   return [...list].sort((a, b) => rank(a.status) - rank(b.status)
     || (a.isFund ? 1 : 0) - (b.isFund ? 1 : 0)
     || (a.warnings || []).length - (b.warnings || []).length   // validated warnings visibly lower priority
     || (a.conditions || []).length - (b.conditions || []).length
     || (a.dataGaps || []).length - (b.dataGaps || []).length   // best-evidenced Conditionals first
+    || sectorRank(a) - sectorRank(b)                           // supportive before neutral/n/a/opposed
     || (isNum(b.roomAtr) ? b.roomAtr : -1) - (isNum(a.roomAtr) ? a.roomAtr : -1)
     || a.sym.localeCompare(b.sym));
 }

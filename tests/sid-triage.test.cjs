@@ -194,6 +194,35 @@ test('long countertrend warning requires both averages overhead and seller contr
   assert.ok(!buyersControl.warnings.includes('LONG_COUNTERTREND'));
 });
 
+test('opposed sector rotation lowers SID priority without excluding the signal', () => {
+  const t = T.triageAlert(longBase({ sectorRotation: 'Unsupported', sectorEtf: 'XLI', sectorName: 'Industrials' }));
+  assert.equal(t.status, T.STATUS.COND);
+  assert.ok(t.warnings.includes('SECTOR_ROTATION_OPPOSED'));
+  assert.equal(t.cells.sector, 'Rot. opposed');
+  assert.match(T.whyLine(t), /sector rotation is opposed/i);
+});
+
+test('supportive sector rotation is context and does not erase other warnings', () => {
+  const clean = T.triageAlert(longBase({ sectorRotation: 'Supported', sectorEtf: 'XLV' }));
+  assert.equal(clean.status, T.STATUS.REVIEW);
+  assert.deepEqual(clean.warnings, []);
+  const risky = T.triageAlert(shortBase({ sectorRotation: 'Supported', adx: 45 }));
+  assert.equal(risky.status, T.STATUS.COND);
+  assert.ok(risky.warnings.includes('SHORT_ADX_RUNOVER'));
+});
+
+test('sector rotation breaks otherwise equal ranking: supportive, neutral, n/a, opposed', () => {
+  const rows = [
+    T.triageAlert(longBase({ sym: 'OPP', sectorRotation: 'Unsupported' })),
+    T.triageAlert(longBase({ sym: 'NA', sectorRotation: null })),
+    T.triageAlert(longBase({ sym: 'NEU', sectorRotation: 'Neutral' })),
+    T.triageAlert(longBase({ sym: 'SUP', sectorRotation: 'Supported' })),
+  ];
+  // Opposed becomes Conditional, while the remaining otherwise-equal Review
+  // candidates are ordered supportive, neutral, then unavailable.
+  assert.deepEqual(T.sortTriaged(rows).map(x => x.sym), ['SUP', 'NEU', 'NA', 'OPP']);
+});
+
 test('data gaps cap at Conditional but are not counted as open conditions', () => {
   const t = T.triageAlert(longBase({ cap: {}, hist: {} }));
   assert.equal(t.status, T.STATUS.COND);
