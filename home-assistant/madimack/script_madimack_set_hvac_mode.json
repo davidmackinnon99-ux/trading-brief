@@ -1,0 +1,44 @@
+{
+  "alias": "Madimack - Set HVAC mode (guarded)",
+  "description": "Sends a mode change to the Madimack only when needed: skips if unavailable or already in that mode; heat requests are held off for 10 min after the previous command. Off is never delayed.",
+  "fields": {
+    "hvac_mode": {
+      "description": "heat or off",
+      "example": "off"
+    }
+  },
+  "mode": "queued",
+  "sequence": [
+    {
+      "condition": "template",
+      "value_template": "{{ states('climate.spa_madimack_inverter_pool_heat_pump') not in ['unavailable','unknown'] }}"
+    },
+    {
+      "condition": "template",
+      "value_template": "{{ states('climate.spa_madimack_inverter_pool_heat_pump') != hvac_mode }}"
+    },
+    {
+      "condition": "template",
+      "value_template": "{{ hvac_mode != 'heat' or states('input_datetime.madimack_last_command') in ['unknown','unavailable',''] or (now() - (states('input_datetime.madimack_last_command') | as_datetime | as_local)).total_seconds() >= 600 }}"
+    },
+    {
+      "action": "climate.set_hvac_mode",
+      "continue_on_error": true,
+      "target": {
+        "entity_id": "climate.spa_madimack_inverter_pool_heat_pump"
+      },
+      "data": {
+        "hvac_mode": "{{ hvac_mode }}"
+      }
+    },
+    {
+      "action": "input_datetime.set_datetime",
+      "target": {
+        "entity_id": "input_datetime.madimack_last_command"
+      },
+      "data": {
+        "timestamp": "{{ now().timestamp() }}"
+      }
+    }
+  ]
+}

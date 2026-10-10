@@ -1,0 +1,320 @@
+{
+  "id": "1788744342419",
+  "alias": "Pool - Day Controller",
+  "description": "Consolidated pool controller. Starts solar circulation with 0.20 kW export sustained for 2 minutes, but requires 1.20 kW export sustained for 5 minutes before starting the Madimack. Guarantees minimum daily circulation from 11am until 4pm. After 4pm, Solar Available must remain Good as well as sufficient export being present. Startup waits for Madimack availability and retries its integration once. If local control remains unavailable, temperature-based startup monitoring allows 30 minutes and accepts 0.5 C below the requested target. Shutdown is verified before pool power is removed. Manual Override bypasses automatic control.\n",
+  "triggers": [
+    {
+      "trigger": "time",
+      "at": "07:00:00"
+    },
+    {
+      "trigger": "time",
+      "at": "11:00:00"
+    },
+    {
+      "trigger": "time",
+      "at": "16:00:00"
+    },
+    {
+      "trigger": "state",
+      "entity_id": "sensor.solar_available",
+      "to": "Good",
+      "for": "00:05:00"
+    },
+    {
+      "trigger": "template",
+      "value_template": "{{ not is_state('sensor.solar_available', 'Good') }}\n",
+      "for": "00:02:00"
+    },
+    {
+      "trigger": "template",
+      "value_template": "{{ states('sensor.roof_gosungrow_1498605_7_1_1_meter1_solar_export')\n   | float(0) >= 0.20 }}\n",
+      "for": "00:02:00"
+    },
+    {
+      "trigger": "template",
+      "value_template": "{{ states('sensor.roof_gosungrow_1498605_7_1_1_meter1_solar_export')\n   | float(0) >= 1.20 }}\n",
+      "for": "00:05:00"
+    },
+    {
+      "trigger": "template",
+      "value_template": "{{ is_state('switch.spa_pool_plug_outlet', 'on')\n   and states('sensor.pool_grid_power') | float(0) > 200 }}\n",
+      "for": "00:02:00"
+    },
+    {
+      "trigger": "template",
+      "value_template": "{{ states('sensor.spa_pool_plug_pool_circulation_today') | float(0)\n   >=\n   states('input_number.pool_minimum_circulation_hours') | float(3) }}\n"
+    },
+    {
+      "trigger": "state",
+      "entity_id": "input_number.pool_minimum_circulation_hours"
+    },
+    {
+      "trigger": "state",
+      "entity_id": "input_boolean.pool_manual_override"
+    },
+    {
+      "trigger": "state",
+      "entity_id": [
+        "climate.spa_madimack_inverter_pool_heat_pump"
+      ],
+      "from": [
+        "unavailable"
+      ],
+      "for": {
+        "hours": 0,
+        "minutes": 5,
+        "seconds": 0
+      }
+    }
+  ],
+  "conditions": [],
+  "actions": [
+    {
+      "variables": {
+        "solar_good": "{{ is_state('sensor.solar_available', 'Good') }}\n",
+        "solar_export": "{{ states(\n  'sensor.roof_gosungrow_1498605_7_1_1_meter1_solar_export'\n  ) | float(0) }}\n",
+        "pool_grid_power": "{{ states('sensor.pool_grid_power') | float(0) }}\n",
+        "plug_power": "{{ states(\n  'sensor.smart_switch_25060331373497513801c4e7ae1784e7_power'\n  ) | float(0) }}\n",
+        "plug_on": "{{\n  is_state('switch.spa_pool_plug_outlet', 'on')\n  or plug_power > 20\n}}\n",
+        "heat_running": "{{ is_state('climate.spa_madimack_inverter_pool_heat_pump', 'heat') }}\n",
+        "manual_override": "{{ is_state('input_boolean.pool_manual_override', 'on') }}\n",
+        "circulation_complete": "{{ states('sensor.spa_pool_plug_pool_circulation_today') | float(0)\n   >=\n   states('input_number.pool_minimum_circulation_hours') | float(3) }}\n",
+        "solar_circulation_available": "{{\n  pool_grid_power <= 150\n  and (\n    (plug_on and solar_export >= 0.05)\n    or\n    ((not plug_on) and solar_export >= 0.20)\n  )\n}}\n",
+        "want_plug_on": "{% if now().hour < 7 or now().hour >= 23 %}\n  false\n{% elif now().hour < 11 %}\n  {{ solar_circulation_available }}\n{% elif now().hour < 16 %}\n  {{ (not circulation_complete) or solar_circulation_available }}\n{% else %}\n  {{ solar_good and solar_circulation_available }}\n{% endif %}\n",
+        "want_heat": "{{\n  want_plug_on\n  and solar_good\n  and pool_grid_power <= 150\n  and 7 <= now().hour < 23\n  and (\n    (heat_running and solar_export >= 0.05)\n    or\n    ((not heat_running) and solar_export >= 1.20)\n  )\n}}\n"
+      }
+    },
+    {
+      "if": [
+        {
+          "condition": "template",
+          "value_template": "{{ manual_override }}"
+        }
+      ],
+      "then": [
+        {
+          "stop": "Pool Manual Override active"
+        }
+      ]
+    },
+    {
+      "if": [
+        {
+          "condition": "template",
+          "value_template": "{{ want_plug_on }}"
+        }
+      ],
+      "then": [
+        {
+          "if": [
+            {
+              "condition": "state",
+              "entity_id": "switch.spa_pool_plug_outlet",
+              "state": "off"
+            }
+          ],
+          "then": [
+            {
+              "action": "switch.turn_on",
+              "target": {
+                "entity_id": "switch.spa_pool_plug_outlet"
+              }
+            },
+            {
+              "wait_template": "{{ states('climate.spa_madimack_inverter_pool_heat_pump')\n   not in ['unavailable', 'unknown'] }}\n",
+              "timeout": "00:03:00",
+              "continue_on_timeout": true
+            },
+            {
+              "if": [
+                {
+                  "condition": "template",
+                  "value_template": "{{ states('climate.spa_madimack_inverter_pool_heat_pump')\n   in ['unavailable', 'unknown'] }}\n"
+                }
+              ],
+              "then": [
+                {
+                  "action": "homeassistant.reload_config_entry",
+                  "continue_on_error": true,
+                  "target": {
+                    "entity_id": "climate.spa_madimack_inverter_pool_heat_pump"
+                  }
+                },
+                {
+                  "wait_template": "{{ states('climate.spa_madimack_inverter_pool_heat_pump')\n   not in ['unavailable', 'unknown'] }}\n",
+                  "timeout": "00:02:00",
+                  "continue_on_timeout": true
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "if": [
+            {
+              "condition": "template",
+              "value_template": "{{ want_heat }}"
+            }
+          ],
+          "then": [
+            {
+              "if": [
+                {
+                  "condition": "template",
+                  "value_template": "{{ states('climate.spa_madimack_inverter_pool_heat_pump')\n   not in ['unavailable', 'unknown'] }}\n"
+                }
+              ],
+              "then": [
+                {
+                  "action": "script.madimack_set_hvac_mode",
+                  "continue_on_error": true,
+                  "data": {
+                    "hvac_mode": "heat"
+                  }
+                }
+              ],
+              "else": [
+                {
+                  "stop": "Tuya Local remains unavailable. Physical operation and startup success are monitored separately using pool temperature, the 32 C target, 0.5 C tolerance, and 30-minute allowance."
+                }
+              ]
+            }
+          ],
+          "else": [
+            {
+              "action": "script.madimack_set_hvac_mode",
+              "continue_on_error": true,
+              "data": {
+                "hvac_mode": "off"
+              }
+            },
+            {
+              "wait_template": "{{ is_state('climate.spa_madimack_inverter_pool_heat_pump', 'off') }}\n",
+              "timeout": "00:02:00",
+              "continue_on_timeout": true
+            },
+            {
+              "if": [
+                {
+                  "condition": "not",
+                  "conditions": [
+                    {
+                      "condition": "state",
+                      "entity_id": "climate.spa_madimack_inverter_pool_heat_pump",
+                      "state": "off"
+                    }
+                  ]
+                }
+              ],
+              "then": [
+                {
+                  "action": "script.madimack_set_hvac_mode",
+                  "continue_on_error": true,
+                  "data": {
+                    "hvac_mode": "off"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "else": [
+        {
+          "action": "script.madimack_set_hvac_mode",
+          "continue_on_error": true,
+          "data": {
+            "hvac_mode": "off"
+          }
+        },
+        {
+          "wait_template": "{{ is_state('climate.spa_madimack_inverter_pool_heat_pump', 'off') }}\n",
+          "timeout": "00:02:00",
+          "continue_on_timeout": true
+        },
+        {
+          "if": [
+            {
+              "condition": "not",
+              "conditions": [
+                {
+                  "condition": "state",
+                  "entity_id": "climate.spa_madimack_inverter_pool_heat_pump",
+                  "state": "off"
+                }
+              ]
+            }
+          ],
+          "then": [
+            {
+              "action": "script.madimack_set_hvac_mode",
+              "continue_on_error": true,
+              "data": {
+                "hvac_mode": "off"
+              }
+            },
+            {
+              "wait_template": "{{ is_state('climate.spa_madimack_inverter_pool_heat_pump', 'off') }}\n",
+              "timeout": "00:01:00",
+              "continue_on_timeout": true
+            }
+          ]
+        },
+        {
+          "if": [
+            {
+              "condition": "state",
+              "entity_id": "climate.spa_madimack_inverter_pool_heat_pump",
+              "state": "off"
+            }
+          ],
+          "then": [
+            {
+              "action": "switch.turn_off",
+              "target": {
+                "entity_id": "switch.spa_pool_plug_outlet"
+              }
+            },
+            {
+              "delay": "00:00:10"
+            },
+            {
+              "if": [
+                {
+                  "condition": "not",
+                  "conditions": [
+                    {
+                      "condition": "state",
+                      "entity_id": "switch.spa_pool_plug_outlet",
+                      "state": "off"
+                    }
+                  ]
+                }
+              ],
+              "then": [
+                {
+                  "action": "switch.turn_off",
+                  "continue_on_error": true,
+                  "target": {
+                    "entity_id": "switch.spa_pool_plug_outlet"
+                  }
+                }
+              ]
+            }
+          ],
+          "else": [
+            {
+              "action": "persistent_notification.create",
+              "data": {
+                "title": "Madimack shutdown not verified",
+                "message": "Madimack did not confirm HVAC off. The pool plug was deliberately left on to avoid cutting power while the compressor may be running.\n"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "mode": "restart"
+}

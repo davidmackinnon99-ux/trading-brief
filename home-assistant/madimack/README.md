@@ -46,3 +46,15 @@ Tuya Local stays on 2026.9.1 (2026.9.2 not a published release). Profile migrati
   occupied (stale HA socket or another LAN client such as the Smart Life app), not a wrong key,
   wrong IP or a dead module.
 - Conclusion: the fault is in the local LAN session, not the pump's Wi-Fi/cloud side.
+
+## Changes 10 Oct 2026
+- Root cause of today's outage: the heat pump's own Wi-Fi module was jammed. Cycling the POOL plug
+  (circulation pump) did nothing; cycling the separate "Outside Heat Pump Plug" (Meross,
+  switch.outside_heat_pump_plug_outlet) for 66 s, with the pump off, restored HA immediately.
+- Tuya Local Madimack entry: poll-only switched OFF (persistent connection). Protocol stays 3.42.
+- New script `script.madimack_set_hvac_mode` + helper `input_datetime.madimack_last_command`.
+  Skips if unavailable or already in the requested mode; heat requests wait 10 min after the
+  previous command; off is never delayed.
+- Pool Day Controller: all 5 direct climate.set_hvac_mode calls now go through that script
+  (previously it re-sent "off" on every run, 5-7 times an hour once the pool reached set temp).
+  Previous version: commit ef25ac8.
