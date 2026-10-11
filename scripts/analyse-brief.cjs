@@ -2470,8 +2470,8 @@ if (!VERBOSE) {
     const primary = triaged.filter(t => t.status === T.STATUS.REVIEW || t.status === T.STATUS.COND);
     const rowOf = new Map(reviewSet.map(r => [r.sym, r]));
     if (primary.length) {
-      // David (7 Oct 2026): one 17-column table wrapped in the terminal/email — split into
-      // two narrow tables (≤ ~110 chars each) keyed by ticker, then one note per ticker.
+      // Keep each decision layer in its own narrow table: structural triage first,
+      // validated momentum cautions second, descriptive context last.
       const mdTable = (hdr, rows, right = new Set()) => {
         const w = hdr.map((h, i) => Math.max(h.length, ...rows.map(c => String(c[i]).length)));
         const pad = (x, i) => { const sx = String(x), g = ' '.repeat(Math.max(0, w[i] - sx.length)); return right.has(i) ? g + sx : sx + g; };
@@ -2482,42 +2482,42 @@ if (!VERBOSE) {
       const short = (x) => String(x).replace('Opposed, ', 'Opp, ').replace('Aligned, ', 'Aln, ').replace('converging', 'conv').replace('expanding', 'exp').replace(' (fast)', ' fast').replace(' (slow)', ' slow');
       const srcTag = t => t.source === 'Alert + scan' ? 'A+S' : t.source === 'Alert only' ? 'A' : t.source === 'Scan only' ? 'S' : '-';
       console.log(`\n*Review now + Conditional (${primary.length}) — open these charts first:*\n`);
-      console.log('**1. Path & status**\n');
+      console.log('**1. Structural priority**\n');
       const warningCell = t => (t.warnings || []).map(w => ({
         SHORT_ADX_RUNOVER: 'ADX 40–50', SHORT_DI_RUNOVER: 'DI≥20', SHORT_DI_CAUTION: 'DI 10–20',
         SHORT_MACD0_FAR_ABOVE: 'MACD0≥+0.25%', LONG_MACD_LOWER_CONVICTION: 'MACD slow/exp',
-        LONG_COUNTERTREND: 'Below 50/200 + DI Sell',
+        SECTOR_ROTATION_OPPOSED: 'Sector opposed',
       }[w] || w)).join(', ') || '—';
-      mdTable(['Ticker', 'Side', 'Price', 'Status', 'Path', 'First hurdle', 'Room', 'CAP', 'MACD', 'Warnings'],
+      mdTable(['Ticker', 'Side', 'Status', 'Price', 'Path', 'First hurdle', 'Room', 'CAP'],
         primary.map(t => {
           const r = rowOf.get(t.sym);
-          return [T.bare(t.sym), t.dir === 'long' ? 'Long' : 'Short', fmt(r.triageRaw.close ?? r.price), t.status, t.path,
+          return [T.bare(t.sym), t.dir === 'long' ? 'Long' : 'Short', t.status, fmt(r.triageRaw.close ?? r.price), t.path,
             t.hurdle ? `${t.hurdle.label} ${t.hurdle.price.toFixed(2)}` : '-',
-            t.hurdle && t.hurdle.distAtr != null ? t.hurdle.distAtr.toFixed(1) : '-', t.cells.cap, short(t.cells.macd), warningCell(t)];
-        }), new Set([2, 6]));
-      console.log('\n**2. Context**\n');
-      mdTable(['Ticker', 'BB mid', 'SMA50 / SMA200 (ATR)', 'DI', 'ADX', 'RVOL', 'Gap/ATR'],
+            t.hurdle && t.hurdle.distAtr != null ? t.hurdle.distAtr.toFixed(1) : '-', t.cells.cap];
+        }), new Set([3, 6]));
+      console.log('\n**2. Momentum & validated cautions**\n');
+      mdTable(['Ticker', 'MACD', 'DI', 'ADX', 'RVOL', 'Gap/ATR', 'Caution'],
         primary.map(t => {
           const r = rowOf.get(t.sym);
-          return [T.bare(t.sym), t.cells.bb.replace(' ATR', ''), t.cells.ma.replace('50 ', '').replace(' · 200 ', ' / ').replace(' · gap ', ' · '),
+          return [T.bare(t.sym), short(t.cells.macd),
             t.cells.di.replace('Shift–', 'Sh ').replace('Control–', 'Ct ').replace(/Buyers/g, 'Buy').replace(/Sellers/g, 'Sell'),
             t.cells.adx.replace('rising', '↑').replace('falling', '↓').replace('flat', '→'), t.cells.rvol,
-            r.gatrRatio == null ? '-' : r.gatrRatio.toFixed(2)];
-        }), new Set([5, 6]));
-      // David (7 Oct 2026): Sector name, its SPDR ETF and the Sector Support verdict (3-day
-      // sector-vs-SPY rotation, direction-aware) restored from the pre-triage SID table.
-      console.log('\n**3. Sector & events**\n');
+            r.gatrRatio == null ? '-' : r.gatrRatio.toFixed(2), warningCell(t)];
+        }), new Set([4, 5]));
+      console.log('\n**3. Price, sector & event context**\n');
       const supportCell = t => {
         const rot = t.sector && t.sector.rotation;
         return rot === 'Rotation supportive' ? '🟢 Supported' : rot === 'Rotation opposed' ? '🔴 Unsupported'
              : rot === 'Rotation neutral' ? '⚪ Neutral' : 'n/a';
       };
-      mdTable(['Ticker', 'Sector', 'ETF', 'Sector Support', 'Event', 'Src'],
-        primary.map(t => [T.bare(t.sym),
-          (t.sector && t.sector.name && t.sector.name !== 'n/a' && t.sector.name !== 'Miscellaneous') ? t.sector.name : (t.isEtf ? 'ETF' : 'n/a'),
-          (t.sector && t.sector.etf && t.sector.etf !== 'n/a') ? t.sector.etf : 'n/a',
-          supportCell(t), t.cells.event, srcTag(t)]));
-      console.log('\n*Key: Room = ATR to first hurdle · MACD0 = (MACD − signal) / price × 100; conv/exp = converging/expanding · DI Sh = 3-bar shift, Ct = current control · Src A = TV alert, S = scan · Sector Support = sector ETF vs SPY over the last 3 sector scans, in the trade direction (rotation only — not sector chart structure).*\n');
+      mdTable(['Ticker', 'BB mid', 'SMA50 / SMA200 (ATR)', 'Sector / ETF', 'Support', 'Event', 'Src'],
+        primary.map(t => {
+          const sector = (t.sector && t.sector.name && t.sector.name !== 'n/a' && t.sector.name !== 'Miscellaneous') ? t.sector.name : (t.isEtf ? 'ETF' : 'n/a');
+          const etf = (t.sector && t.sector.etf && t.sector.etf !== 'n/a') ? t.sector.etf : 'n/a';
+          return [T.bare(t.sym), t.cells.bb.replace(' ATR', ''), t.cells.ma.replace('50 ', '').replace(' · 200 ', ' / ').replace(' · gap ', ' · '),
+            `${sector} / ${etf}`, supportCell(t), t.cells.event, srcTag(t)];
+        }));
+      console.log('\n*Key: Room = ATR to first hurdle · MA distances are descriptive context, not a SID long veto · MACD0 = (MACD − signal) / price × 100; conv/exp = converging/expanding · DI Sh = 3-bar shift, Ct = current control · Src A = TV alert, S = scan · Sector Support = sector ETF vs SPY over the last 3 sector scans, in the trade direction (rotation only — not sector chart structure).*\n');
       primary.forEach(t => console.log(`- **${T.bare(t.sym)}** — ${T.whyLine(t)}`));
 
       // Validated cautions (unchanged logic) — shown for the reviewed rows only.
@@ -2714,7 +2714,7 @@ if (!VERBOSE) {
   console.log('**SID:**  Long: RSI crossed below 30 (OS touch) · RSI rising  ');
   console.log('          Short: RSI crossed above 70 (OB touch) · RSI falling  ');
   console.log('          Mechanical confirmation: RSI and MACD reverse together inside the fresh-touch window; status is review context, not a new signal  ');
-  console.log('          Long context: below SMA50 + SMA200 with DI sellers = countertrend warning; slow/expanding below-signal MACD = lower conviction; no ADX/DI/MACD0-distance veto  ');
+  console.log('          Long context: SMA50/SMA200 distances and DI control are descriptive only; slow/expanding below-signal MACD = lower conviction; no ADX/DI/MACD0-distance veto  ');
   console.log('          Short context: prefer DI spread <10 · caution 10–20 · run-over ≥20 · ADX 40–50 run-over · MACD0 ≥+0.25% of price warning  ');
   console.log('          Path: BB midpoint/CAP/MA first hurdle and ATR room · Gap/ATR is displayed execution context, not a validated selection gate  ');
   console.log('**MACD State:** MACD0 = (MACD − signal) / price × 100 · distinguish converging/expanding and fast/slow; signal side alone is not an automatic SID veto  ');

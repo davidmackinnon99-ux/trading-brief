@@ -180,18 +180,12 @@ test('long ADX, DI spread and normalised MACD0 distance are not vetoes', () => {
   assert.equal(t.macd.normPct, -0.8);
 });
 
-test('long below both SMA50 and SMA200 with seller DI control gets countertrend warning', () => {
+test('long MA position and seller DI remain context, not an unvalidated warning', () => {
   const t = T.triageAlert(longBase({ sma50: 106, sma200: 104, diPlus: 18, diMinus: 26 }));
-  assert.equal(t.status, T.STATUS.COND);
-  assert.ok(t.warnings.includes('LONG_COUNTERTREND'));
-  assert.match(T.whyLine(t), /countertrend long/);
-});
-
-test('long countertrend warning requires both averages overhead and seller control', () => {
-  const oneAverage = T.triageAlert(longBase());
-  assert.ok(!oneAverage.warnings.includes('LONG_COUNTERTREND'));
-  const buyersControl = T.triageAlert(longBase({ sma50: 106, sma200: 104, diPlus: 30, diMinus: 20 }));
-  assert.ok(!buyersControl.warnings.includes('LONG_COUNTERTREND'));
+  assert.equal(t.status, T.STATUS.REVIEW);
+  assert.deepEqual(t.warnings, []);
+  assert.match(t.cells.ma, /50 −3\.0.*200 −2\.0/);
+  assert.equal(t.di.control, 'DI Control – Sellers');
 });
 
 test('opposed sector rotation lowers SID priority without excluding the signal', () => {

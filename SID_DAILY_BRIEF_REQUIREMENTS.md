@@ -219,7 +219,7 @@ Also show the signed DI gap, 3-bar gap change, and ADX value/direction. A revers
 
 Read `DI Gap` and `DI Gap Shift 3B` directly from the **ADX/DI Table 3** Data Window outputs. The direct three-bar shift is authoritative and does not require the ticker to have appeared in a previous scan. Retain the prior saved-scan calculation only as a compatibility fallback while charts are being upgraded to Table 3.
 
-For a long, show a practical `Countertrend long` warning when price is below both SMA50 and SMA200 while DI sellers still control. This combination means downside continuation risk remains live, especially when the three-bar DI shift is unavailable or still seller-directed. It lowers review priority but is not a validated automatic veto.
+For a long, report price-to-SMA50, price-to-SMA200 and current DI control as separate context fields. Do **not** turn `below both averages + DI sellers control` into a warning or status penalty. The validated 2,618-trade dataset does not contain entry-time MA-position fields, so that combination has not been outcome-tested; the validated long-side analysis also found no DI-spread veto. Revisit only after MA-position history has been captured and tested.
 
 ### 5.4 MACD state
 

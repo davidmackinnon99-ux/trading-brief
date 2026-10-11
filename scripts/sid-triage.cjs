@@ -16,7 +16,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 const CFG = {
-  VERSION: 'sid-triage-1.3 (10 Oct 2026)',
+  VERSION: 'sid-triage-1.4 (11 Oct 2026)',
   ROOM_OPEN_ATR: 1.0,        // room to first hurdle >= this → path "Open"/"Cleared"; below → "Hurdle near"
   ROOM_MIN_ATR: 0.25,        // room below this → limited initial room (priority context, not a gate)
   CLUSTER_ATR: 0.5,          // levels within this of the first hurdle form a cluster
@@ -268,10 +268,6 @@ function triageAlert(a) {
   else if (dir === 'short' && isNum(di.gap) && di.gap >= 10) warnings.push('SHORT_DI_CAUTION');
   if (dir === 'short' && isNum(mc.normPct) && mc.normPct >= 0.25) warnings.push('SHORT_MACD0_FAR_ABOVE');
   if (dir === 'long' && mc.side === 'below signal' && (mc.trend === 'expanding' || (mc.trend === 'converging' && mc.pace === 'Slow'))) warnings.push('LONG_MACD_LOWER_CONVICTION');
-  // Practical countertrend risk requested 10 Oct 2026. This is deliberately a warning,
-  // not a validated SID veto: longs often fire while price is below both averages and
-  // sellers still control DI, but the combination means continuation risk remains live.
-  if (dir === 'long' && isNum(ma.d50) && ma.d50 < 0 && isNum(ma.d200) && ma.d200 < 0 && isNum(di.gap) && di.gap < 0) warnings.push('LONG_COUNTERTREND');
   // Sector rotation is trade-direction context, not a new SID entry rule. An
   // opposed sector lowers review priority; supportive rotation improves rank
   // only among otherwise comparable candidates and never cancels a risk flag.
@@ -409,7 +405,6 @@ const REASON_TEXT = {
   SHORT_DI_CAUTION: 'short DI spread 10–20 — preferred selection is below 10',
   SHORT_MACD0_FAR_ABOVE: 'short MACD0 at least +0.25% of price above signal — premature fade warning',
   LONG_MACD_LOWER_CONVICTION: 'long MACD remains below signal and is slow or expanding — lower conviction, not a veto',
-  LONG_COUNTERTREND: 'countertrend long: price below SMA50 and SMA200 while sellers still control DI — continuation risk, not an automatic veto',
   SECTOR_ROTATION_OPPOSED: 'sector rotation is opposed to the trade direction — lower priority, not an automatic veto',
 };
 
