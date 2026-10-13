@@ -141,7 +141,7 @@ Sector rotation must influence SID review priority in the proposed trade directi
 - `Rotation supportive` ranks ahead of otherwise comparable neutral or unavailable cases.
 - `Rotation opposed` is a prominent lower-priority warning and makes an otherwise clean candidate `Conditional`; it is not by itself an `Exclude today` rule.
 - `Rotation neutral` and `Rotation n/a` remain explicit so absence of evidence cannot be mistaken for support.
-- Supportive rotation must never cancel validated ADX, DI-spread, MACD0, CAP, event or execution warnings.
+- Supportive rotation must never cancel ADX, DI-spread, CAP, event or execution warnings supported elsewhere in this specification.
 
 The market/SPY regime and sector rotation answer different questions. SPY describes the broad market background; the mapped sector ETF describes the candidate's immediate tide. `SPY supportive` must not be used as a substitute for `Sector rotation supportive`.
 
@@ -233,20 +233,26 @@ These are the only new MACD exports required. Existing MACD line, signal line, n
 Report:
 
 - MACD side of signal;
-- normalised MACD0 distance: `(MACD − signal) / price × 100`;
+- normalised MACD Histogram (`Hist%`): `(MACD − signal) / price × 100`;
 - Fast/Slow result using the revised MACD tags;
 - separation ratio;
 - converging, stable or expanding;
 - side of zero line;
 - repeated recent crossing/chop warning.
 
-Do not use the words `SPEED` or `SEP` in displayed tags. Apply the validated rules directionally: longs have no ADX, DI-spread or MACD0-distance veto; below-signal slow/expanding MACD is lower conviction only. For shorts, prefer DI spread below 10, warn at 10–20, flag 20 or more and ADX 40–50 as run-over risk, and warn when normalised MACD0 is at least +0.25% above signal. These are selection overlays, not changes to SID's mechanical entry rule.
+Do not use the words `SPEED` or `SEP` in displayed tags. Use **MACD** for the MACD line and **MACD Histogram** (or `Hist%`) for `(MACD − signal) / price × 100`. The exported Fast/Slow and Closing/Expanding values describe Histogram behaviour; they must not be presented as the separately validated one-bar MACD-line speed measure.
+
+Apply the expanded-sample findings directionally. Longs have no ADX, DI-spread, MACD-distance, MA-position or volume veto. A faster upward MACD-line turn is supportive, but until the exact normalised one-bar MACD-line change is exported the brief must defer that assessment to the chart rather than infer it from Histogram state. For shorts, ADX 40–50 is a material run-over warning and DI spread of 20 or more is a low-hit-rate warning, not an expectancy gate. Do not warn at DI 10–20 and do not apply a `Hist% >= +0.25%` veto or warning; neither improved expectancy in the expanded study.
 
 ### 5.5 Participation state
 
-Report RVOL, volume direction/delta and whether participation is aligned with the proposed trade. Low or conflicting participation is cautionary unless a validated hard rule is later adopted.
+Report RVOL and available volume readings as descriptive context. They must not gate an SID signal or change its brief status. Preliminary short-side labels may note RVOL below 0.75 as risk, RVOL from 1.0 to below 2.0 as support, and RVOL of 2.0 or more as extreme/inspect, but must say that these came from an 11-ticker partial sample. Long-side volume evidence is mixed. Keep any minimum liquidity or average-dollar-volume universe rule separate from SID confirmation. LORP's independently specified volume rules are outside this SID change.
 
-### 5.6 Weekly MACD
+### 5.6 Mandatory weekly RSI
+
+Weekly RSI(14) direction is part of the SID methodology and is mandatory: rising for longs and falling for shorts. The brief should state this explicitly. If alerts already enforce it upstream, the brief need not create a second gate, but it must never describe weekly alignment as optional.
+
+### 5.7 Weekly MACD
 
 Include reliable weekly MACD alignment only if it is already available programmatically. Weekly MACD is an important SID confirmation; if the data source is not reliable, display `n/a` rather than fabricating an interpretation.
 

@@ -94,20 +94,20 @@ test('missing MACD → Data incomplete; missing ATR → Data incomplete', () => 
   assert.equal(T.triageAlert(longBase({ atr: null })).status, T.STATUS.DATA);
 });
 
-test('long MACD below signal is lower conviction, not a veto', () => {
+test('long Histogram state remains descriptive and does not proxy MACD-line speed', () => {
   const slow = T.triageAlert(longBase({ macd: { macd: -1, raw: -0.2, sep: 0.45, sepPrev: 0.5, rawPrev: -0.3, closingSpeed: 0.05, rawHist: [-0.4, -0.35, -0.3] } }));
-  assert.equal(slow.status, T.STATUS.COND);
-  assert.ok(slow.warnings.includes('LONG_MACD_LOWER_CONVICTION'));
+  assert.equal(slow.status, T.STATUS.REVIEW);
+  assert.deepEqual(slow.warnings, []);
   assert.equal(slow.macd.normPct, -0.2);
 });
 
-test('long MACD below signal: fast convergence is acceptable; expansion is lower conviction', () => {
+test('long Histogram convergence and expansion are shown without changing status', () => {
   const conv = T.triageAlert(longBase({ macd: { macd: -1, raw: -0.2, sep: 0.3, sepPrev: 0.5, rawPrev: -0.3, closingSpeed: 0.2, rawHist: [-0.4, -0.35, -0.3] } }));
   assert.equal(conv.status, T.STATUS.REVIEW);
-  assert.match(conv.cells.macd, /below signal, converging \(fast\).*MACD0 −0.20%/);
+  assert.match(conv.cells.macd, /below signal, converging \(fast\).*Hist% −0.20%/);
   const exp = T.triageAlert(longBase({ macd: { macd: -1, raw: -0.4, sep: 0.6, sepPrev: 0.4, rawPrev: -0.3, closingSpeed: 0.2, rawHist: [-0.1, -0.2, -0.3] } }));
-  assert.equal(exp.status, T.STATUS.COND);
-  assert.ok(exp.warnings.includes('LONG_MACD_LOWER_CONVICTION'));
+  assert.equal(exp.status, T.STATUS.REVIEW);
+  assert.deepEqual(exp.warnings, []);
 });
 
 test('MACD tags never use SPEED or SEP wording', () => {
@@ -159,21 +159,33 @@ test('structural condition and MACD lower-conviction warning remain visible', ()
   assert.ok(!t.reasons.includes('MACD_OPPOSED'));
 });
 
-test('validated short DI/ADX and normalised MACD0 cautions lower priority', () => {
+test('expanded-sample short DI/ADX cautions lower priority', () => {
   const t = T.triageAlert(shortBase({ gatr: 0.65, adx: 45, diPlus: 42, diMinus: 18 }));
   assert.equal(t.status, T.STATUS.COND);
   assert.deepEqual(t.warnings, ['SHORT_ADX_RUNOVER', 'SHORT_DI_RUNOVER']);
-  assert.match(T.whyLine(t), /validated short warning/);
+  assert.match(T.whyLine(t), /material run-over risk/);
 });
 
-test('short DI 10–20 and MACD0 at least +0.25% are direction-specific warnings', () => {
+test('short DI 10–20 and Histogram at least +0.25% remain descriptive rather than warnings', () => {
   const t = T.triageAlert(shortBase({ diPlus: 31, diMinus: 16, macd: { macd: 1, raw: 0.3, sep: 0.3, gapState: -1, fastSlow: 1 } }));
   assert.equal(t.status, T.STATUS.COND);
   assert.equal(t.macd.normPct, 0.3);
-  assert.deepEqual(t.warnings, ['SHORT_DI_CAUTION', 'SHORT_MACD0_FAR_ABOVE']);
+  assert.deepEqual(t.warnings, []);
+  assert.ok(t.conditions.includes('DI_SHIFT_OPPOSED'));
 });
 
-test('long ADX, DI spread and normalised MACD0 distance are not vetoes', () => {
+test('SID RVOL is descriptive and never changes status', () => {
+  const low = T.triageAlert(shortBase({ rvol: 0.5 }));
+  const moderate = T.triageAlert(shortBase({ rvol: 1.4 }));
+  assert.equal(low.status, T.STATUS.REVIEW);
+  assert.equal(moderate.status, T.STATUS.REVIEW);
+  assert.match(low.cells.rvol, /low\*/);
+  assert.match(moderate.cells.rvol, /support\*/);
+  assert.deepEqual(low.warnings, []);
+  assert.deepEqual(moderate.warnings, []);
+});
+
+test('long ADX, DI spread and normalised Histogram distance are not vetoes', () => {
   const t = T.triageAlert(longBase({ adx: 45, diPlus: 5, diMinus: 40, hist: { bars: 3, close: 98, sma50: 106.5, sma200: 89.8, bbMid: 103.2, diGap: -40, adxPrev: 44 }, macd: { macd: -1, raw: -0.8, sep: 0.8, gapState: -1, fastSlow: 1 } }));
   assert.equal(t.status, T.STATUS.REVIEW);
   assert.deepEqual(t.warnings, []);
@@ -244,9 +256,9 @@ test('v1.5 exports drive MACD state without turning signal-side into a veto', ()
   assert.equal(c.macd.trend, 'converging'); assert.equal(c.macd.pace, 'Fast'); assert.equal(c.macd.source, 'v1.5');
   assert.equal(c.status, T.STATUS.REVIEW);
   const slow = T.triageAlert(longBase({ macd: { macd: -1, raw: -0.2, sep: 0.3, gapState: -1, fastSlow: 0, barsSinceCross: 12 } }));
-  assert.equal(slow.status, T.STATUS.COND);
+  assert.equal(slow.status, T.STATUS.REVIEW);
   const e = T.triageAlert(longBase({ macd: { macd: -1, raw: -0.2, sep: 0.3, gapState: 1, fastSlow: 1, barsSinceCross: 12 } }));
-  assert.equal(e.status, T.STATUS.COND);
+  assert.equal(e.status, T.STATUS.REVIEW);
   const f = T.triageAlert(longBase({ macd: { macd: 1, raw: 0.05, sep: 0.1, gapState: 1, fastSlow: 1, barsSinceCross: 1 } }));
   assert.equal(f.macd.trend, 'fresh cross');
 });

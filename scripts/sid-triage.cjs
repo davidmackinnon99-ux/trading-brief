@@ -16,7 +16,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 const CFG = {
-  VERSION: 'sid-triage-1.4 (11 Oct 2026)',
+  VERSION: 'sid-triage-1.5 (13 Oct 2026)',
   ROOM_OPEN_ATR: 1.0,        // room to first hurdle >= this → path "Open"/"Cleared"; below → "Hurdle near"
   ROOM_MIN_ATR: 0.25,        // room below this → limited initial room (priority context, not a gate)
   CLUSTER_ATR: 0.5,          // levels within this of the first hurdle form a cluster
@@ -29,7 +29,7 @@ const CFG = {
   OVERNIGHT_MOVE_ATR: 1.0,   // after-hours move >= this many ATR → Exclude today
   ENTRY_MISSED_LOOKBACK: 3,  // same-direction SID alert within this many trading days earlier ...
   ENTRY_MISSED_ATR: 1.0,     // ... and price already moved this far in the trade direction since → missed
-  RVOL_LOW: 0.8,             // participation caution only (not a gate)
+  SHORT_RVOL_LOW: 0.75,      // preliminary short context only; never changes status
 };
 
 const STATUS = {
@@ -204,7 +204,7 @@ function macdCell(s) {
   if (s.side === 'n/a') return 'n/a';
   const t = s.trend !== 'n/a' ? `, ${s.trend}` : '';
   const p = s.pace && (s.trend === 'converging' || s.trend === 'expanding') ? ` (${s.pace.toLowerCase()})` : '';
-  const n = isNum(s.normPct) ? ` · MACD0 ${signed(s.normPct, 2)}%` : '';
+  const n = isNum(s.normPct) ? ` · Hist% ${signed(s.normPct, 2)}%` : '';
   return `${s.side}${t}${p}${n}`;
 }
 
@@ -213,11 +213,12 @@ function participation(dir, rvol, vd) {
   const vdAligned = isNum(vd) ? (dir === 'long' ? vd > 0 : vd < 0) : null;
   let label = 'n/a';
   if (isNum(rvol)) {
-    label = rvol < CFG.RVOL_LOW ? 'low' : 'normal+';
-    if (vdAligned === false) label += ', vol opposed';
-    if (vdAligned === true) label += ', vol aligned';
+    if (dir === 'short' && rvol < CFG.SHORT_RVOL_LOW) label = 'low — preliminary risk';
+    else if (dir === 'short' && rvol >= 1 && rvol < 2) label = '1–2 — preliminary support';
+    else if (rvol >= 2) label = 'extreme — inspect';
+    else label = 'descriptive';
   }
-  return { rvol, vdAligned, label, caution: (isNum(rvol) && rvol < CFG.RVOL_LOW) || vdAligned === false };
+  return { rvol, vdAligned, label, caution: false };
 }
 
 // ── Main per-alert triage ───────────────────────────────────────────────────
@@ -265,9 +266,6 @@ function triageAlert(a) {
   const part = participation(dir, a.rvol, a.vd);
   if (dir === 'short' && isNum(a.adx) && a.adx >= 40 && a.adx < 50) warnings.push('SHORT_ADX_RUNOVER');
   if (dir === 'short' && isNum(di.gap) && di.gap >= 20) warnings.push('SHORT_DI_RUNOVER');
-  else if (dir === 'short' && isNum(di.gap) && di.gap >= 10) warnings.push('SHORT_DI_CAUTION');
-  if (dir === 'short' && isNum(mc.normPct) && mc.normPct >= 0.25) warnings.push('SHORT_MACD0_FAR_ABOVE');
-  if (dir === 'long' && mc.side === 'below signal' && (mc.trend === 'expanding' || (mc.trend === 'converging' && mc.pace === 'Slow'))) warnings.push('LONG_MACD_LOWER_CONVICTION');
   // Sector rotation is trade-direction context, not a new SID entry rule. An
   // opposed sector lowers review priority; supportive rotation improves rank
   // only among otherwise comparable candidates and never cancels a risk flag.
@@ -381,7 +379,7 @@ function triageAlert(a) {
       macd: macdCell(mc),
       di: diCell(di),
       adx: isNum(a.adx) ? `${a.adx.toFixed(0)}${di.adxDir !== 'n/a' ? ' ' + di.adxDir : ''}` : 'n/a',
-      rvol: isNum(a.rvol) ? a.rvol.toFixed(1) + (part.vdAligned === false ? ' (vol opp)' : '') : 'n/a',
+      rvol: isNum(a.rvol) ? a.rvol.toFixed(1) + (dir === 'short' && a.rvol < CFG.SHORT_RVOL_LOW ? ' low*' : dir === 'short' && a.rvol >= 1 && a.rvol < 2 ? ' support*' : a.rvol >= 2 ? ' extreme*' : '') : 'n/a',
       sector: rotation.replace('Rotation ', 'Rot. '),
       event: eventCell,
     },
@@ -400,11 +398,8 @@ const REASON_TEXT = {
   EARNINGS_NEAR: 'earnings soon',
   OVERNIGHT_MOVE_LARGE: 'large after-hours move',
   ENTRY_MISSED: 'original entry was an earlier alert and price has already moved',
-  SHORT_ADX_RUNOVER: 'validated short warning: ADX 40–50 run-over zone',
-  SHORT_DI_RUNOVER: 'validated short warning: DI spread at least 20 run-over zone',
-  SHORT_DI_CAUTION: 'short DI spread 10–20 — preferred selection is below 10',
-  SHORT_MACD0_FAR_ABOVE: 'short MACD0 at least +0.25% of price above signal — premature fade warning',
-  LONG_MACD_LOWER_CONVICTION: 'long MACD remains below signal and is slow or expanding — lower conviction, not a veto',
+  SHORT_ADX_RUNOVER: 'short ADX 40–50 — material run-over risk in the expanded sample, not an automatic veto',
+  SHORT_DI_RUNOVER: 'short DI spread at least 20 — low hit-rate warning, not an expectancy gate',
   SECTOR_ROTATION_OPPOSED: 'sector rotation is opposed to the trade direction — lower priority, not an automatic veto',
 };
 

@@ -2484,8 +2484,7 @@ if (!VERBOSE) {
       console.log(`\n*Review now + Conditional (${primary.length}) — open these charts first:*\n`);
       console.log('**1. Structural priority**\n');
       const warningCell = t => (t.warnings || []).map(w => ({
-        SHORT_ADX_RUNOVER: 'ADX 40–50', SHORT_DI_RUNOVER: 'DI≥20', SHORT_DI_CAUTION: 'DI 10–20',
-        SHORT_MACD0_FAR_ABOVE: 'MACD0≥+0.25%', LONG_MACD_LOWER_CONVICTION: 'MACD slow/exp',
+        SHORT_ADX_RUNOVER: 'ADX 40–50 risk', SHORT_DI_RUNOVER: 'DI≥20 low-WR',
         SECTOR_ROTATION_OPPOSED: 'Sector opposed',
       }[w] || w)).join(', ') || '—';
       mdTable(['Ticker', 'Side', 'Status', 'Price', 'Path', 'First hurdle', 'Room', 'CAP'],
@@ -2517,7 +2516,7 @@ if (!VERBOSE) {
           return [T.bare(t.sym), t.cells.bb.replace(' ATR', ''), t.cells.ma.replace('50 ', '').replace(' · 200 ', ' / ').replace(' · gap ', ' · '),
             `${sector} / ${etf}`, supportCell(t), t.cells.event, srcTag(t)];
         }));
-      console.log('\n*Key: Room = ATR to first hurdle · MA distances are descriptive context, not a SID long veto · MACD0 = (MACD − signal) / price × 100; conv/exp = converging/expanding · DI Sh = 3-bar shift, Ct = current control · Src A = TV alert, S = scan · Sector Support = sector ETF vs SPY over the last 3 sector scans, in the trade direction (rotation only — not sector chart structure).*\n');
+      console.log('\n*Key: Room = ATR to first hurdle · MA distances are descriptive context, not a SID veto · Hist% = (MACD − signal) / price × 100; conv/exp and fast/slow describe MACD Histogram behaviour, not the validated MACD-line speed measure · DI Sh = 3-bar shift, Ct = current control · RVOL * labels are preliminary short context only and never change status · Src A = TV alert, S = scan · Sector Support = sector ETF vs SPY over the last 3 sector scans, in the trade direction (rotation only — not sector chart structure).*\n');
       primary.forEach(t => console.log(`- **${T.bare(t.sym)}** — ${T.whyLine(t)}`));
 
       // Validated cautions (unchanged logic) — shown for the reviewed rows only.
@@ -2525,13 +2524,9 @@ if (!VERBOSE) {
       const rvS = rv.filter(r => r.isShortPass);
       const diGap = r => (r.diPlus != null && r.diMinus != null) ? (r.diPlus - r.diMinus) : null;
       const runover = rvS.filter(r => r.adx != null && r.adx >= 40 && r.adx < 50);
-      if (runover.length) console.log(`\n> ⛔ SHORT run-over zone — ADX 40–50 (validated −3.16%/trade): ${runover.map(r => `${T.bare(r.sym)} (${r.adx.toFixed(1)})`).join(', ')}`);
+      if (runover.length) console.log(`\n> ⚠️ SHORT material run-over risk — ADX 40–50 (expanded sample: −1.43% mean, PF 0.51): ${runover.map(r => `${T.bare(r.sym)} (${r.adx.toFixed(1)})`).join(', ')}`);
       const diWide = rvS.filter(r => { const g = diGap(r); return g != null && g >= 20; });
-      if (diWide.length) console.log(`\n> ⛔ SHORT run-over — DI spread ≥ 20 (validated −1.02%/trade): ${diWide.map(r => `${T.bare(r.sym)} (${diGap(r).toFixed(0)})`).join(', ')}`);
-      const diCaution = rvS.filter(r => { const g = diGap(r); return g != null && g >= 10 && g < 20; });
-      if (diCaution.length) console.log(`\n> ⚠️ SHORT DI spread 10–20 — preferred selection is below 10: ${diCaution.map(r => `${T.bare(r.sym)} (${diGap(r).toFixed(0)})`).join(', ')}`);
-      const macdFar = primary.filter(t => t.dir === 'short' && t.macd.normPct != null && t.macd.normPct >= 0.25);
-      if (macdFar.length) console.log(`\n> ⚠️ SHORT MACD0 far above signal — ≥ +0.25% of price: ${macdFar.map(t => `${T.bare(t.sym)} (${t.macd.normPct.toFixed(2)}%)`).join(', ')}`);
+      if (diWide.length) console.log(`\n> ⚠️ SHORT probability risk — DI spread ≥ 20 (expanded sample: 25.8% win rate; not an expectancy gate): ${diWide.map(r => `${T.bare(r.sym)} (${diGap(r).toFixed(0)})`).join(', ')}`);
     } else {
       console.log('\n*No alert reached Review now or Conditional today — see the appendix for every alert and its reason.*');
     }
@@ -2713,12 +2708,12 @@ if (!VERBOSE) {
   console.log('         Sig = FRESH fires only — markers already in the prior brief are filtered as carried-over · ·Nc = N held-over markers suppressed\n');
   console.log('**SID:**  Long: RSI crossed below 30 (OS touch) · RSI rising  ');
   console.log('          Short: RSI crossed above 70 (OB touch) · RSI falling  ');
-  console.log('          Mechanical confirmation: RSI and MACD reverse together inside the fresh-touch window; status is review context, not a new signal  ');
-  console.log('          Long context: SMA50/SMA200 distances and DI control are descriptive only; slow/expanding below-signal MACD = lower conviction; no ADX/DI/MACD0-distance veto  ');
-  console.log('          Short context: prefer DI spread <10 · caution 10–20 · run-over ≥20 · ADX 40–50 run-over · MACD0 ≥+0.25% of price warning  ');
+  console.log('          Mechanical confirmation: RSI and MACD reverse together inside the fresh-touch window · Weekly RSI direction is mandatory  ');
+  console.log('          Long context: faster upward MACD-line turn is supportive, but its validated speed measure is not yet exported here · no ADX/DI/MACD-distance/SMA/volume veto  ');
+  console.log('          Short context: ADX 40–50 = material run-over risk · DI spread ≥20 = low-hit-rate warning · no Hist% +0.25 veto  ');
   console.log('          Path: BB midpoint/CAP/MA first hurdle and ATR room · Gap/ATR is displayed execution context, not a validated selection gate  ');
-  console.log('**MACD State:** MACD0 = (MACD − signal) / price × 100 · distinguish converging/expanding and fast/slow; signal side alone is not an automatic SID veto  ');
-  console.log('          ATR%, RVOL, volume direction, sector rotation and MA position remain context unless a specific warning above applies\n');
+  console.log('**MACD State:** Hist% = (MACD − signal) / price × 100 · converging/expanding and fast/slow describe MACD Histogram behaviour · MACD means the MACD line  ');
+  console.log('          SID RVOL/volume, ATR%, sector rotation and MA position are context only and do not gate or change status; LORP retains its separate volume rules\n');
 
   // ── CSV Export ──
   // Save alongside the LORP JSON but with standardised name for email attachment

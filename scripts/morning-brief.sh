@@ -244,6 +244,20 @@ PYEOF2
 rm -rf "$SECTOR_TMP_DIR"
 echo "[$(date)] Sector ETF rotation scan complete" >> "$LOGFILE"
 
+# Import the rich cloud report attachment from Apple Mail before the morning
+# brief is assembled. If Mail or the attachment is unavailable, create the
+# compact sector-vs-SPY report from the local scan as a clearly limited fallback.
+ROTATION_DIR="$HOME/Downloads/Briefs"
+mkdir -p "$ROTATION_DIR"
+ROTATION_IMPORTED=""
+if ROTATION_IMPORTED=$(/bin/bash "$TV_DIR/scripts/import-sector-report.sh" "$ROTATION_DIR" 2>> "$LOGFILE"); then
+    echo "[$(date)] Rich sector rotation report imported: $ROTATION_IMPORTED" >> "$LOGFILE"
+elif [ -s "$OUTFILE_SECTORS" ]; then
+    echo "[$(date)] Rich sector report unavailable — generating compact local fallback" >> "$LOGFILE"
+    "$NODE" "$TV_DIR/scripts/sector-rotation-report.cjs" "$OUTFILE_SECTORS" "$ROTATION_DIR" >> "$LOGFILE" 2>&1 \
+      || echo "[$(date)] WARNING: local sector rotation fallback generation failed" >> "$LOGFILE"
+fi
+
 # ── PULLBACK and ADX BREAKOUT scans retired 26 Aug 2026 (David: "delete all
 # references to the old Pullback & ADX Continuation" — Pullback folded into LORP's
 # native Trend/Pullback tables; ADX shown in the LORP table already per #8 Jul 2026).
@@ -265,10 +279,8 @@ if [ $BRIEF_EXIT -eq 0 ] && [ -s "$OUTFILE_LORP" ]; then
     CSV_OUT="$BRIEFS_DIR/brief-$DATE-data.csv"
     echo "[$(date)] Generating tables..." >> "$LOGFILE"
     "$NODE" "$TV_DIR/scripts/analyse-brief.cjs" "$OUTFILE_LORP" "$OUTFILE_SID" "$OUTFILE_REGIME" "" "" "$OUTFILE_SECTORS" > "$TABLES_OUT" 2>> "$LOGFILE"
-    # 8 Oct 2026: Rotation header — prepend a short summary of the cloud "Daily sector rotation
-    # report" (sector_rotation_<date>.json in ~/Downloads/Briefs) to the TOP of the brief, so it
-    # appears in the saved brief, the Downloads/Briefs copy and the email body. The script always
-    # prints a line ("no report found" / STALE) and never fails the run.
+    # Rotation header — prepend the rich imported cloud report when available; otherwise use
+    # the explicitly limited local sector-vs-SPY fallback generated above.
     if [ -s "$TABLES_OUT" ]; then
         ROT_TMP=$(mktemp)
         { "$NODE" "$TV_DIR/scripts/rotation-header.cjs" "$HOME/Downloads/Briefs" 2>> "$LOGFILE" || echo "ROTATION: header unavailable (script error — see log)"; echo; cat "$TABLES_OUT"; } > "$ROT_TMP" \
