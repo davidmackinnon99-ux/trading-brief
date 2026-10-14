@@ -364,6 +364,11 @@ Analyser: ~/tradingview-mcp-jackson/scripts/analyse-brief.cjs
 Clean-tab fix (26 Sep 2026): the scanner now skips "SID Clean" / "LORP Clean" tabs and selects the page
 that actually carries the required study (Lorentzian for LORP) — src/connection.js. Brief of 26 Sep failed
 before this fix (LORP layout not matched, fell back to a page without Lorentzian) and was re-run at 09:30.
+- **Empty-screener warning (14 Oct):** brief of 14 Oct scanned only 228 symbols because SID Screener, LORP Screener
+  and SBT Scans were empty at 07:00 (not refilled after the 13 Oct brief cleared them); TV SID ENTRY watchlist alerts
+  dropped for the same reason. morning-brief.sh now checks those three sections after the watchlist sync and, if any
+  are empty, logs a warning, adds "⚠ screeners empty" to the notification and puts a warning line at the top of the
+  email. Notification LORP count fixed (pattern now matches "LORP — N LC entries").
 
 Required-study wait (2 Oct 2026): the 2 Oct SID scan aborted with REQUIRED STUDY MISSING on the correct
 layout even though the indicator computed fine moments later. src/core/morning.js now re-reads study values

@@ -109,6 +109,24 @@ if [ $? -ne 0 ]; then
     echo "[$(date)] Watchlist sync failed — using existing rules.json watchlist" >> "$LOGFILE"
 fi
 
+# 14 Oct 2026: warn when the nightly screener sections are empty. On 14 Oct SID/LORP
+# Screener + SBT Scans were all empty at 07:00 (not refilled after the previous brief
+# cleared them), so the brief scanned 228 symbols instead of ~550 and results collapsed.
+SCREENER_WARN=$(python3 - "$TV_DIR/rules.json" <<'PYW'
+import json, sys
+try:
+    sec = json.load(open(sys.argv[1])).get("watchlist_sections", {})
+except Exception:
+    sys.exit(0)
+empty = [n for n in ("SID SCREENER", "LORP SCREENER", "SBT SCANS") if len(sec.get(n, [])) == 0]
+if empty:
+    print("Empty watchlist sections: " + ", ".join(empty))
+PYW
+)
+if [ -n "$SCREENER_WARN" ]; then
+    echo "[$(date)] WARNING: $SCREENER_WARN — brief will scan a reduced universe" >> "$LOGFILE"
+fi
+
 # Each TradingView layout runs as a separate page in the Electron app.
 # TRADINGVIEW_LAYOUT_ID pins each scan to an exact saved-chart layout by its URL slug
 # (/chart/<ID>/). This is immune to indicator renames or the same indicator appearing
@@ -308,9 +326,10 @@ if [ $BRIEF_EXIT -eq 0 ] && [ -s "$OUTFILE_LORP" ]; then
         SID_OS=0
 
         # Extract key counts for the notification
-        LORP_COUNT=$(grep -o "LORP — [0-9]* candidates" "$TABLES_OUT" | grep -o "[0-9]*" | head -1 || echo "?")
+        LORP_COUNT=$(grep -oE "LORP — [0-9]+ (candidates|LC entries)" "$TABLES_OUT" | grep -o "[0-9]*" | head -1 || echo "?")
         SID_COUNT=$(grep -o "SID — [0-9]* signals" "$TABLES_OUT" | grep -o "[0-9]*" | head -1 || echo "0")
         NOTIFY_MSG="LORP ${LORP_COUNT} · SID ${SID_COUNT}"
+        [ -n "$SCREENER_WARN" ] && NOTIFY_MSG="${NOTIFY_MSG} · ⚠ screeners empty"
 
         # Send macOS notification — appears in Notification Centre, no approval needed
         osascript -e "display notification \"${NOTIFY_MSG}\" with title \"Morning Brief Ready\" subtitle \"$(date '+%a %d %b %Y')\" sound name \"Glass\"" 2>/dev/null || true
@@ -358,6 +377,10 @@ with open(tables_path, "r") as f:
     tables_body = f.read()
 
 combined_body = tables_body
+screener_warn = """$SCREENER_WARN"""
+if screener_warn.strip():
+    combined_body = ("⚠ " + screener_warn.strip() + " — this brief scanned a reduced watchlist; "
+                     "refill the screener sections before the next run.\n\n") + combined_body
 
 msg = MIMEMultipart()
 msg["From"]    = gmail_user

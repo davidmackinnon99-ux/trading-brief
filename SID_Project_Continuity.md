@@ -133,6 +133,11 @@ instead of waiting for confirming candles (6,673 crosses, 44 journal tickers, 20
   reload-retry also failed) though the indicator computed fine minutes later. Likely the heavier layout since
   Pattern Finder v2.7. src/core/morning.js now re-reads study values every 2s for up to ~20s when the required
   study is missing before counting the symbol as missing. SID re-run the same afternoon from the morning watchlist.
+- **Empty-screener warning (14 Oct):** brief of 14 Oct scanned only 228 symbols because SID Screener, LORP Screener
+  and SBT Scans were empty at 07:00 (not refilled after the 13 Oct brief cleared them); TV SID ENTRY watchlist alerts
+  dropped for the same reason. morning-brief.sh now checks those three sections after the watchlist sync and, if any
+  are empty, logs a warning, adds "⚠ screeners empty" to the notification and puts a warning line at the top of the
+  email. Notification LORP count fixed (pattern now matches "LORP — N LC entries").
 
 ## 2. SID = trend pullback continuation (confirmed)
 Works when: clear underlying trend (SMA50/200 aligned) + temporary counter-move pushes RSI
