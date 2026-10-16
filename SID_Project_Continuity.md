@@ -396,11 +396,14 @@ to the RSI-50 objective, then (2) do momentum/participation/context support taki
 - **RVOL-Z v2.1b** (`~/Trading Indicators/indicators/RVOL_Z_v2.pine`, title unchanged): Pine v6; ALMA & LSMA
   off by default; SMA (purple), +1σ (teal), +2σ (deep orange) bold; HMA dashed grey; volume bar colours
   unchanged. Display only — no values changed. Server compile check passed. Re-add to layouts to pick up.
-- **Found:** the LORP scan does not capture RVOL-Z at all (0 of 530 symbols on 16 Oct; only 6 studies read on
-  the LORP layout), so LORP RVOL shows n/a / falls back. Open item — not fixed here.
+- **LORP scan missing RVOL-Z — FIXED same day.** Cause: the price pane on the LORP layout was MAXIMISED, so
+  TradingView stopped rendering the lower panes and RVOL-Z, ADX/DI, MACD Sep v1.4, WaveTrend 3D and OBV MACD
+  returned no Data Window values (1–3 Oct and 11–16 Oct; same symptom as the 24 Sep SID failure). Pane restored
+  live and all 11 studies confirmed reading. Guard added: `data.restoreMaximizedPanes()` runs at the start of
+  every scan (`src/core/morning.js`, both layouts) and logs a WARNING if it had to restore a pane.
+  LORP briefs 1–3 Oct and 11–16 Oct ran without RVOL, ADX and DI context.
 
 ## 5. Open items (need input — not resolvable from files)
-- [ ] LORP scan is not reading RVOL-Z v2.1 (see 1o) — LORP RVOL column / RVOL filters run without it.
 - [ ] Reconcile the 300-trade manual journal (`analysis/sid-btw-universe/Backtesting_Sheet_300_SID.xlsx`) against `data/trades/trades_all.csv` and the automated BTW-universe backtest — three SID datasets now exist and haven't been cross-checked against each other.
 - [x] ~30% of brief candidates were funds/trusts, not equities — fixed 17 Sep 2026 by excluding sector "Miscellaneous" tickers from both `lorpAll` and `sidPass` in `analyse-brief.cjs`; see `LORP_Project_Continuity.md`'s 17 Sep entry for the full writeup (applies to both strategies).
 - [ ] Test SID Pattern Finder v2.5 against past SID entries (David, manual). Automated study (1f) found no rule-worthy edge; send any trade where a clear pattern was missed or a target exit would have helped.

@@ -321,6 +321,26 @@ export async function getDepth() {
   return { success: true, bid_levels: data.bids?.length || 0, ask_levels: data.asks?.length || 0, spread: data.spread, bids: data.bids || [], asks: data.asks || [], raw_values: data.raw_values, note: data.note };
 }
 
+// 16 Oct 2026: if a pane is MAXIMISED (double-click / Alt+Enter on the price pane), TradingView
+// stops rendering the other panes and their studies return no Data Window values. Found as the
+// cause of the LORP scan losing RVOL-Z, ADX, MACD Sep, WT3D and OBV (1-3 Oct, 11-16 Oct; likely the
+// 24 Sep SID incident too). Restores every maximised pane on the active layout. Returns count.
+export async function restoreMaximizedPanes() {
+  const n = await evaluate(`
+    (function() {
+      var cw0 = window.TradingViewApi._activeChartWidgetWV.value();
+      var cw = (cw0 && cw0._chartWidget) ? cw0._chartWidget : cw0;
+      if (!cw || typeof cw.hasMaximizedPane !== 'function' || !cw.hasMaximizedPane()) return 0;
+      var mp = cw.model().model().maximizedPane();
+      var pane = (mp && typeof mp.value === 'function') ? mp.value() : mp;
+      if (!pane) return 0;
+      cw.model().toggleMaximizedPane(pane);
+      return cw.hasMaximizedPane() ? -1 : 1;
+    })()
+  `);
+  return n || 0;
+}
+
 export async function getStudyValues() {
   const data = await evaluate(`
     (function() {

@@ -172,6 +172,15 @@ export async function runBrief({ rules_path, sections } = {}) {
     }
   }
 
+  // 16 Oct 2026: a maximised price pane hides every lower-pane study (no Data Window values).
+  try {
+    const restored = await data.restoreMaximizedPanes();
+    if (restored === 1) {
+      process.stderr.write('[brief] WARNING: a chart pane was maximised — restored so lower-pane studies can be read\n');
+      await new Promise((r) => setTimeout(r, 2000));
+    } else if (restored === -1) process.stderr.write('[brief] WARNING: maximised pane could not be restored — lower-pane studies may be missing\n');
+  } catch (e) { process.stderr.write(`[brief] pane-restore check failed: ${e.message}\n`); }
+
   let consecutiveTimeouts = 0;
   // David (24 Sep 2026): on 24 Sep every lower-pane study on the SID layout (incl. SID
   // Trading Signals Pro) returned no values for the entire run — each symbol burned the

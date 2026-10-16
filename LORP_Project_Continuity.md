@@ -16,8 +16,8 @@ the corrected watchlist-sections note in Section 8 below and SID_Project_Continu
 
 PIPELINE NOTE — 16 October 2026: RVOL in the brief now carries direction (↑ building / ↓ fading
 / → flat, from RVOL-Z HMA vs SMA of volume) and RVOL-Z v2.1b tidies the chart (ALMA/LSMA off, SMA and
-σ lines bold, HMA dashed). FOUND: the LORP scan is not capturing RVOL-Z (0 of 530 symbols on 16 Oct),
-so LORP RVOL is n/a — open item. Detail: SID continuity §1o.
+σ lines bold, HMA dashed). FIXED same day: LORP scan was missing RVOL-Z, ADX/DI, MACD Sep,
+WT3D and OBV (1–3 Oct, 11–16 Oct) because the price pane was maximised; scans now auto-restore it. Detail: SID continuity §1o.
 
 PIPELINE NOTE — 8 October 2026: the brief now opens with a ROTATION header (scripts/
 rotation-header.cjs) summarising the cloud "Daily sector rotation report" from its JSON sidecar
