@@ -991,45 +991,13 @@ function fetchSidEvents(bareTickers) {
   return out;
 }
 
-// David (7 Oct 2026): review exactly what TradingView SENT. brief-DATE-sid-alerts.json is
-// written by scripts/sid-alert-log.mjs (TradingView alert-fire log, "SID ENTRY" alerts for the
-// latest bar). The review list = alert log ∪ scan entry signals; each row carries its source.
+// The completed-bar scan is authoritative for the morning brief. Alerts are deliberately not
+// consumed here: the brief contains only durable SID entries reproduced by the completed-bar
+// scan after the chart reloads.
 const US_EXCH = new Set(['BATS', 'NYSE', 'NASDAQ', 'AMEX', 'NYSE ARCA', 'ARCA', 'CBOE']);
-function loadSidAlertLog() {
-  try {
-    const p = (sidBriefFile || '').replace(/-sid\.json$/, '-sid-alerts.json');
-    if (!p || p === sidBriefFile || !fs.existsSync(p)) return null;
-    return JSON.parse(fs.readFileSync(p, 'utf8'));
-  } catch (e) { process.stderr.write(`[sid-alerts] unreadable (${e.message})\n`); return null; }
-}
-function sidReviewSet(scanFired, alertLog) {
+function sidReviewSet(scanFired) {
   const qualified = (r) => String(r?.triageRaw?.resolvedSymbol || r?.sym || '').toUpperCase();
-  const alertKey = (a) => String(a?.pro_symbol || a?.ticker || '').toUpperCase();
-  const isUs = (key) => US_EXCH.has(String(key).split(':')[0]);
-  const byQualified = new Map(sidResults.filter(r => !r.error).map(r => [qualified(r), r]));
-  const byUsBare = new Map(sidResults.filter(r => !r.error && isUs(qualified(r))).map(r => [bareSym(qualified(r)), r]));
-  const out = [];
-  const alerted = new Map(((alertLog && alertLog.sid) || []).map(a => [alertKey(a), a]));
-  const alertedByBare = new Map([...alerted].map(([key, a]) => [bareSym(key), [key, a]]));
-  const matchedAlerts = new Set();
-  for (const r of scanFired) {
-    const key = qualified(r);
-    const fallback = isUs(key) ? alertedByBare.get(bareSym(key)) : null;
-    const matchedKey = alerted.has(key) ? key : fallback?.[0];
-    const a = matchedKey ? alerted.get(matchedKey) : null;
-    if (matchedKey) matchedAlerts.add(matchedKey);
-    out.push({ ...r, sym: key || r.sym, sidSource: alertLog ? (a ? 'Alert + scan' : 'Scan only') : 'Scan', alertInfo: a });
-  }
-  for (const [key, a] of alerted) {
-    if (matchedAlerts.has(key)) continue;
-    const r = byQualified.get(key) || (isUs(key) ? byUsBare.get(bareSym(key)) : null);
-    if (!r && SID_LEVERAGED_EXCLUDE.has(bareSym(key))) { out.push({ sym: key, leveragedEtf: true, isLongPass: true, isShortPass: false, sidSource: 'Alert only', alertInfo: a, triageRaw: {} }); continue; }
-    if (!r) { out.push({ sym: key, notScanned: true, isLongPass: true, isShortPass: false, sidSource: 'Alert only', alertInfo: a, triageRaw: {} }); continue; }
-    const tr = r.triageRaw || {};
-    const dir = (tr.armedShort === 1 && tr.armedLong !== 1) ? 'short' : (tr.armedLong === 1 && tr.armedShort !== 1) ? 'long' : (tr.rsi != null && tr.rsi > 50 ? 'short' : 'long');
-    out.push({ ...r, sym: key, isLongPass: dir === 'long', isShortPass: dir === 'short', sidSource: 'Alert only', alertInfo: a, alertDirInferred: true });
-  }
-  return out;
+  return scanFired.map(r => ({ ...r, sym: qualified(r) || r.sym, sidSource: 'Scan' }));
 }
 
 // David (7 Oct 2026): TradingView files EVERY ETF under sector "Miscellaneous", so the
@@ -2453,26 +2421,17 @@ if (!VERBOSE) {
   } else if (!sidIndicatorFound && sidBrief) {
     console.log('**⚡ SID — ⚠️ SID indicator not found in data window**\n');
     console.log('*Add "SID Trading Signals Pro" (v8.5.17+) to the SID layout and enable its data window outputs.*\n');
-  } else if (sidAllFired.length === 0 && !(((loadSidAlertLog() || {}).sid) || []).length) {
+  } else if (sidAllFired.length === 0) {
     console.log('**⚡ SID — 0 signals** *(no entry signals fired today)*\n');
   } else {
     const T = sidTriageLib;
-    const alertLog = loadSidAlertLog();
-    const reviewSet = sidReviewSet(sidAllFired, alertLog);
+    const reviewSet = sidReviewSet(sidAllFired);
     const triaged = buildSidTriage(reviewSet);
     const by = s => triaged.filter(t => t.status === s);
     const nL = triaged.filter(t => t.dir === 'long').length, nS = triaged.length - nL;
     const nFund = triaged.filter(t => t.isFund).length;
     console.log(`**⚡ SID — ${triaged.length} signals** *(${nL} Long · ${nS} Short${nFund ? ` · incl. ${nFund} fund/bond ETF` : ''})* — triage ${T.CFG.VERSION}`);
-    if (alertLog) {
-      const al = (alertLog.sid || []).map(a => a.ticker);
-      const scanOnly = triaged.filter(t => t.source === 'Scan only').map(t => T.bare(t.sym));
-      const alertOnly = triaged.filter(t => t.source === 'Alert only').map(t => T.bare(t.sym));
-      console.log(`*TradingView sent ${al.length} SID ENTRY alerts for the ${alertLog.bar_date} bar; the scan found ${sidAllFired.length} entry signals. All ${triaged.length} are reviewed below.${alertOnly.length ? ` Alert only (scan saw no entry): ${alertOnly.join(', ')}.` : ''}${scanOnly.length ? ` Scan only (no TV alert): ${scanOnly.join(', ')}.` : ''}*`);
-      console.log(`*Alerts received: ${al.join(' · ')}*`);
-    } else {
-      console.log('*TradingView alert log not available this run — list is the scan\'s entry signals only.*');
-    }
+    console.log(`*Completed-bar scan confirmed ${sidAllFired.length} entry signals.*`);
     console.log('*Statuses organise the morning review — they are not trade grades and do not replace the chart check.*\n');
     console.log('```');
     console.log(`SID alerts:      ${triaged.length}`);
