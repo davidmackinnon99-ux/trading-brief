@@ -3,7 +3,7 @@
 **Living doc — git is the version history (no more numbered copies).**
 **Last updated:** 16 October 2026
 **Supersedes:** SID_Project_Continuity_9 (29 Mar 2026) + the iCloud `v10` draft — both archive only.
-**Strategy:** SID Strategy v10.5.18 (backtest) · **Indicator:** SID Trading Signals Pro v8.5.18 (entry+confluence) — code in `~/Trading Indicators` repo
+**Strategy:** SID Strategy v10.5.20 (backtest) · **Indicator:** SID Trading Signals Pro v8.5.20 (entry+confluence) — code in `~/Trading Indicators` repo
 
 ---
 
@@ -161,7 +161,7 @@ histogram keeps converging post-entry.
 - **MACD vs Signal (MACD0):** a SUPPLEMENTARY check used both before entry and during/after
   the trade — but NOT the primary driver once the entry signal has fired (the SID entry signal
   + RSI-50 exit remain primary). Distinct from the entry trigger above, which uses MACD-line slope.
-- **Weekly RSI:** raw value, for a manual visual direction check only. (The computed **Weekly
+- **Weekly RSI:** (superseded 12/16 Oct — now a hard direction gate on completed weeks, see 1p) raw value, for a manual visual direction check only. (The computed **Weekly
   RSI Gate** & **Weekly MACD Align** were REMOVED — proved unreliable in coding.)
 - **Gap/ATR Ratio** (data-window): `(close−swing_low or swing_high−close)/close ÷ ATR%`,
   10-bar swing as SL proxy. **Indicator comment confirms ">=2.0 ideal."** ✅ matches canonical.
@@ -402,6 +402,22 @@ to the RSI-50 objective, then (2) do momentum/participation/context support taki
   live and all 11 studies confirmed reading. Guard added: `data.restoreMaximizedPanes()` runs at the start of
   every scan (`src/core/morning.js`, both layouts) and logs a WARNING if it had to restore a pane.
   LORP briefs 1–3 Oct and 11–16 Oct ran without RVOL, ADX and DI context.
+
+## 1p. Weekly RSI gate made non-repainting — v8.5.20 / v10.5.20 — 16 October 2026
+- **Background:** v8.5.19 / v10.5.19 (11–12 Oct, David) re-introduced Weekly RSI DIRECTION as a hard entry gate
+  (longs need weekly RSI rising, shorts falling; toggle default ON). This supersedes the 7 Jul note below that
+  there is no weekly requirement in the SID pipeline.
+- **Bug:** the gate used request.security(..., lookahead_off). Live bars compared the IN-PROGRESS week with last
+  week; on reload / scan / backtest each daily bar only sees COMPLETED weeks. Result: TradingView alerts fired with
+  no entry marker on the reloaded chart — every SID alert 13–16 Oct was alert-only (2, 22, 18; 0 scan entries).
+  E.g. CHTR 15 Oct: live week up 103.38→109.99 (pass); last completed week down 109.29→103.38 (blocked).
+  Recreating the alert (15 Oct) could not fix it.
+- **Fix:** gate uses completed weeks only — `ta.rsi(close,len)[1]` vs `[2]` with lookahead_on (standard
+  non-repainting form) in both SID Trading Signals Pro **v8.5.20** and SID Strategy **v10.5.20**. Alerts, chart,
+  brief scan and backtest now see the same thing. "Weekly RSI" in the Data Window = last completed week.
+  Both compile clean. Effect: fewer mid-week alerts; ones that fire will show on the chart.
+- **David to do:** replace v8.5.19 with v8.5.20 on the SID layout, then delete and recreate the "SID ENTRY"
+  alert (message must still start "SID ENTRY"); swap the strategy to v10.5.20 for backtests.
 
 ## 5. Open items (need input — not resolvable from files)
 - [ ] Reconcile the 300-trade manual journal (`analysis/sid-btw-universe/Backtesting_Sheet_300_SID.xlsx`) against `data/trades/trades_all.csv` and the automated BTW-universe backtest — three SID datasets now exist and haven't been cross-checked against each other.

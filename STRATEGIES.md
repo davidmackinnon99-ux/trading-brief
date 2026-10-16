@@ -40,20 +40,21 @@ Bar Prediction Values, ATR%, RVOL, VD, Aroon, ADX, DI+/DI-, WRB, Range%, vs Open
 ## SID — OB/OS Bounce (Long + Short, Daily)
 
 **Layout:** XN1LuowU · Hint: `SID Trading Signals Pro`  
-**Indicator:** SID Trading Signals Pro v8.5.18 (entry + confluence; MACD-turn entry), NOT v10.5.18 strategy
+**Indicator:** SID Trading Signals Pro v8.5.20 (entry + confluence; MACD-turn entry; weekly RSI gate on completed weeks), NOT v10.5.20 strategy
 
 ### Hard filters (brief code)
 
 | Factor | Rule |
 |--------|------|
-| Entry signal | `Long Entry Signal = 1` or `Short Entry Signal = 1` from v8.5.18 must be true |
+| Entry signal | `Long Entry Signal = 1` or `Short Entry Signal = 1` from v8.5.20 must be true |
+| Weekly RSI direction | Built into indicator since v8.5.19 (12 Oct 2026): longs need weekly RSI rising, shorts falling — last COMPLETED week vs the week before (v8.5.20, non-repainting) |
 | 10-bar rule | Built into indicator — entry can only fire within 10 bars of initial OB/OS cross |
 
 ### Context columns (shown, not filtered)
 
 | Column | Notes |
 |--------|-------|
-| Weekly RSI | Raw value for manual direction check (assess by eye). The computed Weekly RSI Gate & Weekly MACD Align were REMOVED — unreliable in coding. |
+| Weekly RSI | Last completed week's value (v8.5.20). The direction gate is now a hard filter inside the indicator (see above); Weekly MACD Align remains removed. |
 | SMA200 | Price position vs SMA200 (conviction reference) |
 | ADX + DI+/DI- | Trend strength + direction (<20 choppy, 20–25 danger zone). Replaces Aroon (dropped). |
 | ATR% | Risk sizing reference |
