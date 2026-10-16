@@ -304,6 +304,13 @@ async function main() {
   if (!fs.existsSync(RULES_PATH)) die('rules.json not found at ' + RULES_PATH);
   const rules = JSON.parse(fs.readFileSync(RULES_PATH, 'utf8'));
   const prev = (rules.watchlist || []).length;
+  // 17 Oct 2026: the main TV watchlist was deleted and only a small imported list remained —
+  // never let a sync wipe most of the saved universe. If the new list is under half the saved
+  // one, keep rules.json unchanged (the brief scans the saved list) unless --force is given.
+  if (prev > 0 && sorted.length < prev * 0.5 && !process.argv.includes('--force')) {
+    die(`Watchlist shrank from ${prev} to ${sorted.length} symbols (<50%) — keeping existing rules.json. ` +
+        `Check the active TradingView watchlist; re-run with --force if the smaller list is intended.`);
+  }
   rules.watchlist = sorted;
   // Save section assignments so analyse-brief.cjs can split by source
   rules.watchlist_sections = included;

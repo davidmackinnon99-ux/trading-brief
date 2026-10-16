@@ -105,7 +105,10 @@ fi
 # Sync watchlist from TradingView sections before scanning
 echo "[$(date)] Syncing watchlist from TradingView..." >> "$LOGFILE"
 "$NODE" "$TV_DIR/scripts/sync-watchlist.cjs" >> "$LOGFILE" 2>&1
-if [ $? -ne 0 ]; then
+SYNC_EXIT=$?
+SYNC_OK=true
+if [ $SYNC_EXIT -ne 0 ]; then
+    SYNC_OK=false
     echo "[$(date)] Watchlist sync failed — using existing rules.json watchlist" >> "$LOGFILE"
 fi
 
@@ -341,7 +344,11 @@ if [ $BRIEF_EXIT -eq 0 ] && [ -s "$OUTFILE_LORP" ]; then
 
         # Push BRIEF section updates to TradingView watchlist
         WATCHLIST_UPDATES="$BRIEFS_DIR/brief-$DATE-watchlist-updates.json"
-        if [ -f "$WATCHLIST_UPDATES" ]; then
+        # 17 Oct 2026: if the sync failed (e.g. the main watchlist is missing), do NOT push —
+        # on 17 Oct the push wrote Brief Output/section headers into the wrong (imported) list.
+        if [ "$SYNC_OK" != "true" ]; then
+            echo "[$(date)] Watchlist push SKIPPED — sync failed, active TradingView list may not be the main watchlist" >> "$LOGFILE"
+        elif [ -f "$WATCHLIST_UPDATES" ]; then
             echo "[$(date)] Pushing watchlist updates to TradingView..." >> "$LOGFILE"
             "$NODE" "$TV_DIR/scripts/push-watchlist.cjs" "$WATCHLIST_UPDATES" >> "$LOGFILE" 2>&1
             if [ $? -eq 0 ]; then
