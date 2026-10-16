@@ -379,7 +379,7 @@ function triageAlert(a) {
       macd: macdCell(mc),
       di: diCell(di),
       adx: isNum(a.adx) ? `${a.adx.toFixed(0)}${di.adxDir !== 'n/a' ? ' ' + di.adxDir : ''}` : 'n/a',
-      rvol: isNum(a.rvol) ? a.rvol.toFixed(1) + (dir === 'short' && a.rvol < CFG.SHORT_RVOL_LOW ? ' low*' : dir === 'short' && a.rvol >= 1 && a.rvol < 2 ? ' support*' : a.rvol >= 2 ? ' extreme*' : '') : 'n/a',
+      rvol: isNum(a.rvol) ? a.rvol.toFixed(1) + (a.rvolDir ? ' ' + a.rvolDir : '') + (dir === 'short' && a.rvol < CFG.SHORT_RVOL_LOW ? ' low*' : dir === 'short' && a.rvol >= 1 && a.rvol < 2 ? ' support*' : a.rvol >= 2 ? ' extreme*' : '') : 'n/a',
       sector: rotation.replace('Rotation ', 'Rot. '),
       event: eventCell,
     },

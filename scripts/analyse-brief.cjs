@@ -888,7 +888,7 @@ const sidResults = sidBrief ? sidBrief.symbols_scanned.filter(s => !EXCLUDED_TIC
     sidArmedLong, sidArmedShort, sidLongExit, sidShortExit,
     wrsi, sma200, aboveSMA200, sma200Pct,
     sma50, aboveSMA50, sma50Pct,
-    adx, diPlus, diMinus, atrPct, gatrRatio, rvol, vd, vdPos,
+    adx, diPlus, diMinus, atrPct, gatrRatio, rvol, rvolDir: rvolDirOf(rvolSt), vd, vdPos,
     macd: macdSid, macdSig: macdSigSid,
     inSIDScreener, inSIDBrief, inBTW,
     gpFlag, gpTop, gpBot,
@@ -1076,7 +1076,7 @@ function buildSidTriage(fired) {
         fastSlow: tr.macdFastSlow, gapState: tr.macdGapState,
         rawPrev: h1 ? h1.macdRaw : null, sepPrev: h1 ? h1.macdSep : null,
       },
-      diPlus: r.diPlus, diMinus: r.diMinus, diGapShift3: tr.diGapShift3, adx: r.adx, rvol: r.rvol, vd: r.vd,
+      diPlus: r.diPlus, diMinus: r.diMinus, diGapShift3: tr.diGapShift3, adx: r.adx, rvol: r.rvol, rvolDir: r.rvolDir, vd: r.vd,
       sectorRotation: SECTOR_ETFS.has(bareSym(r.sym)) ? rotationForEtf(bareSym(r.sym), dir) : sectorSupportTag(bareSym(r.sym), dir),
       sectorEtf: SECTOR_ETFS.has(bareSym(r.sym)) ? bareSym(r.sym) : sectorEtfCodeDisplay(bareSym(r.sym)), sectorName: sectorNameDisplay(bareSym(r.sym)),
       earnings, ahMovePct: ev ? ev.ah : null, gapPct: ev ? ev.gap : null,
@@ -1156,6 +1156,23 @@ function getVal(values, ...keys) {
     if (lowerKeys.some(k => vkl.includes(k) || k.includes(vkl))) return vv;
   }
   return null;
+}
+
+// RVOL direction (16 Oct 2026, David — Option A): fast HMA(Volume) vs SMA(Volume) from
+// RVOL-Z v2.1 on the current bar. ↑ = volume building (HMA > SMA by >5%), ↓ = fading
+// (HMA < SMA by >5%), → = flat. Exact keys only (fuzzy match would hit "Volume").
+// Context only — never a gate.
+function rvolDirOf(rvolSt) {
+  const v = rvolSt?.values;
+  if (!v) return null;
+  const h = parseVolStr(v['HMA(Volume)']);
+  const m = parseVolStr(v['SMA(Volume)']);
+  if (h == null || m == null || m <= 0) return null;
+  const d = h / m - 1;
+  return d > 0.05 ? '↑' : d < -0.05 ? '↓' : '→';
+}
+function fmtRvol(rvol, dir, dp = 1) {
+  return rvol == null ? '—' : rvol.toFixed(dp) + (dir ? ' ' + dir : '');
 }
 
 function parseNum(val) {
@@ -1505,7 +1522,7 @@ const results = brief.symbols_scanned.filter(s => !EXCLUDED_TICKERS.has(s.symbol
     // LORP context
     aboveEMA50, ema50Detail, aboveSMA200, sma200Detail,
     ema50AboveSMA200, macdPos, aroonPos, aroonCtxLORP,
-    vdPos, vdCtxLORP, rvol, rvolCtx, atrCtxLORP,
+    vdPos, vdCtxLORP, rvol, rvolDir: rvolDirOf(rvolSt), rvolCtx, atrCtxLORP,
     bbPct, bbPctCtx, wrbInPrior, wrbPrior, wrbCtx,
     ma1, ma2,
     // LC Premium kernel values
@@ -1626,7 +1643,7 @@ const pbProcessed = pbHasData ? pbRaw.map(s => {
     pb_flag, up_arrow, buy_entry,
     gpFlag, gpTop, gpBot,
     ppFlag, atr,
-    rvol, vd, vdPos,
+    rvol, rvolDir: rvolDirOf(rvolSt), vd, vdPos,
     bandValid,
     pbCapDemand, pbCapSupply, pbCapClimaxDemand, pbCapClimaxSupply, pbCapStrongDemand, pbCapStrongSupply,
   };
@@ -1693,7 +1710,7 @@ adxRawSyms.forEach(s => {
   const bbwp   = parseNum(getVal(bbwpSt?.values, 'BBWP'));
   const bbwpMa = parseNum(getVal(bbwpSt?.values, 'MA'));
 
-  adxPageMap[s.symbol] = { price, boxUpper, boxLower, boxRangeATR, atrVal, bookerQualUp, bookerQualDown, adx, diPlus, diMinus, rvol, vd, gpFlag, basis, bbwp, bbwpMa };
+  adxPageMap[s.symbol] = { price, boxUpper, boxLower, boxRangeATR, atrVal, bookerQualUp, bookerQualDown, adx, diPlus, diMinus, rvol, rvolDir: rvolDirOf(rvolSt), vd, gpFlag, basis, bbwp, bbwpMa };
 });
 
 // ── Output mode flags ────────────────────────────────────────────
@@ -1983,7 +2000,7 @@ if (!VERBOSE) {
   } else {
     console.log(`**✅ LORP — ${filteredBuyVD} LC entries** *(actionable; +${filteredSellVD} context = no live entry)*`);
     console.log('*Pre-filtered by TV Screener + brief filters — check chart before acting*\n');
-    console.log('*Type: Pullback = LC entry + Standard/Strong reversion within 4 bars (incl. entry bar) · Breakout = ADX>25 & rising · RVOL>1.2 · D+ rising · raw ATR>2 · MACD>0 · Trend = ADX>20 · MACD>0 · RVOL>0.8. MACD0 ✓ above / below Signal · EXT = above LC Upper Envelope Far.*\n');
+    console.log('*Type: Pullback = LC entry + Standard/Strong reversion within 4 bars (incl. entry bar) · Breakout = ADX>25 & rising · RVOL>1.2 · D+ rising · raw ATR>2 · MACD>0 · Trend = ADX>20 · MACD>0 · RVOL>0.8. MACD0 ✓ above / below Signal · EXT = above LC Upper Envelope Far. RVOL ↑/↓/→ = volume building/fading/flat (HMA vs SMA of volume).*\n');
   }
 
   function lorpRowCells(r) {
@@ -1995,7 +2012,7 @@ if (!VERBOSE) {
                 : r.vdPos === false ? 'Sell ⚠️'
                 : '—';
     const atrStr   = r.atrPct != null ? r.atrPct.toFixed(1) + '%' : '—';
-    const rvolStr  = r.rvol   != null ? r.rvol.toFixed(1) : '—';
+    const rvolStr  = fmtRvol(r.rvol, r.rvolDir);
     const aroonStr = r.aroon != null ? r.aroon.toFixed(0) : '—';
     // MACD0 (MACD vs Signal histogram) — the validated LORP entry gate (flag, not filter).
     // Shows ✓ above / (no marker) below, with histogram value so a narrowing (converging)
@@ -2516,7 +2533,7 @@ if (!VERBOSE) {
           return [T.bare(t.sym), t.cells.bb.replace(' ATR', ''), t.cells.ma.replace('50 ', '').replace(' · 200 ', ' / ').replace(' · gap ', ' · '),
             `${sector} / ${etf}`, supportCell(t), t.cells.event, srcTag(t)];
         }));
-      console.log('\n*Key: Room = ATR to first hurdle · MA distances are descriptive context, not a SID veto · Hist% = (MACD − signal) / price × 100; conv/exp and fast/slow describe MACD Histogram behaviour, not the validated MACD-line speed measure · DI Sh = 3-bar shift, Ct = current control · RVOL * labels are preliminary short context only and never change status · Src A = TV alert, S = scan · Sector Support = sector ETF vs SPY over the last 3 sector scans, in the trade direction (rotation only — not sector chart structure).*\n');
+      console.log('\n*Key: Room = ATR to first hurdle · MA distances are descriptive context, not a SID veto · Hist% = (MACD − signal) / price × 100; conv/exp and fast/slow describe MACD Histogram behaviour, not the validated MACD-line speed measure · DI Sh = 3-bar shift, Ct = current control · RVOL ↑/↓/→ = volume building/fading/flat (HMA vs SMA of volume) · RVOL * labels are preliminary short context only and never change status · Src A = TV alert, S = scan · Sector Support = sector ETF vs SPY over the last 3 sector scans, in the trade direction (rotation only — not sector chart structure).*\n');
       primary.forEach(t => console.log(`- **${T.bare(t.sym)}** — ${T.whyLine(t)}`));
 
       // Validated cautions (unchanged logic) — shown for the reviewed rows only.
@@ -2975,7 +2992,7 @@ if (!VERBOSE) {
       const vdStr    = r.vdPos === true ? 'Buy ✓' : r.vdPos === false ? 'Sell ⚠️' : '—';
       const adxStr   = r.adx     != null ? r.adx.toFixed(1)     : '—';
       const atrStr   = r.atrPct  != null ? r.atrPct.toFixed(1) + '%' : '—';
-      const rvolStr  = r.rvol    != null ? r.rvol.toFixed(1)    : '—';
+      const rvolStr  = fmtRvol(r.rvol, r.rvolDir);
       const aroonStr = r.aroon   != null ? r.aroon.toFixed(0)   : '—';
       console.log(`  ${r.sym.padEnd(6)}  $${String(r.price?.toFixed(2)).padEnd(10)}  ${adxStr.padEnd(5)}  ${atrStr.padEnd(6)} ${rvolStr.padEnd(6)} ${vdStr.padEnd(10)}  ${aroonStr}`);
     });
@@ -3037,7 +3054,7 @@ if (!VERBOSE) {
       pullbackAll.forEach(r => {
         const vdStr = r.vd != null ? (r.vd > 0 ? 'net buy pressure ✓' : 'net sell pressure ⚠️') : 'n/a';
         console.log(`  ${r.sym.padEnd(6)} Price ${r.price?.toFixed(2)} > ${ma1Label} ${r.ma1?.toFixed(2)} > SMA200 ${r.ma2?.toFixed(2)} ✓`);
-        console.log(`         RVOL ${r.rvol != null ? r.rvol.toFixed(2) : 'n/a'} ✓  ATR% ${r.atrPct != null ? r.atrPct.toFixed(2)+'%' : 'n/a'} ✓`);
+        console.log(`         RVOL ${r.rvol != null ? fmtRvol(r.rvol, r.rvolDir, 2) : 'n/a'} ✓  ATR% ${r.atrPct != null ? r.atrPct.toFixed(2)+'%' : 'n/a'} ✓`);
         console.log(`         Vol Δ: ${vdStr}  ⚠️  Verify EMA21 extension via Automator v1.1`);
         console.log('');
       });
