@@ -24,6 +24,11 @@ rotation-header.cjs) summarising the cloud "Daily sector rotation report" from i
 (sector_rotation_<date>.json in ~/Downloads/Briefs): SPY context, money in/out, SID stages,
 overbought groups. Context only — LORP tables and gates unchanged. Detail: SID continuity §1m.
 
+PIPELINE NOTE — 18 October 2026: LORP tables now exclude PRE MARKET CHECKLIST and SECTOR ETFS
+tickers (indices IXIC/NASDAQ/NDX were appearing in the Pullback table and Brief Output). 17 Oct:
+main TV watchlist was accidentally deleted (alerts went with it) and rebuilt from the saved copy;
+sync now refuses to shrink the universe >50% and the watchlist push is skipped when sync fails.
+
 PIPELINE NOTE — 7 October 2026: the SID section of analyse-brief.cjs was rebuilt as a
 triage & review list (see SID_Project_Continuity.md §1l). LORP, ADX and Pullback output are
 unchanged. src/core/morning.js gained an opt-in soft-wait (READY_SOFT_STUDIES) used only by
