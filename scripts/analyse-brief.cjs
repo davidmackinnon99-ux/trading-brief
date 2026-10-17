@@ -736,6 +736,7 @@ for (const [section, tickers] of Object.entries(watchlistSections)) {
 }
 // Section sets — one per TV watchlist section
 const lorpScreenerSet  = new Set(watchlistSections['LORP SCREENER']        || []);
+const lorpContextOnlySet = new Set([...(watchlistSections['PRE MARKET CHECKLIST'] || []), ...(watchlistSections['SECTOR ETFS'] || [])]);
 const lorpBriefSet     = new Set(watchlistSections['LORP BRIEF']            || []);
 const sidScreenerSet   = new Set(watchlistSections['SID SCREENER']          || []);
 const sidBriefSet      = new Set(watchlistSections['SID BRIEF']             || []);
@@ -1919,6 +1920,9 @@ if (!VERBOSE) {
   console.log('---\n');
   const lorpAll = results.filter(r => !r.error && r.strategy === 'LORP').filter(r => {
   if (isFundOrTrust(r.sym)) { process.stderr.write(`[LORP rejected] ${r.sym}: fund/trust (sector=Miscellaneous), not a real equity for LORP\n`); return false; }
+  // David (18 Oct 2026): market-context sections are reference only — indices (IXIC, NDX…) and
+  // sector ETFs are not LORP candidates and were padding the Pullback table / Brief Output.
+  if (lorpContextOnlySet.has(r.sym)) { process.stderr.write(`[LORP rejected] ${r.sym}: PRE MARKET CHECKLIST / SECTOR ETFS context ticker\n`); return false; }
   return true;
 });
 
