@@ -14,6 +14,9 @@ the corrected watchlist-sections note in Section 8 below and SID_Project_Continu
 ║ beneath as history)                                                ║
 ╚═══════════════════════════════════════════════════════════════════════╝
 
+PIPELINE NOTE — 18 October 2026: Anchored VWAP Levels v1.0 (year / quarter / month / last-earnings VWAPs,
+overlay) on visual trial — context only. Possible LORP use: above all anchors = trend confirmation. SID continuity §1q.
+
 PIPELINE NOTE — 16 October 2026: RVOL in the brief now carries direction (↑ building / ↓ fading
 / → flat, from RVOL-Z HMA vs SMA of volume) and RVOL-Z v2.1b tidies the chart (ALMA/LSMA off, SMA and
 σ lines bold, HMA dashed). FIXED same day: LORP scan was missing RVOL-Z, ADX/DI, MACD Sep,

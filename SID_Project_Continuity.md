@@ -419,6 +419,14 @@ to the RSI-50 objective, then (2) do momentum/participation/context support taki
 - **David to do:** replace v8.5.19 with v8.5.20 on the SID layout, then delete and recreate the "SID ENTRY"
   alert (message must still start "SID ENTRY"); swap the strategy to v10.5.20 for backtests.
 
+## 1q. Anchored VWAP Levels v1.0 — on trial — 18 October 2026
+- `~/Trading Indicators/indicators/Anchored_VWAP_Levels_v1.0.pine` (overlay, no extra panel). VWAP since start of
+  Year / Quarter / Month and since last Earnings (dashed). Data Window: distance from each in ATR + "Above count".
+- Purpose (David): big-picture context to sit alongside RVOL-Z v2.1b's short-term volume direction.
+  Ideas: SID — nearest anchored VWAP overhead/under as a hurdle or floor; LORP — above all anchors = trend confirm.
+- Status: visual trial on the chart first, context only, not a gate. Next step if it looks useful: capture in the
+  brief, then back-check SID trades above vs below their quarter-to-date VWAP before giving it any ranking weight.
+
 ## 5. Open items (need input — not resolvable from files)
 - [ ] Reconcile the 300-trade manual journal (`analysis/sid-btw-universe/Backtesting_Sheet_300_SID.xlsx`) against `data/trades/trades_all.csv` and the automated BTW-universe backtest — three SID datasets now exist and haven't been cross-checked against each other.
 - [x] ~30% of brief candidates were funds/trusts, not equities — fixed 17 Sep 2026 by excluding sector "Miscellaneous" tickers from both `lorpAll` and `sidPass` in `analyse-brief.cjs`; see `LORP_Project_Continuity.md`'s 17 Sep entry for the full writeup (applies to both strategies).
