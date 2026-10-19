@@ -14,6 +14,137 @@ the corrected watchlist-sections note in Section 8 below and SID_Project_Continu
 ║ beneath as history)                                                ║
 ╚═══════════════════════════════════════════════════════════════════════╝
 
+STRATEGY NOTE — 19 October 2026: Donchian Channel confirmation for LORP longs.
+• Original "Unified Donchian & ML Kernel Swing Strategy" produced NO trades: it tested
+  close > ta.highest(high,20) on the same bar, which is impossible (fixed to prior bar).
+  Its "ML kernel" was a plain Gaussian-weighted MA, not the LC Premium kernel.
+• Standalone LORP_Donchian_Confirmation_v1.0 (strategies/, reads LC Buy + LC kernel) vs
+  adapter baseline: Adapter -0.25 / 0% / 40% WR / PF 0.975; Donchian v1.0 -16.87 / 0.27% /
+  20% WR / PF 0.415. NOT a valid comparison — v1.0 used different exits (10-bar Donchian low
+  + close-below-kernel, which stops out pullback entries sitting at the kernel).
+• LORP_Backtest_Adapter_v2.31 (strategies/) adds Donchian confirmation inside the adapter so
+  entries/exits stay identical. Default "Tag only": trades every signal as v2.30 and tags
+  entries DC OK / DC FAIL, with a DONCHIAN SPLIT table. "Filter" mode skips failed longs.
+  Rule default = Trend (close > Donchian mid AND mid rising over 5 bars); Breakout / Either
+  optional; kernel-rising optional. Shorts untouched. Not yet compiled/run in TradingView.
+  v2.31 compiles and runs (fixed 64-plot limit same day). First single-ticker result
+  (David, 19 Oct, Trend rule; Breakout gave the same split): 19 LORP Long trades, PF 0.76.
+  DC OK 16 trades, WR 6%, PF 0, net -68.31. DC FAIL 3 trades, WR 67%, PF 19.5, net +51.05.
+  Donchian confirmation is INVERTED here: the "unconfirmed" entries (below a rising
+  Donchian mid = deeper pullbacks) won, matching the earlier finding that LORP's edge is in
+  reversion entries (revert-low PF 0.75 -> 1.61). 3 trades is far too few to act on.
+  9-ticker pool, BREAKOUT rule (David, 19 Oct; ASX JBS GTES AVLV AJG ARCO AMD AAL WST):
+  DC OK 103 trades, WR 44%, avg +0.50%/trade; DC FAIL 14 trades, WR 29%, avg -2.04%/trade.
+  Breakout confirms ~88% of entries; the few it rejects were clearly worse (AMD, JBS, AAL
+  drove it). Opposite of the single-ticker Trend result. Use avg return %, not net $ (the
+  adapter's $ figures are per-share and dominated by high-priced tickers like AMD).
+  TREND rule, same tickers less AJG (8): DC OK 80 trades, WR 44%, avg +0.02%; DC FAIL 14,
+  WR 50%, avg +1.64%. Like-for-like Breakout on the same 8: OK 80 avg +0.66%, FAIL 14 avg
+  -2.04%. Both reject 14 trades but DIFFERENT ones.
+  Per ticker: on LORP's losing tickers (JBS, GTES, ARCO) the Trend-rejected trades (below a
+  rising Donchian mid = deeper pullbacks) were the winners; on strong trenders (AMD, AAL)
+  they were the losers. Breakout's rejects were losers on 4 of 6 tickers (JBS, ARCO~, AMD,
+  AAL), better on GTES, flat on AVLV. Neither rule explains the losses on ASX, WST, AJG
+  (zero rejects) — Donchian does not fix LORP's losing tickers.
+  DECISION (pending more data): Trend rule = do not use as a filter (would remove the best
+  trades). Breakout = candidate filter, sample only 14 rejects.
+  FULL-HISTORY CHECK (19 Oct, from existing chart CSV exports in data/LORP Data/, 34
+  tickers, 612 LORP Long trades, adapter exits replicated in Python —
+  analysis/lorp-donchian/lorp_donchian_split.py + lorp_donchian_trades.csv):
+    All trades avg +0.35%.  Trend OK 495 avg +0.25% / FAIL 117 avg +0.77%.
+    Breakout OK 458 avg +0.28% / FAIL 154 avg +0.54%.
+    FAIL beat OK on ~half the tickers (Trend 13/29, Breakout 15/30) — no consistent edge.
+  CONCLUSION: Donchian confirmation does NOT improve LORP Longs (either rule); rejected
+  trades did slightly better if anything. The 8-ticker Breakout result was sample noise.
+  Not adopting as a filter. v2.31 kept in repo (Tag-only = identical to v2.30 trading).
+  LIVE-TRADE CHECK (19 Oct, David's TradesViz ("TZ") export, 44 LORP trades Dec 2025-Oct 2026;
+  28 checkable against chart CSVs — analysis/lorp-donchian/tz_donchian_check.py):
+    Trend OK 24 avg +1.22% / FAIL 4 avg -1.39%; Breakout OK 23 avg +0.56% / FAIL 5 avg +2.14%.
+    Too few rejects to mean anything, and the two rules contradict. The biggest live losers
+    (OUST -19%, BE -11%, NTLA -10%) were CONFIRMED by both rules — Donchian would not have
+    avoided them. 16 trades unchecked (no chart CSV: ADI AJG ASX BAC BIPH CDNS IAC IFS KC
+    NNN PRAX RUN SHG TECX WST XOP). Rerun same day with 12 added CSVs: 40 trades, Trend
+    OK 34 +0.45% / FAIL 6 -0.67%; Breakout OK 32 +0.02% / FAIL 8 +1.31% — conclusion unchanged.
+
+  KEY FINDING — LIVE LC BUYS VANISH FROM HISTORY (19 Oct): of 41 live LORP trades with chart
+  coverage, only 10 still show an LC Buy within 3 bars of the signal date in the exported
+  history; 31 have none (repaint and/or the known alert-lag bug). Survivors averaged +4.52%,
+  vanished ones -1.18% (incl. NTLA, OUST, BE). => Every backtest built on the historical Buy
+  column (incl. the 612-trade set above and the adapter itself) is biased toward winners.
+  Live-recorded signal dates (TradesViz) are the only trustworthy test set.
+  David's read of NTLA (no LC entry visible = repaint): 15 neighbours long, then kernel
+  turned down and MACD0 rolled over on the next red candle — "was never going to work".
+  David's read of GTES: Donchian entry + EMA50 touch + CAP Tools Strong Demand all on the
+  same candle, several bars before the LC entry (i.e. at the pullback low).
+  CAP Strong Demand in the 10 bars before LC Buy: backtest 219 avg +0.94% vs 393 +0.01%;
+  live 24 avg +0.45% vs 17 -0.12% (NVTS +31% drives the live figure) — promising, unproven.
+
+  CLASSIFICATION FINDING — "reversion" is not a pullback (19 Oct, David): Reversion tags have
+  been firing on single candles, not full pullbacks. Price check on 40 live + 611 backtest
+  trades (analysis/lorp-donchian/prior_dip.py, dip_backtest.py): the LC Buy fires 3-9 bars
+  AFTER the dip low, on the bounce, usually at a fresh 10-bar high. Measuring the dip in the
+  10 bars before the signal (from the prior 20-bar high, in ATR):
+    WEAK (dip < 1.5 ATR or lasting <= 1 bar): backtest 113 trades avg -0.49%; live 4 trades
+      avg -4.0% (ASX, AAP, NTLA, PRIM).
+    PULLBACK (dip >= 1.5 ATR over 2+ bars): backtest 498 avg +0.54%.
+    Deeper (>3 ATR) did NOT add further edge in the backtest (live 20 trades +2.34% did).
+  PROPOSED classification (pending David): PULLBACK = dip >= 1.5 ATR over >= 2 bars within
+  10 bars of signal; SHALLOW / 1-CANDLE = everything else (caution flag). "Reversion" kept
+  only as a separate flag (Chars fired), not a trade type.
+  Caveat: CSV Buy history is from the June 2026 exports; kernel-repaint caveat above
+  applies to kernel values, not to the Buy column used here. If FAIL keeps winning,
+      test Donchian as a "pullback-depth" filter (prefer entries below the mid), not a
+      confirmation.
+
+PIPELINE NOTE — 19 October 2026 (LORP brief, from the Donchian/dip work below):
+• NEW "Dip" column (price-based pullback): scan now captures the last 40 daily bars per symbol
+  (READY_OHLCV_BARS=40, LORP scan only, src/core/morning.js). PB = dip >= 1.5 ATR from the prior
+  20-day high over >= 2 bars within the last 10 bars; else Shallow. Shown "PB 2.5A/4b". Context only.
+• CORRECTION same day (David spotted wrong lows): rev-1 Dip took the lowest low of a fixed 10-bar
+  window, which sat on the window edge (a higher low, not the real LL) in 194 of 610 backtest
+  trades. Using the true swing low (lowest 3-bar pivot in the last 25 bars) the PB-vs-Shallow edge
+  DISAPPEARS (tested windows 10/15/20 and pivot look-backs 15/20/25 x thresholds 1.5/2/3 ATR —
+  results flip sign; analysis/lorp-donchian/dip_v2.py). The earlier "PB +0.54% vs Shallow -0.49%"
+  and "LC fires 3-9 bars after the low" figures were window artefacts. Brief Dip column now uses
+  the pivot low, shows the low date, and is labelled DESCRIPTIVE, NOT VALIDATED. Bars captured
+  raised 40 -> 60.
+• PB vs TREND — David's definition tested (19 Oct, analysis/lorp-donchian/pb_trend_x.py). TREND(X) =
+  close up over X bars with no lower low / lower high (2-bar pivots) in those X bars; PB(X) = a LL or
+  LH within X bars; TREND20 = also no LL/LH for 20 bars. LORP Long results (backtest 612 / live 40):
+    X=5 : PB 98 -0.84% | Trend 404 +0.34% | Trend20 79 +2.80%   live PB 10 -0.12% vs Trend 30 +0.41%
+    X=7 : PB 173 -0.82% | Trend 325 +0.55% | Trend20 69 +2.53%  live PB 17 -0.28% vs Trend 23 +0.69%
+    X=10: PB 282 +0.02% | Trend 232 +0.18% | Trend20 80 +2.25%  live PB 23 -0.65% vs Trend 16 +1.44%
+  Same direction in backtest and live at every X; X=7 separates best in the backtest. Trend20 is the
+  strongest bucket historically (live only 5 trades). IN THE BRIEF from 20 Oct as the "Structure"
+  column (replaces Dip): PB / Trend / History (David's names; X fixed at 7, History = 20 bars).
+  Also written to data/lorp_signal_log.csv (column 'structure') to build live evidence.
+• CHART PATTERNS before LORP entries (19 Oct, SID Pattern Finder Python port — H&S, INV H&S, Double
+  Top, Double Bottom only; analysis/lorp-donchian/lorp_patterns.py, 40 bars before entry):
+    live 40: bullish pattern (DB / INV H&S) 18 avg +0.92% WR 61% | bearish 15 +0.41% | none 11 -1.09% WR 27%
+    backtest: bullish 245 +0.19% | bearish 165 +0.74% | none 263 +0.50% — no edge; Double Bottom -0.02%.
+  Live-vs-backtest disagree again (backtest repaint bias). Pattern types NOT yet covered: flags,
+  triangles, flat bases, cup & handle, HH/HL staircases.
+  20-BAR WINDOW (adopted by David for TradesViz tags, 19 Oct): any SID Pattern Finder pattern (not
+  failed/expired) shown in the 20 bars before entry —
+    live: pattern 11 avg +3.43% median +2.10% WR 64% | none 29 avg -0.92% median -0.72% WR 38%
+          (permutation p ~= 0.06; excl. NVTS +31%: pattern 10 avg +0.68%, median +1.92%)
+    backtest: pattern 209 avg +0.75% | none 403 avg +0.14% (medians equal, -1.5%)
+  First pattern result where backtest and live point the same way. Promising, not yet proven —
+  candidate for a brief context column; keep tagging live trades to grow the sample.
+• NEW "Pattern" column (19 Oct): SID Pattern Finder v2.8 added to the LORP layout (David). Brief reads its
+  new Data Window values — most recent forming/confirmed pattern within 20 bars, e.g. "Dbl Bottom 3b",
+  "INV H&S (forming) 7b"; "—" = Pattern Finder not on the chart. Context only; logged to
+  data/lorp_signal_log.csv (column 'pattern'). TradesViz LORP trades tagged PATTERN - ... at 20 bars.
+• NEW "SD" column: CAP Tools Strong Demand today ("SD now") or n briefs ago (last 10 briefs).
+• NEW data/lorp_signal_log.csv: one row per LC Buy the brief sees (repaint-proof test set).
+• UNCHANGED at David's request: LORP's own reversion labels / Type column / Pullback-table
+  routing. No MACD0 next-day check (David reads that himself).
+• 52WH check on 40 live trades: 17 signalled ON the 52-week-high day, 22 within 3% of it, 31 were
+  higher highs vs the prior 10-40 bar swing. Within 3% of 52WH: 22 trades avg -0.53%; further
+  below: 18 avg +1.26% (analysis/lorp-donchian/hh_52wh.py). Small sample — context, not a gate.
+• SID Tramlines v1.3 (indicators/): draws the channel as it stood at each past SID entry when
+  linked to SID's Bullish/Bearish Trigger Cross.
+
 PIPELINE NOTE — 18 October 2026: Anchored VWAP Levels v1.0 (year / quarter / month / last-earnings VWAPs,
 overlay) on visual trial — context only. Possible LORP use: above all anchors = trend confirmation. SID continuity §1q.
 
@@ -59,7 +190,8 @@ zero) could have cut ~40% of losses. MACD0 is now treated as the prime
 indicator for LORP, same as for SID.
 
 CURRENT TOOLING:
-• LORP_Backtest_Adapter_v2.13.pine (strategies/ in ~/Trading Indicators, committed
+• LORP_Backtest_Adapter — current v2.31 (19 Oct 2026, Donchian confirmation; see
+  STRATEGY NOTE above); v2.30 previous. History: v2.13.pine (committed
   2 Aug 2026): adds Wait-to-Enter (arm on signal, enter on a 2/2 higher-low
   turn = REV tag, or a close reclaiming the signal-bar high = TREND tag;
   15-bar timeout with no trade if neither happens), MACD0-cross exit,

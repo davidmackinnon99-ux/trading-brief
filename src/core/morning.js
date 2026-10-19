@@ -192,6 +192,9 @@ export async function runBrief({ rules_path, sections } = {}) {
   let consecutiveMissing = 0;
   const SOFT_STUDIES = (process.env.READY_SOFT_STUDIES || '').split(',').map((x) => x.trim().toLowerCase()).filter(Boolean);
   const SOFT_WAIT_TRIES = 3;
+  // 19 Oct 2026: opt-in recent daily bars per symbol (LORP scan only) for the price-based
+  // Dip classification in analyse-brief.cjs. 0/unset = off (SID scan unchanged).
+  const OHLCV_BARS = parseInt(process.env.READY_OHLCV_BARS || '0', 10) || 0;
   const SOFT_GIVE_UP = 12;
   let softWaitEnabled = true;
   let softMisses = 0;
@@ -248,7 +251,14 @@ export async function runBrief({ rules_path, sections } = {}) {
         } else softMisses = 0;
       }
 
-      return { symbol, timeframe: default_timeframe, state, indicators, quote };
+      let bars = null;
+      if (OHLCV_BARS > 0) {
+        try {
+          const o = await data.getOhlcv({ count: OHLCV_BARS });
+          bars = (o?.bars || []).map((b) => [b.time, b.open, b.high, b.low, b.close]);
+        } catch { bars = null; }
+      }
+      return { symbol, timeframe: default_timeframe, state, indicators, quote, ...(bars && bars.length ? { bars } : {}) };
     };
 
     try {

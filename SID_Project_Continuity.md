@@ -385,6 +385,18 @@ to the RSI-50 objective, then (2) do momentum/participation/context support taki
 - v1.2 (same day, current): plainer names for the two ATR settings ("Touch: how close to rail", "Breakout: how
   far past rail"); data-window values (incl. Tram position %) hidden from the price pane — they were drawing a
   jagged line on the chart. Use `SID_Tramlines_v1.2.pine`.
+- **v1.3 (19 Oct 2026):** draws the tramlines as they stood at each **past SID entry** (fitted to the N bars
+  before the entry, projected forward) with a small label: slope %/bar and position in channel. Link the two
+  new "Past SID entries" inputs to SID Trading Signals Pro's Long / Short Entry Signal outputs (corrected 19 Oct); keeps the last 25 by default.
+  Unlinked = identical to v1.2. Not yet compiled in TradingView. Use `SID_Tramlines_v1.3.pine`.
+  Offered next: a test of channel slope / position at entry vs SID outcome on the trade list.
+
+## 1r. SID Pattern Finder v2.8 — 19 October 2026
+- `indicators/SID_Pattern_Finder_v2.8.pine`: three new Data Window values (Recent Pattern Kind 1-4/0, Recent
+  Pattern Bars, Recent Pattern State 0 forming / 1 confirmed) = most recent forming/confirmed, non-held-back
+  pattern within 'Recent pattern window' (default 20) bars. Drawing and detection logic unchanged — swap in on the
+  SID layout freely. Now also on the LORP layout: 40 live LORP trades with a pattern in the 20 bars before entry
+  averaged +3.4% (11) vs -0.9% (29) without (backtest +0.75% vs +0.14%); see LORP continuity. Not yet compiled.
 
 ## 1o. RVOL direction in the brief + RVOL-Z display tidy — 16 October 2026
 - **Which RVOL-Z line matters:** the brief's RVOL = Volume ÷ SMA(Volume) (20-bar SMA), and the σ bands sit

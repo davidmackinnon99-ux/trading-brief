@@ -709,6 +709,62 @@ const adx2BackMap = {}, diPlus2BackMap = {};
   }
 }
 
+// ── 19 Oct 2026: CAP Tools Strong Demand in the last ~10 saved LORP briefs ──
+//   sdAgoMap[sym] = how many briefs back Strong Demand last fired (1 = previous brief).
+//   Backtest (612 trades, analysis/lorp-donchian): SD within 10 bars before the LC Buy
+//   averaged +0.94% vs +0.01% without; live 24 vs 17 trades +0.45% vs -0.12%. CONTEXT ONLY.
+const sdAgoMap = {};
+{
+  const dm = briefFile.match(/brief-(\d{4}-\d{2}-\d{2})/);
+  if (dm) {
+    const cur = new Date(dm[1] + 'T12:00:00Z');
+    let found = 0;
+    for (let i = 1; i <= 16 && found < 10; i++) {
+      const pd = new Date(cur); pd.setUTCDate(pd.getUTCDate() - i);
+      const pf = path.join(briefsDir, `brief-${pd.toISOString().split('T')[0]}-lorp.json`);
+      if (!fs.existsSync(pf)) continue;
+      let pb; try { pb = loadFirstJSON(pf); } catch { continue; }
+      found++;
+      (pb.symbols_scanned || []).forEach(s => {
+        if (s.error || sdAgoMap[s.symbol] != null) return;
+        const cv = getStudy(s.indicators?.studies || [], 'CAP Tools Supplement')?.values || {};
+        const sd = parseNum(getVal(cv, 'Strong Demand'));
+        if (sd != null && sd > 0) sdAgoMap[s.symbol] = found;
+      });
+    }
+  }
+}
+
+// ── 19 Oct 2026 (rev 3): price-structure label — David's definition ──
+//   Swing points = 2-bar pivots (high/low above/below the 2 bars either side). LH = pivot high below
+//   the previous pivot high; LL = pivot low below the previous pivot low.
+//   PB      = a LL or LH within the last 7 bars.
+//   Trend   = close higher than 7 bars ago, no LL/LH in those 7 bars.
+//   History = Trend that also had no LL/LH for the last 20 bars.
+//   —       = none of these (no LL/LH but not rising).
+//   Test (analysis/lorp-donchian/pb_trend_x.py, LORP Longs): backtest PB 173 avg -0.82% · Trend 325
+//   +0.55% · History 69 +2.53%; live 40: PB 17 -0.28% vs Trend+History 23 +0.69%. Context, not a gate.
+//   LORP's own reversion labels (Type column / Pullback table routing) are unchanged.
+function lorpDip(bars) {
+  if (!Array.isArray(bars) || bars.length < 30) return null;
+  const H = bars.map(b => b[2]), L = bars.map(b => b[3]), C = bars.map(b => b[4]);
+  const n = bars.length, SW = 2, X = 7, LONG = 20, ev = new Array(n).fill(false);
+  let lastPH = null, lastPL = null;
+  for (let k = SW; k < n - SW; k++) {
+    let ph = true, pl = true;
+    for (let j = k - SW; j <= k + SW; j++) { if (j === k) continue; if (!(H[k] > H[j])) ph = false; if (!(L[k] < L[j])) pl = false; }
+    if (ph) { if (lastPH != null && H[k] < lastPH) ev[k] = true; lastPH = H[k]; }
+    if (pl) { if (lastPL != null && L[k] < lastPL) ev[k] = true; lastPL = L[k]; }
+  }
+  const i = n - 1;
+  const anyEv = (w) => { for (let k = i - w + 1; k <= i - SW; k++) if (ev[k]) return true; return false; };
+  let cls;
+  if (anyEv(X)) cls = 'PB';
+  else if (C[i] > C[i - X]) cls = anyEv(LONG) ? 'Trend' : 'History';
+  else cls = '—';
+  return { cls, lastClose: C[i] };
+}
+
 // Load section assignments from rules.json
 const rulesPath = path.join(__dirname, '../rules.json');
 const rules = fs.existsSync(rulesPath) ? JSON.parse(fs.readFileSync(rulesPath, 'utf8')) : {};
@@ -1485,6 +1541,21 @@ const results = brief.symbols_scanned.filter(s => !EXCLUDED_TICKERS.has(s.symbol
 
   // All tickers pass — Screener is the gate
   const strategy = 'LORP';
+  // 19 Oct 2026: price-based Dip + CAP Strong Demand recency (context columns)
+  let dip = lorpDip(s.bars);
+  if (dip && price != null && Math.abs(dip.lastClose - price) / price > 0.03) dip = null; // bars from wrong symbol/stale
+  const sdAgo = (capStrongDemand != null && capStrongDemand > 0) ? 0 : (sdAgoMap[s.symbol] ?? null);
+  // 19 Oct 2026: SID Pattern Finder v2.8 on the LORP layout — most recent forming/confirmed pattern
+  // in the last 20 bars. Tested on 40 live LORP trades: pattern 11 avg +3.4% vs none 29 -0.9%
+  // (backtest +0.75% vs +0.14%). Context only.
+  const patSt   = getStudy(studies, 'SID Pattern Finder', 'SID Patterns');
+  const patKind = parseNum(getVal(patSt?.values, 'Recent Pattern Kind'));
+  const patBars = parseNum(getVal(patSt?.values, 'Recent Pattern Bars'));
+  const patStat = parseNum(getVal(patSt?.values, 'Recent Pattern State'));
+  const PAT_NAMES = { 1: 'H&S', 2: 'INV H&S', 3: 'Dbl Top', 4: 'Dbl Bottom' };
+  const pattern = !patSt ? null
+    : (patKind != null && patKind > 0 && PAT_NAMES[patKind]) ? `${PAT_NAMES[patKind]}${patStat === 0 ? ' (forming)' : ''}${patBars != null ? ' ' + patBars + 'b' : ''}`
+    : 'none';
 
   return {
     sym: s.symbol, price, strategy,
@@ -1519,6 +1590,7 @@ const results = brief.symbols_scanned.filter(s => !EXCLUDED_TICKERS.has(s.symbol
     // New indicators (May 2026 LORP layout)
     capDemandFired, capSupplyFired, capClimaxDemand, capClimaxSupply, capStrongDemand, capStrongSupply,
     chandStop,
+    dip, sdAgo, pattern,
     // Raw numeric values
     macd, macdSig, aroon, aroonSignal, ema50pct, sma200pct,
     adx, diPlus, diMinus, vd, atrPct,
@@ -1692,6 +1764,29 @@ const ts = new Date(brief.generated_at).toLocaleString('en-AU', { timeZone: 'Aus
 // LORP signals — sourced from LORP Confluence v1.4 indicator flags
 const lorp      = results.filter(r => r.strategy === 'LORP');
 const lorpWatch = results.filter(r => r.strategy === 'LORP_WATCH');
+
+// ── 19 Oct 2026: LORP signal log — repaint-proof record of every LC Buy the brief sees ──
+//   LC Buys vanish from chart history (31 of 41 live trades, 19 Oct check), so backtests on
+//   the historical Buy column are biased. This file is the clean test set going forward.
+//   One row per (brief date, symbol); re-running the same day does not duplicate rows.
+try {
+  const logPath = path.join(__dirname, '..', 'data', 'lorp_signal_log.csv');
+  const bd = (briefFile.match(/brief-(\d{4}-\d{2}-\d{2})/) || [])[1] || new Date().toISOString().slice(0, 10);
+  const hdr = 'brief_date,symbol,price,native_label,entry_type,structure,pattern,sd_ago,extended_above,macd0,dist_kernel,adx,rvol,src\n';
+  if (!fs.existsSync(path.dirname(logPath))) fs.mkdirSync(path.dirname(logPath), { recursive: true });
+  const existing = fs.existsSync(logPath) ? fs.readFileSync(logPath, 'utf8') : hdr;
+  const seen = new Set(existing.split('\n').slice(1).map(l => l.split(',').slice(0, 2).join(',')));
+  const q = v => v == null ? '' : String(v).replace(/,/g, ';');
+  const n2 = v => v == null || Number.isNaN(v) ? '' : Number(v).toFixed(2);
+  const rows = lorp.filter(r => r.lorpBuySignal === true && !seen.has(`${bd},${r.sym}`)).map(r => [
+    bd, r.sym, n2(r.price), q(r.lorpNativeLabel), q(r.entryType),
+    r.dip ? r.dip.cls : '', q(r.pattern),
+    r.sdAgo ?? '', r.extendedAbove === true ? 1 : 0,
+    (r.macd != null && r.macdSig != null) ? n2(r.macd - r.macdSig) : '', n2(r.distFromKernel), n2(r.adx), n2(r.rvol), q(normalizeSrc(r)),
+  ].join(','));
+  fs.writeFileSync(logPath, existing + (rows.length ? rows.join('\n') + '\n' : ''), 'utf8');
+  process.stderr.write(`[lorp-log] ${rows.length} new LC Buy rows -> ${logPath}\n`);
+} catch (e) { process.stderr.write(`[lorp-log] skipped: ${e.message}\n`); }
 // ── ADX Breakout BBWP split ───────────────────────────────────────────────────
 // Primary filter: BBWP ≤ 5 = coiling, BBWP ≥ 98 = extended, 6–97 = ignored.
 // Falls back to ADX < 18 if BBWP indicator is not on the layout.
@@ -1973,6 +2068,7 @@ if (!VERBOSE) {
     console.log(`**✅ LORP — ${filteredBuyVD} LC entries** *(actionable; +${filteredSellVD} context = no live entry)*`);
     console.log('*Pre-filtered by TV Screener + brief filters — check chart before acting*\n');
     console.log('*Type: Pullback = LC entry + Standard/Strong reversion within 4 bars (incl. entry bar) · Breakout = ADX>25 & rising · RVOL>1.2 · D+ rising · raw ATR>2 · MACD>0 · Trend = ADX>20 · MACD>0 · RVOL>0.8. MACD0 ✓ above / below Signal · EXT = above LC Upper Envelope Far. RVOL ↑/↓/→ = volume building/fading/flat (HMA vs SMA of volume).*\n');
+    console.log('*Structure (price swings, 2-bar pivots): PB = a lower low or lower high in the last 7 bars · Trend = up over 7 bars with no LL/LH · History = no LL/LH for 20 bars · — = none. Backtest avg/trade PB −0.8% · Trend +0.6% · History +2.5% (live sample small). Pattern = SID Pattern Finder v2.8, most recent forming/confirmed pattern in the last 20 bars, n bars ago (— = Pattern Finder not on the LORP chart). SD = CAP Strong Demand fired today (now) or n briefs ago. Context only — not gates.*\n');
   }
 
   function lorpRowCells(r) {
@@ -2115,11 +2211,15 @@ if (!VERBOSE) {
     const sectorNameStr = sectorNameDisplay(bareSym(r.sym));
     const sectorEtfStr = sectorEtfCodeDisplay(bareSym(r.sym));
     const macdXStr = macdCrossDisplay(macdSepLorp, r.sym, lorpDirection);
-    return [r.sym, sigStr, `$${fmt(r.price)}`, entryStr, macd0Str, distStr, adxStr, diStr, normalizeSrc(r), sectorNameStr, sectorEtfStr, sectorStr, macdXStr];
+    // 19 Oct 2026: Dip = price-based pullback check; SD = CAP Strong Demand (0 = today, n = briefs ago)
+    const dipStr = r.dip ? r.dip.cls : '—';
+    const sdStr  = r.sdAgo == null ? '' : r.sdAgo === 0 ? 'SD now' : `SD ${r.sdAgo}`;
+    const patStr = r.pattern == null ? '—' : r.pattern === 'none' ? '' : r.pattern;
+    return [r.sym, sigStr, `$${fmt(r.price)}`, entryStr, dipStr, patStr, sdStr, macd0Str, distStr, adxStr, diStr, normalizeSrc(r), sectorNameStr, sectorEtfStr, sectorStr, macdXStr];
   }
 
-  const lorpHeaders = ['Ticker', 'Sig', 'Price', 'Type', 'MACD0', 'Dist', 'ADX', 'DI', 'Src', 'Sector', 'ETF', 'Sector Support', 'MACD Cross'];
-  const lorpRightAlign = new Set([2, 5]);  // Price, Dist right-aligned (shifted after Sig moved to index 1); tag columns left-aligned
+  const lorpHeaders = ['Ticker', 'Sig', 'Price', 'Type', 'Structure', 'Pattern', 'SD', 'MACD0', 'Dist', 'ADX', 'DI', 'Src', 'Sector', 'ETF', 'Sector Support', 'MACD Cross'];
+  const lorpRightAlign = new Set([2, 8]);  // Price, Dist right-aligned (shifted after Sig moved to index 1); tag columns left-aligned
   // Fixed-width monospace grid (same renderer as the SID table) so columns line up under the
   // headers in any viewer, not only a markdown renderer. Context columns (Cf/ADX/RVOL/Aroon/
   // %B/ATR%/MAs/Chandelier) moved off the table — read them on the chart or via confluence_check.py.
