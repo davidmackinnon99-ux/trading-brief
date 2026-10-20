@@ -455,9 +455,8 @@ to the RSI-50 objective, then (2) do momentum/participation/context support taki
   unchanged. Server compile check passed (0 errors). analyse-brief.cjs (entry detection + 3-bar history) and
   confluence_check.py now read the Scan values first, falling back to Long/Short Entry Signal, so they still work
   on v8.5.20 until the swap. Strategy stays v10.5.20 (no change needed).
-- **David to do:** add v8.5.21 to the SID layout (XN1LuowU) and remove v8.5.20; delete and recreate the "SID ENTRY"
-  alert on the watchlist (condition "SID Entry (Long or Short)", message must still start "SID ENTRY").
-  Create it before 06:00 AEST so the next bar close is caught.
+- **Done 21 Oct (verified):** v8.5.21 on the SID layout (XN1LuowU); watchlist "SID ENTRY" alert now runs on v8.5.21
+  ("SID Entry (Long or Short)", message unchanged). First brief to use it: 22 Oct.
 
 ## 5. Open items (need input — not resolvable from files)
 - [ ] Reconcile the 300-trade manual journal (`analysis/sid-btw-universe/Backtesting_Sheet_300_SID.xlsx`) against `data/trades/trades_all.csv` and the automated BTW-universe backtest — three SID datasets now exist and haven't been cross-checked against each other.

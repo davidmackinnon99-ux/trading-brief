@@ -6,3 +6,14 @@ brief_date,symbol,price,native_label,entry_type,structure,pattern,sd_ago,extende
 2026-10-20,RRC,43.23,,Trend ↗,Trend,,,0,0.49,2.34,25.57,0.82,SBT
 2026-10-20,TAK,19.61,,Trend ↗,Trend,,,0,0.13,2.63,25.48,1.04,SBT
 2026-10-20,XLP,87.21,,Pullback 🔄,Trend,,3,0,0.74,2.93,26.62,1.12,SECTOR
+2026-10-21,ADP,292.75,,Pullback 🔄,TREND,none,0,0,3.13,3.21,26.08,1.35,SID
+2026-10-21,BDX,193.80,,—,TREND,Dbl Bottom 16b,,0,1.16,1.82,27.27,0.70,SID
+2026-10-21,BKH,77.53,,—,TREND,Dbl Top (forming) 2b,7,0,0.46,1.40,25.90,0.72,SID
+2026-10-21,CB,357.75,,Pullback 🔄,TREND,none,,0,2.76,2.23,25.31,1.42,SBT
+2026-10-21,CTAS,217.03,,Pullback 🔄,TREND · HIST20,Dbl Bottom 10b,,0,2.00,3.07,25.91,0.71,SID
+2026-10-21,ETSY,87.41,,Pullback 🔄,TREND,none,3,0,1.81,2.58,26.44,0.82,BTW
+2026-10-21,FLQM,60.98,,Pullback 🔄,TREND · HIST20,none,,0,0.36,3.17,26.95,0.81,SID
+2026-10-21,HOMB,29.39,,—,TREND · HIST20,Dbl Bottom 2b,1,0,0.15,1.41,26.61,1.28,SBT
+2026-10-21,KO,93.49,,Pullback 🔄,TREND,none,,0,0.75,2.63,25.12,1.00,BTW
+2026-10-21,SHO,12.40,,Pullback 🔄,TREND,none,0,1,0.10,2.94,26.39,1.51,SBT
+2026-10-21,WAY,28.81,,Trend ↗,TREND,none,0,0,0.23,1.73,27.87,1.40,LORP
