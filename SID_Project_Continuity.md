@@ -439,6 +439,22 @@ to the RSI-50 objective, then (2) do momentum/participation/context support taki
 - Status: visual trial on the chart first, context only, not a gate. Next step if it looks useful: capture in the
   brief, then back-check SID trades above vs below their quarter-to-date VWAP before giving it any ranking weight.
 
+## 1s. Brief shows SID 0 although alerts fire — last-bar marker gate — 21 October 2026
+- **Symptom:** briefs 20 and 21 Oct reported SID 0. 21 Oct: 13 "SID ENTRY" alerts fired on the 20 Oct bar
+  (CBL, CHTR, CRUS, FNF, FRT, HAE, HUBG, KBE, KMX, MRP, OZK, T, TCBI) but the scan read Long/Short Entry Signal = 0
+  on all 13, and the charts show no marker.
+- **Cause:** the entries are genuine. On all 13 the indicator's own position ledger opened a trade on the last bar
+  (DBG hold_days = 0, DBG active_sl set; Weekly RSI Long Pass = 1). But the Long/Short Entry plotshapes (and the
+  alertcondition) are gated by `barstate.isconfirmed`. Live, the bar closes → confirmed → alert fires. On a reloaded
+  chart / morning scan the chart's last bar is not "confirmed" until the next session opens, so the marker and the
+  Data Window value read 0. The marker appears once the next bar starts. Not the v8.5.19 weekly repaint (that is fixed).
+- **20 Oct:** 6 ledger entries on the 19 Oct bar (AVNT, INCY, IRTC, MIAX, RVTY, RXO) hidden the same way; no alerts
+  because the v8.5.20 alert was created at 20:27 UTC, 27 min after that bar closed.
+- **Fix options (David to choose):** (A) brief-only — analyse-brief/sid-triage treat DBG hold_days = 0 on the last
+  bar (or a SID ENTRY alert for that bar) as an entry; no Pine change. (B) v8.5.21 — add an ungated Data Window
+  "Entry (last bar)" value for the scan, keep chart markers and alerts confirmed-only. (C) remove
+  `barstate.isconfirmed` from the plotshapes (markers may show provisionally during the US session).
+
 ## 5. Open items (need input — not resolvable from files)
 - [ ] Reconcile the 300-trade manual journal (`analysis/sid-btw-universe/Backtesting_Sheet_300_SID.xlsx`) against `data/trades/trades_all.csv` and the automated BTW-universe backtest — three SID datasets now exist and haven't been cross-checked against each other.
 - [x] ~30% of brief candidates were funds/trusts, not equities — fixed 17 Sep 2026 by excluding sector "Miscellaneous" tickers from both `lorpAll` and `sidPass` in `analyse-brief.cjs`; see `LORP_Project_Continuity.md`'s 17 Sep entry for the full writeup (applies to both strategies).
