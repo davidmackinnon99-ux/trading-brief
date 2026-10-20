@@ -1,0 +1,8 @@
+brief_date,symbol,price,native_label,entry_type,structure,pattern,sd_ago,extended_above,macd0,dist_kernel,adx,rvol,src
+2026-10-20,ALL,246.85,,Pullback 🔄,Trend,,,0,3.36,2.57,28.96,0.73,BRIEF
+2026-10-20,AWK,133.57,,—,Trend,,,0,0.83,1.23,28.51,0.90,SBT
+2026-10-20,PACS,45.85,,—,Trend,,,0,0.50,1.03,25.34,0.79,SID
+2026-10-20,PG,157.69,,Pullback 🔄,Trend,,3,0,1.13,2.26,25.93,1.15,BTW
+2026-10-20,RRC,43.23,,Trend ↗,Trend,,,0,0.49,2.34,25.57,0.82,SBT
+2026-10-20,TAK,19.61,,Trend ↗,Trend,,,0,0.13,2.63,25.48,1.04,SBT
+2026-10-20,XLP,87.21,,Pullback 🔄,Trend,,3,0,0.74,2.93,26.62,1.12,SECTOR
