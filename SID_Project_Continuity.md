@@ -450,10 +450,14 @@ to the RSI-50 objective, then (2) do momentum/participation/context support taki
   Data Window value read 0. The marker appears once the next bar starts. Not the v8.5.19 weekly repaint (that is fixed).
 - **20 Oct:** 6 ledger entries on the 19 Oct bar (AVNT, INCY, IRTC, MIAX, RVTY, RXO) hidden the same way; no alerts
   because the v8.5.20 alert was created at 20:27 UTC, 27 min after that bar closed.
-- **Fix options (David to choose):** (A) brief-only — analyse-brief/sid-triage treat DBG hold_days = 0 on the last
-  bar (or a SID ENTRY alert for that bar) as an entry; no Pine change. (B) v8.5.21 — add an ungated Data Window
-  "Entry (last bar)" value for the scan, keep chart markers and alerts confirmed-only. (C) remove
-  `barstate.isconfirmed` from the plotshapes (markers may show provisionally during the US session).
+- **Fix (David chose B, 21 Oct): SID Trading Signals Pro v8.5.21** (`~/Trading Indicators/indicators/`) adds Data Window
+  values "Scan Long Entry" / "Scan Short Entry" (1/0, not gated by isconfirmed). Chart markers and the alert are
+  unchanged. Server compile check passed (0 errors). analyse-brief.cjs (entry detection + 3-bar history) and
+  confluence_check.py now read the Scan values first, falling back to Long/Short Entry Signal, so they still work
+  on v8.5.20 until the swap. Strategy stays v10.5.20 (no change needed).
+- **David to do:** add v8.5.21 to the SID layout (XN1LuowU) and remove v8.5.20; delete and recreate the "SID ENTRY"
+  alert on the watchlist (condition "SID Entry (Long or Short)", message must still start "SID ENTRY").
+  Create it before 06:00 AEST so the next bar close is caught.
 
 ## 5. Open items (need input — not resolvable from files)
 - [ ] Reconcile the 300-trade manual journal (`analysis/sid-btw-universe/Backtesting_Sheet_300_SID.xlsx`) against `data/trades/trades_all.csv` and the automated BTW-universe backtest — three SID datasets now exist and haven't been cross-checked against each other.

@@ -839,12 +839,14 @@ const sidResults = sidBrief ? sidBrief.symbols_scanned.filter(s => !EXCLUDED_TIC
   const adxSt   = getStudy(studies, 'ADX and DI', 'Average Directional Index', 'ADX');
   const gpStSID = getStudy(studies, 'GP Zone', 'Golden Pocket', 'GP_Zone', 'GP Flag');
 
+  // v8.5.21 (21 Oct 2026): 'Scan Long/Short Entry' read first — ungated by barstate.isconfirmed,
+  // because the reloaded chart's last bar is unconfirmed until the next session opens.
   // Entry signals from v8.5.10 (SID Trading Signals Pro) — the indicator, not the strategy.
   // v8.5.10 'Long/Short Entry Signal' is a plotshape on the last closed bar: correct for
   // a morning brief that reads before the US open. v10.5.4.15 is the strategy variant
   // (long-term backtesting) and is not used for entry detection.
-  const sidArmedLong  = parseNum(getVal(sidCSt?.values, 'Long Entry Signal',  'SID Armed Long',  'RSI Enters OS',  'Armed Long'));
-  const sidArmedShort = parseNum(getVal(sidCSt?.values, 'Short Entry Signal', 'SID Armed Short', 'RSI Enters OB',  'Armed Short'));
+  const sidArmedLong  = parseNum(getVal(sidCSt?.values, 'Scan Long Entry', 'Long Entry Signal',  'SID Armed Long',  'RSI Enters OS',  'Armed Long'));
+  const sidArmedShort = parseNum(getVal(sidCSt?.values, 'Scan Short Entry', 'Short Entry Signal', 'SID Armed Short', 'RSI Enters OB',  'Armed Short'));
   // Exit signals
   const sidLongExit   = parseNum(getVal(sidCSt?.values, 'Long Exit Signal',  'Long Exit'));
   const sidShortExit  = parseNum(getVal(sidCSt?.values, 'Short Exit Signal', 'Short Exit'));
@@ -1013,7 +1015,7 @@ function loadSidHistory(symSet) {
           sma50: num(rib, 'MA #2') ?? num(strat, 'SMA50 Value'), sma200: num(rib, 'MA #4') ?? num(pro, 'SMA200'), bbMid: num(bb, 'Basis'),
           diGap: (dip != null && dim != null) ? dip - dim : null, adx: num(adxS, 'ADX') ?? num(pro, 'ADX'),
           macdRaw: num(ms, 'Raw MACD-Signal Distance'), macdSep: num(ms, 'MACD Separation'),
-          longSig: num(pro, 'Long Entry Signal') === 1, shortSig: num(pro, 'Short Entry Signal') === 1,
+          longSig: (num(pro, 'Scan Long Entry') ?? num(pro, 'Long Entry Signal')) === 1, shortSig: (num(pro, 'Scan Short Entry') ?? num(pro, 'Short Entry Signal')) === 1,
         };
         if (!out.has(s.symbol)) out.set(s.symbol, []);
         out.get(s.symbol).push(rec);

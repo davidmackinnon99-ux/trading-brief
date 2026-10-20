@@ -139,8 +139,8 @@ def verdict_lorp(row,idx,hdr):
 def verdict_sid(row,idx):
     # Setup is decided by the SID indicator's OWN fired signal, NOT an RSI-zone guess.
     # A real Long/Short Entry firing inside the neutral RSI band must not read as "no setup".
-    long_entry  = (num(row,idx,"Long Entry Signal")  or 0) != 0
-    short_entry = (num(row,idx,"Short Entry Signal") or 0) != 0
+    long_entry  = (num(row,idx,"Scan Long Entry") or num(row,idx,"Long Entry Signal")  or 0) != 0
+    short_entry = (num(row,idx,"Scan Short Entry") or num(row,idx,"Short Entry Signal") or 0) != 0
     armed_long  = (num(row,idx,"SID Armed Long")     or 0) != 0
     armed_short = (num(row,idx,"SID Armed Short")    or 0) != 0
     rsi=num(row,idx,"RSI (0-100)")
