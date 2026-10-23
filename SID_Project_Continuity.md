@@ -458,6 +458,16 @@ to the RSI-50 objective, then (2) do momentum/participation/context support taki
 - **Done 21 Oct (verified):** v8.5.21 on the SID layout (XN1LuowU); watchlist "SID ENTRY" alert now runs on v8.5.21
   ("SID Entry (Long or Short)", message unchanged). First brief to use it: 22 Oct.
 
+## 1t. Chart markers fixed (v8.5.22) + alerts back as a brief cross-check — 23 October 2026
+- **Markers:** v8.5.21 fixed the brief only; chart markers were still hidden on the closed last bar.
+  **v8.5.22** gates the plotshapes with `bar_closed = barstate.isconfirmed or (barstate.islast and timenow >= time_close)`,
+  so the marker shows as soon as the daily bar has closed. Alerts and alertcondition are unchanged, and the alert does not
+  need recreating. Compile: 0 errors. Committed 3c17ceb. **David to install it on the SID layout; check the markers after the next close.**
+- **Brief alert cross-check (4c1f713):** the completed-bar scan still decides the review list. `brief-DATE-sid-alerts.json`
+  is read again: rows show **A+S** (alert + scan) or **S** (scan only), and alerts the scan doesn't confirm are listed on one
+  line and not reviewed. Matching uses the bare ticker on US listings. Tested on 23 Oct: alerts DT and PAGS matched the scan;
+  GBX, DHT and MRNA were scan only (all excluded for earnings).
+
 ## 5. Open items (need input — not resolvable from files)
 - [ ] Reconcile the 300-trade manual journal (`analysis/sid-btw-universe/Backtesting_Sheet_300_SID.xlsx`) against `data/trades/trades_all.csv` and the automated BTW-universe backtest — three SID datasets now exist and haven't been cross-checked against each other.
 - [x] ~30% of brief candidates were funds/trusts, not equities — fixed 17 Sep 2026 by excluding sector "Miscellaneous" tickers from both `lorpAll` and `sidPass` in `analyse-brief.cjs`; see `LORP_Project_Continuity.md`'s 17 Sep entry for the full writeup (applies to both strategies).
