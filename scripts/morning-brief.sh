@@ -159,7 +159,7 @@ echo "[$(date)] Scanning LORP layout (OWHfyWBq) — full watchlist..." >> "$LOGF
 # ticker is wrongly excluded as "No LC data".
 # READY_OHLCV_BARS (19 Oct 2026): also capture the last 60 daily bars per symbol for the
 # price-based LORP Dip column (analyse-brief.cjs). LORP scan only.
-TRADINGVIEW_LAYOUT_ID="OWHfyWBq" READY_REQUIRE_STUDY="Lorentzian" READY_OHLCV_BARS=60 \
+TRADINGVIEW_LAYOUT_ID="OWHfyWBq" READY_REQUIRE_STUDY="Lorentzian" READY_OHLCV_BARS=60 READY_PINE_TABLE_STUDY="LORP Backtest Adapter" \
   "$NODE" "$TV_DIR/src/cli/index.js" brief > "$OUTFILE_LORP" 2>> "$LOGFILE"
 BRIEF_EXIT=$?
 if [ $BRIEF_EXIT -eq 0 ] && [ -s "$OUTFILE_LORP" ]; then

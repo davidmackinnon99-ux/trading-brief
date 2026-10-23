@@ -195,6 +195,9 @@ export async function runBrief({ rules_path, sections } = {}) {
   // 19 Oct 2026: opt-in recent daily bars per symbol (LORP scan only) for the price-based
   // Dip classification in analyse-brief.cjs. 0/unset = off (SID scan unchanged).
   const OHLCV_BARS = parseInt(process.env.READY_OHLCV_BARS || '0', 10) || 0;
+  // Optional Pine table capture. LORP uses this to bring the adapter's per-ticker
+  // PB/TREND/OTHER history into the brief without opening every chart.
+  const PINE_TABLE_STUDY = (process.env.READY_PINE_TABLE_STUDY || '').trim();
   const SOFT_GIVE_UP = 12;
   let softWaitEnabled = true;
   let softMisses = 0;
@@ -258,7 +261,17 @@ export async function runBrief({ rules_path, sections } = {}) {
           bars = (o?.bars || []).map((b) => [b.time, b.open, b.high, b.low, b.close]);
         } catch { bars = null; }
       }
-      return { symbol, timeframe: default_timeframe, state, indicators, quote, ...(bars && bars.length ? { bars } : {}) };
+      let pine_tables = null;
+      if (PINE_TABLE_STUDY) {
+        try {
+          pine_tables = await data.getPineTables({ study_filter: PINE_TABLE_STUDY });
+        } catch { pine_tables = null; }
+      }
+      return {
+        symbol, timeframe: default_timeframe, state, indicators, quote,
+        ...(bars && bars.length ? { bars } : {}),
+        ...(pine_tables?.studies?.length ? { pine_tables } : {}),
+      };
     };
 
     try {

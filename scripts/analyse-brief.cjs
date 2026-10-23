@@ -1211,6 +1211,31 @@ function getVal(values, ...keys) {
   return null;
 }
 
+// Read the LORP adapter's on-chart summary table captured by the morning scan.
+// The table is the only current TV surface that exposes per-ticker PB/TREND/OTHER
+// trade count, win rate and return PF; strategy Data Window values are not returned.
+function parseLorpHistoryTable(pineTables) {
+  const study = (pineTables?.studies || []).find(x =>
+    String(x.name || '').toLowerCase().includes('lorp backtest adapter'));
+  const rows = (study?.tables || []).flatMap(t => t.rows || []);
+  const out = {};
+  for (const row of rows) {
+    const cells = String(row).split('|').map(x => x.trim());
+    const label = cells[0] || '';
+    const key = /^PB\b/i.test(label) ? 'PB'
+      : /^TREND\b/i.test(label) ? 'TREND'
+      : /^OTHER\b/i.test(label) ? 'OTHER'
+      : null;
+    if (!key || cells.length < 5) continue;
+    out[key] = {
+      count: parseNum(cells[1]),
+      winRate: parseNum(cells[2]),
+      returnPF: parseNum(cells[4]),
+    };
+  }
+  return out;
+}
+
 // RVOL direction (16 Oct 2026, David — Option A): fast HMA(Volume) vs SMA(Volume) from
 // RVOL-Z v2.1 on the current bar. ↑ = volume building (HMA > SMA by >5%), ↓ = fading
 // (HMA < SMA by >5%), → = flat. Exact keys only (fuzzy match would hit "Volume").
@@ -1409,6 +1434,7 @@ const results = brief.symbols_scanned.filter(s => !EXCLUDED_TICKERS.has(s.symbol
   const kernelVal      = parseNum(getVal(lcSt?.values, 'Kernel Regression Estimate', 'Kernel'));
   const distFromKernel = parseNum(getVal(lcSt?.values, 'Distance from Kernel'));
   const distAboveKernel = parseNum(getVal(lcSt?.values, 'Distance Above Kernel'));
+  const lorpHistory = parseLorpHistoryTable(s.pine_tables);
 
   // ── Native LORP Backtest Stream (Stage 1, 25 Aug 2026) ──
   // Confirmed key name 'Backtest Stream' via live Data Window screenshot (ETON, 25 Aug 2026).
@@ -1610,7 +1636,7 @@ const results = brief.symbols_scanned.filter(s => !EXCLUDED_TICKERS.has(s.symbol
     bbPct, bbPctCtx, wrbInPrior, wrbPrior, wrbCtx,
     ma1, ma2,
     // LC Premium kernel values
-    kernelVal, distFromKernel, distAboveKernel, entryType,
+    kernelVal, distFromKernel, distAboveKernel, entryType, lorpHistory,
     upperEnvNear, upperEnvAvg, upperEnvFar, lowerEnvNear, lowerEnvAvg, lowerEnvFar, extendedAbove,
     // Native LORP Backtest Stream (Stage 1, 25 Aug 2026) — raw code, label, table routing
     backtestStream, lorpNativeLabel, lorpNativeTable,
@@ -2303,8 +2329,24 @@ if (!VERBOSE) {
     const vdBrief = r.vd == null ? '—' : `${r.vd >= 0 ? '+' : ''}${r.vd.toFixed(2)}`;
     const atrBrief = r.atrPct == null ? '—' : `${r.atrPct.toFixed(1)}%`;
 
+    // History flag for the current structure class. Small samples are deliberately
+    // labelled rather than promoted as favourable/unfavourable evidence.
+    const histStr = (() => {
+      const structureKey = dipStr.startsWith('PB') ? 'PB' : dipStr.startsWith('TREND') ? 'TREND' : 'OTHER';
+      const hist = r.lorpHistory?.[structureKey];
+      const n = hist?.count;
+      const wr = hist?.winRate;
+      const pf = hist?.returnPF;
+      if (n == null || n <= 0) return '—';
+      const details = `n${Math.round(n)}${wr != null ? ` WR${wr.toFixed(0)}%` : ''}${pf != null ? ` PF${pf.toFixed(2)}` : ''}`;
+      if (n < 6) return `⚪ small · ${details}`;
+      if ((pf != null && pf < 1.0) || (wr != null && wr < 40)) return `🔴 weak · ${details}`;
+      if ((pf == null || pf >= 1.25) && (wr == null || wr >= 50)) return `🟢 positive · ${details}`;
+      return `🟡 mixed · ${details}`;
+    })();
+
     return {
-      entry: [r.sym, lorpDirection === 'long' ? 'Long' : lorpDirection === 'short' ? 'Short' : '—', `$${fmt(r.price)}`, dipStr, patStr, sigStr],
+      entry: [r.sym, lorpDirection === 'long' ? 'Long' : lorpDirection === 'short' ? 'Short' : '—', `$${fmt(r.price)}`, dipStr, histStr, patStr, sigStr],
       path: [r.sym, pathStr, hurdleStr, roomStr, capStr, macd0Str, diStr, adxStr, rvolStr, vdBrief, atrBrief, distStr, sdStr || '—'],
       context: [r.sym, avwapStr, `${sectorNameStr} / ${sectorEtfStr}`, sectorStr, macdXStr, normalizeSrc(r)],
     };
@@ -2322,10 +2364,10 @@ if (!VERBOSE) {
       cells.forEach(c => console.log('| ' + c.map((x, i) => pad(x, i)).join(' | ') + ' |'));
       console.log('');
     };
-    render('1. Entry & structure', 'entry', ['Ticker', 'Side', 'Price', 'Structure', 'Pattern', 'Signals'], new Set([2]));
+    render('1. Entry, structure & ticker history', 'entry', ['Ticker', 'Side', 'Price', 'Structure', 'Matching history', 'Pattern', 'Signals'], new Set([2]));
     render('2. Path & momentum', 'path', ['Ticker', 'Path', 'First hurdle', 'Room', 'CAP', 'MACD0', 'DI', 'ADX', 'RVOL', 'VD', 'ATR%', 'Kernel dist', 'SD'], new Set([3, 8, 9, 10, 11]));
     render('3. AVWAP, sector & MACD-cross context', 'context', ['Ticker', 'AVWAP', 'Sector / ETF', 'Sector Support', 'MACD Cross', 'Src']);
-    console.log('*Key: Room = ATR to the nearest CAP opposing zone · LC envelopes are model references, not labelled as resistance/support hurdles · AVWAP shows anchors above price and the nearest Year/Quarter/Month/Earnings anchor in ATR · Path, RVOL, VD, ATR%, AVWAP, sector rotation and MACD Cross are context, not new entry gates.*\n');
+    console.log('*Key: Matching history = this ticker’s prior adapter results for the current PB / TREND / OTHER structure, using the adapter’s selected test range and exits; fewer than 6 trades is always labelled small. It is a triage flag, not a gate. Room = ATR to the nearest CAP opposing zone · LC envelopes are model references, not labelled as resistance/support hurdles · AVWAP shows anchors above price and the nearest Year/Quarter/Month/Earnings anchor in ATR · Path, RVOL, VD, ATR%, AVWAP, sector rotation and MACD Cross are context, not new entry gates.*\n');
   }
 
   const sortLorp = arr => [...arr].sort((a, b) => {
