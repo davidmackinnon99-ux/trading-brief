@@ -462,7 +462,7 @@ to the RSI-50 objective, then (2) do momentum/participation/context support taki
 - **Markers:** v8.5.21 fixed the brief only; chart markers were still hidden on the closed last bar.
   **v8.5.22** gates the plotshapes with `bar_closed = barstate.isconfirmed or (barstate.islast and timenow >= time_close)`,
   so the marker shows as soon as the daily bar has closed. Alerts and alertcondition are unchanged, and the alert does not
-  need recreating. Compile: 0 errors. Committed 3c17ceb. **David to install it on the SID layout; check the markers after the next close.**
+  need recreating. Compile: 0 errors. Committed 3c17ceb. **Installed by David 23 Oct; he confirmed the markers now show.**
 - **Brief alert cross-check (4c1f713):** the completed-bar scan still decides the review list. `brief-DATE-sid-alerts.json`
   is read again: rows show **A+S** (alert + scan) or **S** (scan only), and alerts the scan doesn't confirm are listed on one
   line and not reviewed. Matching uses the bare ticker on US listings. Tested on 23 Oct: alerts DT and PAGS matched the scan;
