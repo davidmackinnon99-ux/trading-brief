@@ -1059,9 +1059,30 @@ function fetchSidEvents(bareTickers) {
 // consumed here: the brief contains only durable SID entries reproduced by the completed-bar
 // scan after the chart reloads.
 const US_EXCH = new Set(['BATS', 'NYSE', 'NASDAQ', 'AMEX', 'NYSE ARCA', 'ARCA', 'CBOE']);
-function sidReviewSet(scanFired) {
+// 23 Oct 2026 (David): alerts restored as a CROSS-CHECK only — the scan still decides which
+// rows exist. Rows are tagged A+S (alert + scan agree) or S (scan only); alerts the scan does
+// not confirm are listed separately and never promoted. Matched by bare ticker on US listings
+// (alert pro_symbol e.g. NYSE:PAGS vs scan BATS:PAGS).
+function loadSidAlertLog() {
+  try {
+    const p = (sidBriefFile || '').replace(/-sid\.json$/, '-sid-alerts.json');
+    if (!p || p === sidBriefFile || !fs.existsSync(p)) return null;
+    return JSON.parse(fs.readFileSync(p, 'utf8'));
+  } catch (e) { process.stderr.write(`[sid-alerts] unreadable (${e.message})\n`); return null; }
+}
+function sidReviewSet(scanFired, alertLog) {
   const qualified = (r) => String(r?.triageRaw?.resolvedSymbol || r?.sym || '').toUpperCase();
-  return scanFired.map(r => ({ ...r, sym: qualified(r) || r.sym, sidSource: 'Scan' }));
+  const alerted = new Set(((alertLog && alertLog.sid) || []).map(a => String(a.ticker || '').toUpperCase()));
+  return scanFired.map(r => {
+    const q = qualified(r) || r.sym;
+    const usBare = US_EXCH.has(String(q).split(':')[0]) ? bareSym(q) : null;
+    const src = !alertLog ? 'Scan' : (usBare && alerted.has(usBare) ? 'Alert + scan' : 'Scan only');
+    return { ...r, sym: q, sidSource: src };
+  });
+}
+function sidAlertOnly(scanFired, alertLog) {
+  const scanBare = new Set(scanFired.map(r => bareSym(String(r?.triageRaw?.resolvedSymbol || r?.sym || '')).toUpperCase()));
+  return ((alertLog && alertLog.sid) || []).map(a => String(a.ticker || '').toUpperCase()).filter(t => t && !scanBare.has(t));
 }
 
 // David (7 Oct 2026): TradingView files EVERY ETF under sector "Miscellaneous", so the
@@ -2582,13 +2603,21 @@ if (!VERBOSE) {
     console.log('**⚡ SID — 0 signals** *(no entry signals fired today)*\n');
   } else {
     const T = sidTriageLib;
-    const reviewSet = sidReviewSet(sidAllFired);
+    const alertLog = loadSidAlertLog();
+    const reviewSet = sidReviewSet(sidAllFired, alertLog);
     const triaged = buildSidTriage(reviewSet);
     const by = s => triaged.filter(t => t.status === s);
     const nL = triaged.filter(t => t.dir === 'long').length, nS = triaged.length - nL;
     const nFund = triaged.filter(t => t.isFund).length;
     console.log(`**⚡ SID — ${triaged.length} signals** *(${nL} Long · ${nS} Short${nFund ? ` · incl. ${nFund} fund/bond ETF` : ''})* — triage ${T.CFG.VERSION}`);
     console.log(`*Completed-bar scan confirmed ${sidAllFired.length} entry signals.*`);
+    if (alertLog) {
+      const nA = ((alertLog.sid) || []).length, onlyA = sidAlertOnly(sidAllFired, alertLog);
+      const both = reviewSet.filter(r => r.sidSource === 'Alert + scan').length;
+      console.log(`*TradingView sent ${nA} SID ENTRY alert${nA === 1 ? '' : 's'} for the ${alertLog.bar_date} bar — ${both} match the scan (Src A+S).${onlyA.length ? ` Alert only, not confirmed by the completed-bar scan (not reviewed): ${onlyA.join(', ')}.` : ''}*`);
+    } else {
+      console.log('*TradingView alert log not available this run — Src shows scan only.*');
+    }
     console.log('*Statuses organise the morning review — they are not trade grades and do not replace the chart check.*\n');
     console.log('```');
     console.log(`SID alerts:      ${triaged.length}`);
