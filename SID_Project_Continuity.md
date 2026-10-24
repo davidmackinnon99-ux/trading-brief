@@ -1,9 +1,9 @@
 # SID Strategy — Project Continuity
 
 **Living doc — git is the version history (no more numbered copies).**
-**Last updated:** 16 October 2026
+**Last updated:** 24 October 2026
 **Supersedes:** SID_Project_Continuity_9 (29 Mar 2026) + the iCloud `v10` draft — both archive only.
-**Strategy:** SID Strategy v10.5.20 (backtest) · **Indicator:** SID Trading Signals Pro v8.5.20 (entry+confluence) — code in `~/Trading Indicators` repo
+**Strategy:** SID Strategy v10.5.21 (backtest) · **Indicator:** SID Trading Signals Pro v8.5.22 (entry+confluence) — code in `~/Trading Indicators` repo, `current/` folder; what is on each chart is in that repo's `CHART_INVENTORY.md`
 
 ---
 
@@ -468,6 +468,26 @@ to the RSI-50 objective, then (2) do momentum/participation/context support taki
   line and not reviewed. Matching uses the bare ticker on US listings. Tested on 23 Oct: alerts DT and PAGS matched the scan;
   GBX, DHT and MRNA were scan only (all excluded for earnings).
 
+## 1u. Repo restructured to match the charts — 24 October 2026
+- **Why:** what was on the TradingView charts and what was in the repo had drifted apart. Read every layout
+  (hidden scripts included) and all 181 saved Pine scripts straight from TradingView.
+- **Trading Indicators repo now has `current/`, `testing/`, `archive/`** (each with `indicators/` and
+  `strategies/`). `current/` = the version that should be on a live layout, taken from the chart's own code.
+  `CHART_INVENTORY.md` (repo root) maps every script on every layout to its file and flags mismatches.
+  Committed d7592b1, pushed to both remotes.
+- **Added — on SID/LORP charts but never in the repo:** MACD_Cross Zero (the MACD0 prime indicator), Golden
+  Pocket Reduxe DM2, ADX Bottom Readout, RVOL + Volume Z-Score v2.1 (v2.1b display). Pullback layout set and
+  Pullback Screener v1.0 also added.
+- **`.gitignore` was dropping all `.md` files** — research reports and the TrendSpider specs had never been
+  backed up. Now tracked (32 files added).
+- **Chart mismatches found (SID):**
+  - SID layout and ETF SECTORS run **Tramlines v1.1**, not v1.3. SID CLEAN runs an early v1.3 that links
+    to Bullish/Bearish Trigger Cross (pre-correction). The corrected v1.3 is in `testing/` and is not on any chart.
+  - ETF SECTORS runs SID Trading Signals Pro **v8.5.18** (current v8.5.22).
+- **BB + RSI Trend v1.0/v1.1** are loaded hidden on the SID layout → filed under `testing/` (see the
+  BB/Tramlines discussion of 24 Oct: they trade shallow dips with RSI > 50, the opposite state to SID; candidate
+  v2 = tramline slope UP + rail/BB double touch, to be checked against the Pullback strategy first).
+
 ## 5. Open items (need input — not resolvable from files)
 - [ ] Reconcile the 300-trade manual journal (`analysis/sid-btw-universe/Backtesting_Sheet_300_SID.xlsx`) against `data/trades/trades_all.csv` and the automated BTW-universe backtest — three SID datasets now exist and haven't been cross-checked against each other.
 - [x] ~30% of brief candidates were funds/trusts, not equities — fixed 17 Sep 2026 by excluding sector "Miscellaneous" tickers from both `lorpAll` and `sidPass` in `analyse-brief.cjs`; see `LORP_Project_Continuity.md`'s 17 Sep entry for the full writeup (applies to both strategies).
@@ -477,6 +497,8 @@ to the RSI-50 objective, then (2) do momentum/participation/context support taki
 - [ ] BTW universe re-export status (v10.5.4.10+, Ticker Regime ON).
 - [ ] SID triage (1l): after ~4–6 weeks of audit records, test whether CAP room, BB-mid distance, MACD
       opposition/chop, DI shift and event risk improve selection; only then consider upstream alert changes.
+- [ ] Re-add SID Tramlines to the SID and ETF SECTORS layouts at the intended version (chart runs v1.1), and SID Trading Signals Pro v8.5.22 on ETF SECTORS.
+- [ ] Decide whether the hidden scripts on the SID layout (10 of them) stay or move to a test layout.
 - [ ] Recent live-trade findings (39-trade journal is in `SID DATA/`; losers catalogued in
       `scripts/sid_factor_grade.py`).
 

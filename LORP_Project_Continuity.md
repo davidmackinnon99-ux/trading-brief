@@ -14,6 +14,17 @@ the corrected watchlist-sections note in Section 8 below and SID_Project_Continu
 ║ beneath as history)                                                ║
 ╚═══════════════════════════════════════════════════════════════════════╝
 
+REPO NOTE — 24 October 2026: Trading Indicators repo restructured to match the charts.
+• Folders are now current/ testing/ archive/ (each with indicators/ and strategies/). CHART_INVENTORY.md at
+  the repo root lists every script on every layout (hidden included) and its file. Paths "strategies/..."
+  in the notes below now live under one of these folders.
+• LORP layout runs LORP_Backtest_Adapter_v2.31 (Donchian) → current/strategies/. The repo's later v2.31 with
+  the table.clear fix (info table switched off) was never re-saved to the chart → testing/strategies/
+  LORP_Backtest_Adapter_v2.31_tablefix.pine. LORP_Donchian_Confirmation_v1.0 and v2.31a ATR Warm-up (LORP
+  Free layout) → testing/.
+• LORP layout runs MACD Separation & Convergence v1.4; SID runs v1.5. MACD_Cross Zero (MACD0) was on the
+  chart but never in the repo — now added.
+
 STRATEGY NOTE — 19 October 2026: Donchian Channel confirmation for LORP longs.
 • Original "Unified Donchian & ML Kernel Swing Strategy" produced NO trades: it tested
   close > ta.highest(high,20) on the same bar, which is impossible (fixed to prior bar).
