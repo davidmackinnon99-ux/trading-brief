@@ -37,3 +37,8 @@ brief_date,symbol,price,native_label,entry_type,structure,pattern,sd_ago,extende
 2026-10-23,RWJ,58.43,,—,PB,Dbl Top (forming) 3b,5,0,0.23,1.50,28.53,0.84,SID
 2026-10-23,TCBI,98.78,,Pullback 🔄,PB,none,0,1,0.79,2.75,26.99,1.70,SBT
 2026-10-23,UCB,37.23,,Pullback 🔄,TREND · HIST20,Dbl Bottom 7b,0,1,0.41,3.80,28.09,1.63,LORP
+2026-10-24,BBWI,20.95,,—,TREND,INV H&S 8b,,0,0.41,1.88,25.72,0.74,SBT
+2026-10-24,ELV,439.95,,Trend ↗,TREND,Dbl Bottom 14b,3,0,3.17,1.37,27.24,0.88,SBT
+2026-10-24,SAIC,145.73,,Pullback 🔄,PB,Dbl Bottom 11b,1,0,1.44,2.79,26.01,0.97,TVX
+2026-10-24,TRI,123.17,,Pullback 🔄,PB,none,1,1,2.30,3.68,25.55,0.96,SBT
+2026-10-24,UNP,292.87,,Pullback 🔄,PB,none,,0,2.06,1.26,30.49,1.41,SID
