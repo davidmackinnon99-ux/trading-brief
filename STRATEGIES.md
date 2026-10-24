@@ -66,7 +66,9 @@ Bar Prediction Values, ATR%, RVOL, VD, Aroon, ADX, DI+/DI-, WRB, Range%, vs Open
 
 ---
 
-## Pullback v2.0 — Long-only Trend Pullback (Daily)
+## Pullback v2.0 — Long-only Trend Pullback (Daily) — RETIRED
+
+> **Retired 24 Oct 2026.** No longer traded; the Pullback layout (6Qpm8oT7) has been deleted from TradingView and its scripts are in the Trading Indicators repo `archive/indicators/`. Brief scans were already switched off on 26 Aug 2026. Kept below for history only.
 
 **Layout:** 6Qpm8oT7 · Hint: `ADX + EMA21 Trend Setup`  
 **Indicators used:** ADX + EMA21 Trend Setup [Booker Method], CM_SlingShotSystem, GP Zone Exporter, Pocket Pivot, RVOL, Volume Delta v2, WRB Confluence, CAP Tools Supplement
@@ -134,7 +136,9 @@ All firing signals are shown (demand and supply both appear if both fire).
 
 ---
 
-## ADX Breakout — Rob Booker Coiling/Breakout (Long + Short, Daily)
+## ADX Breakout — Rob Booker Coiling/Breakout (Long + Short, Daily) — RETIRED
+
+> **Retired 24 Oct 2026.** No longer traded; layout 6hvBVx9e no longer exists. Script archived at `archive/indicators/ADX_Breakout_DM_Final.pine` in the Trading Indicators repo. Brief scans were already switched off on 26 Aug 2026. Kept below for history only.
 
 **Layout:** 6hvBVx9e · Hint: `Rob Booker - ADX Breakout DM Final`  
 **Indicators used:** Rob Booker ADX Breakout DM Final, Bollinger Bands (BBWP), Rob Booker Quality Volume Breakout, ADX and DI, Volume Delta, RVOL, GP Zone Exporter
