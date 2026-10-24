@@ -60,7 +60,6 @@ Bar Prediction Values, ATR%, RVOL, VD, Aroon, ADX, DI+/DI-, WRB, Range%, vs Open
 | ATR% | Risk sizing reference |
 | RVOL | Volume confirmation |
 | VD | Buy/Sell pressure reference |
-| GP Zone | 🟡 NEAR / 🟢 IN — proximity reference only |
 
 **Gap/ATR Ratio:** ≥2.0 ideal · <1.5 avoid (shown in context, not a hard filter)
 

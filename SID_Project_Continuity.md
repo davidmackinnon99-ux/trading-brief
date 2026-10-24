@@ -484,6 +484,8 @@ to the RSI-50 objective, then (2) do momentum/participation/context support taki
   - SID layout and ETF SECTORS run **Tramlines v1.1**, not v1.3. SID CLEAN runs an early v1.3 that links
     to Bullish/Bearish Trigger Cross (pre-correction). The corrected v1.3 is in `testing/` and is not on any chart.
   - ETF SECTORS runs SID Trading Signals Pro **v8.5.18** (current v8.5.22).
+- **Later on 24 Oct:** Pullback and ADX Breakout retired (layouts deleted, scripts archived); GP Reduxe DM2 and
+  GP Zone Exporter removed from the SID and LORP layouts and archived.
 - **BB + RSI Trend v1.0/v1.1** are loaded hidden on the SID layout → filed under `testing/` (see the
   BB/Tramlines discussion of 24 Oct: they trade shallow dips with RSI > 50, the opposite state to SID; candidate
   v2 = tramline slope UP + rail/BB double touch, to be checked against the Pullback strategy first).

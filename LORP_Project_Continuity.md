@@ -22,6 +22,8 @@ REPO NOTE — 24 October 2026: Trading Indicators repo restructured to match the
   the table.clear fix (info table switched off) was never re-saved to the chart → testing/strategies/
   LORP_Backtest_Adapter_v2.31_tablefix.pine. LORP_Donchian_Confirmation_v1.0 and v2.31a ATR Warm-up (LORP
   Free layout) → testing/.
+• GP Reduxe DM2 + GP Zone Exporter removed from the LORP and SID layouts (both hidden, brief got no GP data;
+  GP was only a rule in the retired Pullback strategy) → archive/indicators/.
 • LORP layout runs MACD Separation & Convergence v1.4; SID runs v1.5. MACD_Cross Zero (MACD0) was on the
   chart but never in the repo — now added.
 
@@ -219,8 +221,8 @@ OPEN THREADS:
   [ ] Run Wait-ON + MACD0-exit-ON and split the export by REV/TREND tag —
       test whether the reversion bundle moves from ~0.75 toward the ~1.61
       seen in the 34-ticker study.
-  [ ] Calibrate GP Reduxe DM 0.30/0.45 Fib bands against real rebound lows
-      (currently provisional).
+  [x] Calibrate GP Reduxe DM 0.30/0.45 Fib bands — CLOSED 24 Oct 2026: GP Reduxe DM2
+      and GP Zone Exporter removed from the SID and LORP charts (LORP never used GP).
 
 FIXES — Brief Output bloat, stale footer line, ASX/invalid bug (13 Sep
 2026): Three bugs fixed in analyse-brief.cjs, all committed to git.
