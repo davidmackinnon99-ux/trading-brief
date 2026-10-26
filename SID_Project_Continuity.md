@@ -390,6 +390,12 @@ to the RSI-50 objective, then (2) do momentum/participation/context support taki
   new "Past SID entries" inputs to SID Trading Signals Pro's Long / Short Entry Signal outputs (corrected 19 Oct); keeps the last 25 by default.
   Unlinked = identical to v1.2. Not yet compiled in TradingView. Use `SID_Tramlines_v1.3.pine`.
   Offered next: a test of channel slope / position at entry vs SID outcome on the trade list.
+- **Tramlines study (26 Oct 2026)** — `analysis/sid-tramlines/` in trading-indicators, 2,547 trades. Slope is
+  uninformative (98% of longs enter on a falling 10-bar channel, 98% of shorts on a rising one); the flat-base
+  "FDL" picture occurs once each side. Longs: no position effect. **Shorts candidate:** entries still inside the
+  rising channel 69.4% WR / +0.32% (n=307) vs at/through the lower rail 60.9% / −0.91% (n=1,176); holds in both
+  eras and both Gap/ATR groups. A "BO" down at a short entry is not confirmation. Candidate only — confirm on new
+  trades before any rule.
 
 ## 1r. SID Pattern Finder v2.8 — 19 October 2026
 - `indicators/SID_Pattern_Finder_v2.8.pine`: three new Data Window values (Recent Pattern Kind 1-4/0, Recent
@@ -500,6 +506,7 @@ to the RSI-50 objective, then (2) do momentum/participation/context support taki
 - [ ] SID triage (1l): after ~4–6 weeks of audit records, test whether CAP room, BB-mid distance, MACD
       opposition/chop, DI shift and event risk improve selection; only then consider upstream alert changes.
 - [ ] Re-add SID Tramlines to the SID and ETF SECTORS layouts at the intended version (chart runs v1.1), and SID Trading Signals Pro v8.5.22 on ETF SECTORS.
+- [ ] Confirm the Tramlines shorts candidate (inside rising channel vs through lower rail) on trades after Oct 2026.
 - [ ] Decide whether the hidden scripts on the SID layout (10 of them) stay or move to a test layout.
 - [ ] Recent live-trade findings (39-trade journal is in `SID DATA/`; losers catalogued in
       `scripts/sid_factor_grade.py`).
