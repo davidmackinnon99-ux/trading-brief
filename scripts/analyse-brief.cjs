@@ -2916,6 +2916,7 @@ if (!VERBOSE) {
   console.log('          Long context: faster upward MACD-line turn is supportive, but its validated speed measure is not yet exported here · no ADX/DI/MACD-distance/SMA/volume veto  ');
   console.log('          Short context: ADX 40–50 = material run-over risk · DI spread ≥20 = low-hit-rate warning · no Hist% +0.25 veto  ');
   console.log('          Path: BB midpoint/CAP/MA first hurdle and ATR room · Gap/ATR is displayed execution context, not a validated selection gate  ');
+  console.log('          Pattern context: confirmed Double Bottom with measured target still open was supportive in the 75-symbol SID v10.5.21 study; Double Top was not · if a target was reached, distinguish reversed back through from still beyond · context only, not a gate · chart review required until target state is exported  ');
   console.log('**MACD State:** Hist% = (MACD − signal) / price × 100 · converging/expanding and fast/slow describe MACD Histogram behaviour · MACD means the MACD line  ');
   console.log('          RVOL/volume, ATR%, AVWAP, sector rotation and MA position are context only and do not create or veto an entry\n');
 
