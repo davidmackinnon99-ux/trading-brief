@@ -396,6 +396,9 @@ to the RSI-50 objective, then (2) do momentum/participation/context support taki
   rising channel 69.4% WR / +0.32% (n=307) vs at/through the lower rail 60.9% / −0.91% (n=1,176); holds in both
   eras and both Gap/ATR groups. A "BO" down at a short entry is not confirmation. Candidate only — confirm on new
   trades before any rule.
+  Follow-up: 99% of SID entries already sit on the target side of the BB mid (median 1.6–1.7 ATR room), so a
+  BB-mid-side tag carries no information; a "flat tramline" tag would fire on ~1% of entries. Longs > ~2.1 ATR
+  from the BB mid: 67% WR vs 73–79% (weak candidate). Shorts inside-channel effect holds at any BB room.
 
 ## 1r. SID Pattern Finder v2.8 — 19 October 2026
 - `indicators/SID_Pattern_Finder_v2.8.pine`: three new Data Window values (Recent Pattern Kind 1-4/0, Recent
