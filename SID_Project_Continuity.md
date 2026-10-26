@@ -1,7 +1,7 @@
 # SID Strategy — Project Continuity
 
 **Living doc — git is the version history (no more numbered copies).**
-**Last updated:** 24 October 2026
+**Last updated:** 26 October 2026
 **Supersedes:** SID_Project_Continuity_9 (29 Mar 2026) + the iCloud `v10` draft — both archive only.
 **Strategy:** SID Strategy v10.5.21 (backtest) · **Indicator:** SID Trading Signals Pro v8.5.22 (entry+confluence) — code in `~/Trading Indicators` repo, `current/` folder; what is on each chart is in that repo's `CHART_INVENTORY.md`
 
