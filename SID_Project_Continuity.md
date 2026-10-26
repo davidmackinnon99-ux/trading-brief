@@ -499,6 +499,27 @@ to the RSI-50 objective, then (2) do momentum/participation/context support taki
   BB/Tramlines discussion of 24 Oct: they trade shallow dips with RSI > 50, the opposite state to SID; candidate
   v2 = tramline slope UP + rail/BB double touch, to be checked against the Pullback strategy first).
 
+## 1v. BB midline + tramlines — agreed reading of a SID entry (26 October 2026)
+Agreed with David after the Tramlines study (1n). Entry context only — not a gate, and the SID trigger
+(RSI OS/OB touch, then RSI and MACD turning) is still the signal. Not tested outside SID entries.
+- **Long:** the SID trigger fires below the BB mid as price turns up. Up to ~2 ATR below the mid is normal
+  (73–79% WR); more than ~2 ATR below = **Stretched**, a caution not a veto (67%). Tramline angle and
+  position make no difference for longs.
+- **Short:** the SID trigger fires above the BB mid as price turns down. Distance to the mid makes no
+  difference. Prefer entries still **inside** the rising tramline channel (69% WR vs 61% when price has
+  already closed through the lower rail — candidate, confirm on new trades). A "BO" down at entry is not
+  confirmation.
+- **BB mid is the objective, not a filter:** 99% of SID entries already start on the target side of it. A
+  close through the mid after entry (Tramlines blue/orange diamond) means the trade is at or near its RSI-50
+  objective.
+- **How to tag from the Tramlines entry label:**
+  Tramline — long: pos < ~80% = Inside, ≥ 80% = Through rail; short: pos > ~20% = Inside, ≤ 20% = Through
+  rail; add "Flat" only if slope is within ±0.05%/bar (rare, ~1% of entries).
+  BB room — more than 2 ATR from the BB mid at entry = Stretched, otherwise Normal.
+  Used alongside the existing Trend – Supports / Does Not Support tag.
+- Worked example: AEP long, 5 Oct 2026 — label "−0.01%/bar, pos 60%" → Tramline Inside, Flat; ~1 ATR to the
+  BB mid → BB room Normal; crossed the mid within two bars, RSI-50 exit.
+
 ## 5. Open items (need input — not resolvable from files)
 - [ ] Reconcile the 300-trade manual journal (`analysis/sid-btw-universe/Backtesting_Sheet_300_SID.xlsx`) against `data/trades/trades_all.csv` and the automated BTW-universe backtest — three SID datasets now exist and haven't been cross-checked against each other.
 - [x] ~30% of brief candidates were funds/trusts, not equities — fixed 17 Sep 2026 by excluding sector "Miscellaneous" tickers from both `lorpAll` and `sidPass` in `analyse-brief.cjs`; see `LORP_Project_Continuity.md`'s 17 Sep entry for the full writeup (applies to both strategies).
