@@ -406,6 +406,10 @@ to the RSI-50 objective, then (2) do momentum/participation/context support taki
   v1.4 uses the v8.5.22 closed-bar test, links to SID's Scan Long/Short Entry, and draws the latest-bar entry in
   white labelled "NEW". Live channel colour is unchanged: it shows slope (teal up / red down / grey flat), not a
   signal — a fresh SID long usually sits in a red (falling) live channel. File: `testing/indicators/SID_Tramlines_v1.4.pine`.
+  Also in v1.4 (external review, 27 Oct): rail "touch" tightened — a breakdown below the lower rail (or above the
+  upper) no longer counts as a touch. Touch now = wick within tolerance of the rail, overshoot ≤ 0.15 ATR
+  (setting), and close back inside the channel. Review's other point (tooltips should cite v10.5.21) not taken:
+  v10.5.21 is the SID Strategy; Tramlines links to the indicator (Scan entries, v8.5.21+).
   Not yet compiled.
 
 ## 1r. SID Pattern Finder v2.8 — 19 October 2026
