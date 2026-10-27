@@ -1,7 +1,7 @@
 # SID Strategy — Project Continuity
 
 **Living doc — git is the version history (no more numbered copies).**
-**Last updated:** 26 October 2026
+**Last updated:** 27 October 2026
 **Supersedes:** SID_Project_Continuity_9 (29 Mar 2026) + the iCloud `v10` draft — both archive only.
 **Strategy:** SID Strategy v10.5.21 (backtest) · **Indicator:** SID Trading Signals Pro v8.5.22 (entry+confluence) — code in `~/Trading Indicators` repo, `current/` folder; what is on each chart is in that repo's `CHART_INVENTORY.md`
 
@@ -400,6 +400,14 @@ to the RSI-50 objective, then (2) do momentum/participation/context support taki
   BB-mid-side tag carries no information; a "flat tramline" tag would fire on ~1% of entries. Longs > ~2.1 ATR
   from the BB mid: 67% WR vs 73–79% (weak candidate). Shorts inside-channel effect holds at any BB room.
 
+- **v1.4 (27 Oct 2026):** David saw only older entry channels on the morning's SID names (TJX, CL, WMG, KO, MO).
+  Cause: v1.3 drew past entries only on `barstate.isconfirmed` bars, and the last daily bar on a reloaded chart is
+  not confirmed until the next session opens — the same issue as SID v8.5.21/22 — so the newest entry never drew.
+  v1.4 uses the v8.5.22 closed-bar test, links to SID's Scan Long/Short Entry, and draws the latest-bar entry in
+  white labelled "NEW". Live channel colour is unchanged: it shows slope (teal up / red down / grey flat), not a
+  signal — a fresh SID long usually sits in a red (falling) live channel. File: `testing/indicators/SID_Tramlines_v1.4.pine`.
+  Not yet compiled.
+
 ## 1r. SID Pattern Finder v2.8 — 19 October 2026
 - `indicators/SID_Pattern_Finder_v2.8.pine`: three new Data Window values (Recent Pattern Kind 1-4/0, Recent
   Pattern Bars, Recent Pattern State 0 forming / 1 confirmed) = most recent forming/confirmed, non-held-back
@@ -529,7 +537,7 @@ Agreed with David after the Tramlines study (1n). Entry context only — not a g
 - [ ] BTW universe re-export status (v10.5.4.10+, Ticker Regime ON).
 - [ ] SID triage (1l): after ~4–6 weeks of audit records, test whether CAP room, BB-mid distance, MACD
       opposition/chop, DI shift and event risk improve selection; only then consider upstream alert changes.
-- [ ] Re-add SID Tramlines to the SID and ETF SECTORS layouts at the intended version (chart runs v1.1), and SID Trading Signals Pro v8.5.22 on ETF SECTORS.
+- [ ] Re-add SID Tramlines to the SID and ETF SECTORS layouts at the intended version (now v1.4; chart runs v1.1), and SID Trading Signals Pro v8.5.22 on ETF SECTORS.
 - [ ] Confirm the Tramlines shorts candidate (inside rising channel vs through lower rail) on trades after Oct 2026.
 - [ ] Decide whether the hidden scripts on the SID layout (10 of them) stay or move to a test layout.
 - [ ] Recent live-trade findings (39-trade journal is in `SID DATA/`; losers catalogued in
