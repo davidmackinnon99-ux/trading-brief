@@ -413,7 +413,7 @@ to the RSI-50 objective, then (2) do momentum/participation/context support taki
   Not yet compiled.
 - **27 Oct, first read of live alerts (27 signals, SID CLEAN):** v1.4 installed on SID CLEAN, SID and the Chrome
   copy. On one copy the short dropdown was linked to SID's *Short Exit Signal*, so short entries showed no NEW
-  channel and the orange "SID S" channels marked past exits — input links are per layout and must be set on each.
+  channel and the orange "SID S" channels marked past exits — input links are per layout and must be set on each (corrected by David same day).
   All 7 shorts (incl. both Review-now, WMG and TJX) were through the lower rail (the weaker group in the study).
   **Pos reminder:** where the entry close sits between the rails (0% lower, 100% upper; below 0 / above 100 =
   outside, as a share of channel width) — not a price change. WMG: rails 30.87–33.60, close 30.29 → −21%.
