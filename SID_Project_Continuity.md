@@ -411,6 +411,13 @@ to the RSI-50 objective, then (2) do momentum/participation/context support taki
   (setting), and close back inside the channel. Review's other point (tooltips should cite v10.5.21) not taken:
   v10.5.21 is the SID Strategy; Tramlines links to the indicator (Scan entries, v8.5.21+).
   Not yet compiled.
+- **27 Oct, first read of live alerts (27 signals, SID CLEAN):** v1.4 installed on SID CLEAN, SID and the Chrome
+  copy. On one copy the short dropdown was linked to SID's *Short Exit Signal*, so short entries showed no NEW
+  channel and the orange "SID S" channels marked past exits — input links are per layout and must be set on each.
+  All 7 shorts (incl. both Review-now, WMG and TJX) were through the lower rail (the weaker group in the study).
+  **Pos reminder:** where the entry close sits between the rails (0% lower, 100% upper; below 0 / above 100 =
+  outside, as a share of channel width) — not a price change. WMG: rails 30.87–33.60, close 30.29 → −21%.
+  **v1.5:** entry labels offset from the candle (default 1 ATR) + label size setting; display only.
 
 ## 1r. SID Pattern Finder v2.8 — 19 October 2026
 - `indicators/SID_Pattern_Finder_v2.8.pine`: three new Data Window values (Recent Pattern Kind 1-4/0, Recent
