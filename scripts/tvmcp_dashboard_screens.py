@@ -36,6 +36,16 @@ was under ~300K average volume):
   lorp_rev   filters {"RSI":[30,45], "market_cap_basic":[1e9,3e11], "close":[10,null]}
              sort RSI asc    columns name,RSI,MACD.macd,MACD.signal
 """
+# 28 Oct 2026 (later): SID OB / SID OS replaced by a real SID scan. The boards only
+# checked RSI band + current MACD state, so they listed names APPROACHING the zone.
+# Now: (1) sid_candidates() picks stocks whose MACD histogram changed sign on the latest
+# bar (MACD crossed its signal) from TV MCP screener rows with MACD.hist / MACD.hist[1];
+# (2) each candidate's 100 daily bars (TV MCP get_ohlcv) go through
+# scripts/sid_rsi_macd_screen.py, which keeps it only if RSI(14) was below 30 (long) /
+# above 70 (short) within the 10 bars up to the cross. Screener calls for candidates,
+# RSI bands kept small so each response stays under the 1 MB tool limit:
+#   longs  RSI [15,35] [35,45] [45,55]   shorts RSI [45,55] [55,65] [65,90]
+#   same cap/price/volume filters as the LORP boards, columns RSI,MACD.hist,MACD.hist[1],subtype
 import argparse
 import json
 import sys
@@ -81,6 +91,27 @@ def screen(rows, board):
         out.append(sym)
         if len(out) == keep:
             break
+    return out
+
+
+def sid_candidates(rows, direction):
+    """Symbols whose MACD crossed its signal on the latest bar.
+    direction 'long': hist > 0 and hist[1] <= 0, RSI <= 55.
+    direction 'short': hist < 0 and hist[1] >= 0, RSI >= 45."""
+    out, seen = [], set()
+    for r in rows:
+        sym = r.get("symbol", "")
+        if sym in seen or sym.split(":")[0] not in LISTED:
+            continue
+        if r.get("subtype") not in ("common", "", None):
+            continue
+        h, h1, rsi = num(r, "MACD.hist"), num(r, "MACD.hist[1]"), num(r, "RSI")
+        if h is None or h1 is None or rsi is None:
+            continue
+        if direction == "long" and h > 0 >= h1 and rsi <= 55:
+            out.append(sym); seen.add(sym)
+        elif direction == "short" and h < 0 <= h1 and rsi >= 45:
+            out.append(sym); seen.add(sym)
     return out
 
 

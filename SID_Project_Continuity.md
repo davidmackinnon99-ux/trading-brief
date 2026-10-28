@@ -32,9 +32,14 @@
   cap ≥$10B, top 25 by day change; LORP Reversion RSI 30–45 + MACD<sig, top 25 by RSI asc.
   All: cap $1B–$300B (unless stated), price ≥$10, NYSE/NASDAQ/AMEX, common + ADRs, avg vol ≥300K.
   Check on 28 Oct: 120 of 125 names matched the live boards.
-- **Known limit (unchanged from tvremix):** SID OB/OS test the CURRENT MACD state, not the SID
-  OB/OS pass-through → cross-within-10-bars rule. `scripts/sid_rsi_macd_screen.py` applies the real
-  rule from OHLCV — candidate next step if David wants the lists tightened.
+- **SID lists now use the real SID rule (28 Oct, David's request).** SID OB / SID OS replaced by
+  SID Long / SID Short: (1) TV MCP screener finds stocks whose MACD crossed its signal on the latest
+  bar (MACD.hist vs MACD.hist[1]); (2) 100 daily bars each, keep only if RSI(14) was <30 (long) / >70
+  (short) within the 10 bars up to the cross — same logic as `scripts/sid_rsi_macd_screen.py`.
+  Spot-check 28 Oct: INSM, DB, MOS qualified as longs (RSI low 28.2 / 23.7 / 27.3, 1–2 bars before
+  the cross); F rejected (no RSI<30 in window). Script RSI matched the TV screener within 0.1.
+  Expect fewer SID names than the old boards — zero on some nights is normal. Not yet included:
+  the weekly-RSI direction gate (left to the SID indicator in the morning brief).
 - **Sector rotation report:** parallel test task "TEST — Sector rotation on TV MCP" (16:27 NY,
   weekdays) writes to `~/Downloads/Briefs/tvmcp_test/` only; live task unchanged until outputs match.
   Prompt: `scheduled-tasks/sector-rotation-tvmcp-TEST.md`.
