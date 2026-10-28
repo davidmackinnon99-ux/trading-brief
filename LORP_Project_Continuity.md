@@ -16,9 +16,10 @@ the corrected watchlist-sections note in Section 8 below and SID_Project_Continu
 
 DATA-SOURCE NOTE — 28 October 2026: moving off tvremix to the official TV MCP connector.
 • tvremix.xyz is being shut down (50 calls/day cap) and its browser sign-in keeps expiring (nightly pull
-  failed 14–15 Oct and 28 Oct). LORP Trend + LORP Reversion dashboards are to be rebuilt as TV MCP screener
-  queries; the sector rotation report is in a parallel test on TV MCP (see SID_Project_Continuity.md §0b and
-  scheduled-tasks/). Live tasks stay unchanged until the side-by-side runs agree.
+  failed 14–15 Oct and 28 Oct). LORP Trend + LORP Reversion are now rebuilt as TV MCP screener
+  queries inside the new "SID/LORP nightly pull (TV MCP)" task (switched 28 Oct; 25/25 and 23/25 match vs
+  the tvremix boards). The sector rotation report is in a parallel test on TV MCP. Details and board criteria:
+  SID_Project_Continuity.md §0b and scheduled-tasks/.
 
 REPO NOTE — 24 October 2026: Trading Indicators repo restructured to match the charts.
 • Folders are now current/ testing/ archive/ (each with indicators/ and strategies/). CHART_INVENTORY.md at

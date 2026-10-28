@@ -17,17 +17,27 @@
 
 ---
 
-## 0b. Data-source migration — 28 October 2026 (in progress)
+## 0b. Data-source migration — 28 October 2026
 - **Why:** tvremix.xyz (the "TradingView" connector) is being shut down and is capped at 50
-  calls/day. Its browser sign-in also expired twice (14–15 Oct, 28 Oct), silently killing the
-  nightly SID/LORP dashboard pull. Moving to the official **TV MCP** connector (mcp__TV_MCP__*).
+  calls/day. The nightly SID/LORP pull read its dashboards through the Claude app's built-in
+  browser, whose sign-in expired (14–15 Oct, 28 Oct); Google sign-in also fails inside that
+  browser, so it could not be restored there. Moving to the official **TV MCP** connector.
+- **Nightly SID/LORP pull — SWITCHED 28 Oct.** New scheduled task "SID/LORP nightly pull (TV MCP)"
+  (16:20 NY weekdays) runs the four board screens on the TV MCP screener — no browser, no sign-in.
+  Same outputs/filenames as before (tvremix_sid_lorp_<date>.txt + CSV into ~/Downloads/SBT_Latest).
+  Old browser task "tvremix nightly SID/LORP pull" is DISABLED, not deleted (rollback).
+  Prompt: `scheduled-tasks/sid-lorp-nightly-pull-tvmcp.md`; logic: `scripts/tvmcp_dashboard_screens.py`.
+  Board criteria (copied from tvremix 28 Oct): SID OB RSI 60–70 + MACD>sig, top 25 by RSI;
+  SID OS RSI 30–40 + MACD<sig, top 50 by RSI desc; LORP Trend RSI 55–80 + MACD>sig + close>EMA21,
+  cap ≥$10B, top 25 by day change; LORP Reversion RSI 30–45 + MACD<sig, top 25 by RSI asc.
+  All: cap $1B–$300B (unless stated), price ≥$10, NYSE/NASDAQ/AMEX, common + ADRs, avg vol ≥300K.
+  Check on 28 Oct: 120 of 125 names matched the live boards.
+- **Known limit (unchanged from tvremix):** SID OB/OS test the CURRENT MACD state, not the SID
+  OB/OS pass-through → cross-within-10-bars rule. `scripts/sid_rsi_macd_screen.py` applies the real
+  rule from OHLCV — candidate next step if David wants the lists tightened.
 - **Sector rotation report:** parallel test task "TEST — Sector rotation on TV MCP" (16:27 NY,
   weekdays) writes to `~/Downloads/Briefs/tvmcp_test/` only; live task unchanged until outputs match.
   Prompt: `scheduled-tasks/sector-rotation-tvmcp-TEST.md`.
-- **SID OB / SID OS dashboards:** to be rebuilt as TV MCP screener + `scripts/sid_rsi_macd_screen.py`
-  (applies the real OB/OS pass-through → MACD cross within 10 bars rule the tvremix boards lacked).
-  Waiting on tvremix sign-in to capture the boards' exact universe filters first.
-- Cut-over rule: run old and new side by side for a few nights; switch only once results agree.
 
 ---
 
