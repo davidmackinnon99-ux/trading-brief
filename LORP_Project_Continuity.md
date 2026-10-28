@@ -20,6 +20,11 @@ DATA-SOURCE NOTE — 28 October 2026: moving off tvremix to the official TV MCP 
   queries inside the new "SID/LORP nightly pull (TV MCP)" task (switched 28 Oct; 25/25 and 23/25 match vs
   the tvremix boards). The sector rotation report is in a parallel test on TV MCP. Details and board criteria:
   SID_Project_Continuity.md §0b and scheduled-tasks/.
+• EARNINGS: David confirmed 28 Oct 2026 that the earnings warning applies to LORP too (supersedes the
+  older "Earnings date warning removed (SID-specific)" note further down). The nightly pull now drops LORP
+  Trend / LORP Reversion names reporting within 14 trading days (same threshold as SID). The SID-only rule
+  (earnings inside the OB/OS-to-cross window restarts the cycle) does not apply to LORP. The morning
+  brief's LORP section itself does not yet flag earnings.
 
 REPO NOTE — 24 October 2026: Trading Indicators repo restructured to match the charts.
 • Folders are now current/ testing/ archive/ (each with indicators/ and strategies/). CHART_INVENTORY.md at

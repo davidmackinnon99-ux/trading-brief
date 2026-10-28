@@ -45,7 +45,8 @@
   earnings fell between the RSI-zone touch and the MACD cross (reminders/sid.md: earnings restart
   the OB/OS cycle). Dropped names are listed in the task's reply, not lost. 28 Oct spot-check: all
   three timing-rule passes (INSM 29 Oct, DB 28 Oct, MOS 3 Nov) report within 14 trading days, so
-  expect very short SID lists through earnings season. LORP lists are not earnings-filtered.
+  expect very short SID lists through earnings season. LORP lists get the same 14-trading-day
+  check (David, 28 Oct) but not the in-setup rule.
 - **Sector rotation report:** parallel test task "TEST — Sector rotation on TV MCP" (16:27 NY,
   weekdays) writes to `~/Downloads/Briefs/tvmcp_test/` only; live task unchanged until outputs match.
   Prompt: `scheduled-tasks/sector-rotation-tvmcp-TEST.md`.

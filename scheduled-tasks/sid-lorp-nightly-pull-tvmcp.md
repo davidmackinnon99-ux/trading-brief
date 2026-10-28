@@ -26,7 +26,7 @@ Compute in Python from the closes:
 - SID SHORT qualifies if the cross is bearish (histogram turned negative) AND RSI was above 70 on at least one bar in that same window.
 Drop any symbol whose bars are fewer than 100, out of time order, or whose computed RSI differs from the screener's RSI by more than 2 points (data mismatch).
 
-STEP 2b — SID earnings checks (David's existing SID rules; apply to SID Long and SID Short only, not LORP)
+STEP 2b — SID earnings checks (David's existing SID rules; apply to SID Long and SID Short)
 The two earnings columns are unix timestamps (seconds, UTC midnight of the trading day); convert to dates. "Trading days" = weekdays counted the same way as the morning brief's countTradingDays: start the day after the latest bar's date and count each Mon–Fri up to and including the target date (same date = 0).
 - Earnings ahead: if the next earnings date is on or after the latest bar's date and is within 14 trading days of it, drop the symbol (same threshold as sid-triage.cjs EARNINGS_TRADING_DAYS = 14).
 - Earnings inside the setup: if the last earnings date falls after the first RSI-in-zone bar of the window and on or before the cross bar, drop the symbol — earnings reset the OB/OS cycle, so the setup has to start again.
@@ -35,9 +35,10 @@ Keep a list of symbols dropped by each earnings check for the final reply.
 
 Order SID Long by lowest RSI-in-zone first; order SID Short by highest RSI-in-zone first.
 
-STEP 3 — LORP screens (unchanged from the old boards)
-- LORP Trend — filters {"RSI":[55,80], "market_cap_basic":[10000000000,null], "close":[10,null], "average_volume_10d_calc":[300000,null]}; sort_by "change", sort_order "desc"; columns ["name","RSI","MACD.macd","MACD.signal","EMA21","close","change","type","subtype"]. Keep rows (in order) where MACD.macd > MACD.signal and close > EMA21 (all numbers). Keep the first 25.
-- LORP Reversion — filters {"RSI":[30,45], "market_cap_basic":[1000000000,300000000000], "close":[10,null], "average_volume_10d_calc":[300000,null]}; sort_by "RSI", sort_order "asc"; columns ["name","RSI","MACD.macd","MACD.signal","type","subtype"]. Keep rows (in order) where MACD.macd < MACD.signal (both numbers). Keep the first 25.
+STEP 3 — LORP screens (same criteria as the old boards, plus the earnings-ahead check)
+- LORP Trend — filters {"RSI":[55,80], "market_cap_basic":[10000000000,null], "close":[10,null], "average_volume_10d_calc":[300000,null]}; sort_by "change", sort_order "desc"; columns ["name","RSI","MACD.macd","MACD.signal","EMA21","close","change","type","subtype","earnings_release_next_trading_date_fq"]. Keep rows (in order) where MACD.macd > MACD.signal and close > EMA21 (all numbers) and that pass the LORP earnings check below. Keep the first 25.
+- LORP Reversion — filters {"RSI":[30,45], "market_cap_basic":[1000000000,300000000000], "close":[10,null], "average_volume_10d_calc":[300000,null]}; sort_by "RSI", sort_order "asc"; columns ["name","RSI","MACD.macd","MACD.signal","type","subtype","earnings_release_next_trading_date_fq"]. Keep rows (in order) where MACD.macd < MACD.signal (both numbers) and that pass the LORP earnings check below. Keep the first 25.
+- LORP earnings check (added 28 Oct 2026 at David's request — the earnings warning applies to LORP too): drop a row if its next earnings date is on or after the latest bar's date and within 14 trading days of it, counted as in STEP 2b (use the latest bar date of AMEX:SPY — fetch it with one get_ohlcv call, count 5, if no SID candidates were fetched). The "earnings inside the setup" rule is SID-only (it is about the OB/OS cycle) and does not apply to LORP. Missing earnings date = keep. Note the symbols dropped for earnings for the final reply.
 
 Merge: SID Long, then SID Short, then LORP Trend, then LORP Reversion, removing duplicates (keep each symbol's first occurrence). Values are already EXCHANGE:TICKER.
 
@@ -50,6 +51,6 @@ Do not run the merge app — just place the file where it expects it.
 
 Keep the filenames as above (tvremix_sid_lorp_...) — the merge app and David's habits expect them.
 
-Final reply, brief: SID long candidates checked → passed the timing rule → passed the earnings checks, same for SID short (name the qualifying SID tickers, and separately the ones dropped for earnings with their earnings date), LORP Trend and LORP Reversion counts, total unique count, and whether the CSV was written to ~/Downloads/SBT_Latest/.
+Final reply, brief: SID long candidates checked → passed the timing rule → passed the earnings checks, same for SID short (name the qualifying SID tickers, and separately the ones dropped for earnings with their earnings date), LORP Trend and LORP Reversion counts and how many of each were dropped for earnings, total unique count, and whether the CSV was written to ~/Downloads/SBT_Latest/.
 
 Take no other action — no watchlist changes, no code or repo changes, no emails, no running the merge app.
