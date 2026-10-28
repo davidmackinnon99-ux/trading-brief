@@ -543,6 +543,10 @@ Agreed with David after the Tramlines study (1n). Entry context only — not a g
 - **David's discretionary entry rule (29 Oct 2026, applies to SID and LORP):** two consecutive candles in the
   trade direction before entry — two green for a long, two red for a short. A single candle is not enough
   except in unusual circumstances. Personal requirement on top of the SID signal; not coded anywhere.
+  Tested on SID history (29 Oct, trading-indicators `analysis/sid-tramlines/RESULTS.md`): longs — no gain
+  (two green at signal 71.5% vs 72.6% WR; waiting a bar costs ~1% entry, return +2.59% → +1.00%). Shorts — two red
+  64.0% vs 61.7% WR but lower average return; waiting costs ~0.6%. Shorts whose next candle after a red signal is
+  not red did poorly (55% WR) — the one place the rule helps. LORP not tested (no closed LORP trade history).
 - Worked example: AEP long, 5 Oct 2026 — label "−0.01%/bar, pos 60%" → Tramline Inside, Flat; ~1 ATR to the
   BB mid → BB room Normal; crossed the mid within two bars, RSI-50 exit.
 
