@@ -11,7 +11,7 @@ Common to every screener call below: market "america", symbol_types ["stock","dr
 Row rules used by every screen: keep a row only if the exchange prefix is NYSE, NASDAQ or AMEX, and "subtype" is "common", "" or missing (drops preferred/unit classes, keeps ADRs).
 
 STEP 1 — SID candidates (MACD crossed its signal on the latest daily bar)
-Run five screener calls with filters {"RSI":[lo,hi], "market_cap_basic":[1000000000,300000000000], "close":[10,null], "average_volume_10d_calc":[300000,null]} and columns ["RSI","MACD.hist","MACD.hist[1]","subtype"], for RSI bands [15,35], [35,45], [45,55], [55,65], [65,90] (the [45,55] band serves both sides).
+Run five screener calls with filters {"RSI":[lo,hi], "market_cap_basic":[1000000000,300000000000], "close":[10,null], "average_volume_10d_calc":[300000,null]} and columns ["RSI","MACD.hist","MACD.hist[1]","subtype","earnings_release_next_trading_date_fq","earnings_release_trading_date_fq"], for RSI bands [15,35], [35,45], [45,55], [55,65], [65,90] (the [45,55] band serves both sides).
 - Long candidates: MACD.hist > 0 and MACD.hist[1] <= 0 and RSI <= 55.
 - Short candidates: MACD.hist < 0 and MACD.hist[1] >= 0 and RSI >= 45.
 (The screener ignores MACD.hist as a filter, so apply these tests in Python.) Expect roughly 40–80 long and 20–50 short candidates.
@@ -25,6 +25,14 @@ Compute in Python from the closes:
 - SID LONG qualifies if the cross is bullish (histogram turned positive) AND RSI was below 30 on at least one bar in the window from 10 bars before the cross up to and including the cross bar.
 - SID SHORT qualifies if the cross is bearish (histogram turned negative) AND RSI was above 70 on at least one bar in that same window.
 Drop any symbol whose bars are fewer than 100, out of time order, or whose computed RSI differs from the screener's RSI by more than 2 points (data mismatch).
+
+STEP 2b — SID earnings checks (David's existing SID rules; apply to SID Long and SID Short only, not LORP)
+The two earnings columns are unix timestamps (seconds, UTC midnight of the trading day); convert to dates. "Trading days" = weekdays counted the same way as the morning brief's countTradingDays: start the day after the latest bar's date and count each Mon–Fri up to and including the target date (same date = 0).
+- Earnings ahead: if the next earnings date is on or after the latest bar's date and is within 14 trading days of it, drop the symbol (same threshold as sid-triage.cjs EARNINGS_TRADING_DAYS = 14).
+- Earnings inside the setup: if the last earnings date falls after the first RSI-in-zone bar of the window and on or before the cross bar, drop the symbol — earnings reset the OB/OS cycle, so the setup has to start again.
+- If an earnings date is missing, keep the symbol and mark it "earnings n/a".
+Keep a list of symbols dropped by each earnings check for the final reply.
+
 Order SID Long by lowest RSI-in-zone first; order SID Short by highest RSI-in-zone first.
 
 STEP 3 — LORP screens (unchanged from the old boards)
@@ -42,6 +50,6 @@ Do not run the merge app — just place the file where it expects it.
 
 Keep the filenames as above (tvremix_sid_lorp_...) — the merge app and David's habits expect them.
 
-Final reply, brief: SID long candidates checked → qualified, SID short candidates checked → qualified (name the qualifying SID tickers), LORP Trend and LORP Reversion counts, total unique count, and whether the CSV was written to ~/Downloads/SBT_Latest/.
+Final reply, brief: SID long candidates checked → passed the timing rule → passed the earnings checks, same for SID short (name the qualifying SID tickers, and separately the ones dropped for earnings with their earnings date), LORP Trend and LORP Reversion counts, total unique count, and whether the CSV was written to ~/Downloads/SBT_Latest/.
 
 Take no other action — no watchlist changes, no code or repo changes, no emails, no running the merge app.

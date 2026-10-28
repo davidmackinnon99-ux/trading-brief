@@ -40,6 +40,12 @@
   the cross); F rejected (no RSI<30 in window). Script RSI matched the TV screener within 0.1.
   Expect fewer SID names than the old boards — zero on some nights is normal. Not yet included:
   the weekly-RSI direction gate (left to the SID indicator in the morning brief).
+- **Earnings checks added to the SID lists (28 Oct).** Same rules as the brief: drop if next
+  earnings is within 14 trading days (sid-triage.cjs EARNINGS_TRADING_DAYS); drop if the last
+  earnings fell between the RSI-zone touch and the MACD cross (reminders/sid.md: earnings restart
+  the OB/OS cycle). Dropped names are listed in the task's reply, not lost. 28 Oct spot-check: all
+  three timing-rule passes (INSM 29 Oct, DB 28 Oct, MOS 3 Nov) report within 14 trading days, so
+  expect very short SID lists through earnings season. LORP lists are not earnings-filtered.
 - **Sector rotation report:** parallel test task "TEST — Sector rotation on TV MCP" (16:27 NY,
   weekdays) writes to `~/Downloads/Briefs/tvmcp_test/` only; live task unchanged until outputs match.
   Prompt: `scheduled-tasks/sector-rotation-tvmcp-TEST.md`.
