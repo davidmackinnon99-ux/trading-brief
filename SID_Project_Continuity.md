@@ -1,7 +1,7 @@
 # SID Strategy — Project Continuity
 
 **Living doc — git is the version history (no more numbered copies).**
-**Last updated:** 27 October 2026
+**Last updated:** 28 October 2026
 **Supersedes:** SID_Project_Continuity_9 (29 Mar 2026) + the iCloud `v10` draft — both archive only.
 **Strategy:** SID Strategy v10.5.21 (backtest) · **Indicator:** SID Trading Signals Pro v8.5.22 (entry+confluence) — code in `~/Trading Indicators` repo, `current/` folder; what is on each chart is in that repo's `CHART_INVENTORY.md`
 
@@ -14,6 +14,20 @@
   controlled, autocommitted, never drifts from the code. Do not keep a separate canonical
   copy in iCloud / Google Docs (that is what caused the March→June drift).
 - LORP criteria: STRATEGIES.md + `confluence_check.py` + `LORP_optimization_log.md`.
+
+---
+
+## 0b. Data-source migration — 28 October 2026 (in progress)
+- **Why:** tvremix.xyz (the "TradingView" connector) is being shut down and is capped at 50
+  calls/day. Its browser sign-in also expired twice (14–15 Oct, 28 Oct), silently killing the
+  nightly SID/LORP dashboard pull. Moving to the official **TV MCP** connector (mcp__TV_MCP__*).
+- **Sector rotation report:** parallel test task "TEST — Sector rotation on TV MCP" (16:27 NY,
+  weekdays) writes to `~/Downloads/Briefs/tvmcp_test/` only; live task unchanged until outputs match.
+  Prompt: `scheduled-tasks/sector-rotation-tvmcp-TEST.md`.
+- **SID OB / SID OS dashboards:** to be rebuilt as TV MCP screener + `scripts/sid_rsi_macd_screen.py`
+  (applies the real OB/OS pass-through → MACD cross within 10 bars rule the tvremix boards lacked).
+  Waiting on tvremix sign-in to capture the boards' exact universe filters first.
+- Cut-over rule: run old and new side by side for a few nights; switch only once results agree.
 
 ---
 

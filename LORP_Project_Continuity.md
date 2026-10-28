@@ -14,6 +14,12 @@ the corrected watchlist-sections note in Section 8 below and SID_Project_Continu
 ║ beneath as history)                                                ║
 ╚═══════════════════════════════════════════════════════════════════════╝
 
+DATA-SOURCE NOTE — 28 October 2026: moving off tvremix to the official TV MCP connector.
+• tvremix.xyz is being shut down (50 calls/day cap) and its browser sign-in keeps expiring (nightly pull
+  failed 14–15 Oct and 28 Oct). LORP Trend + LORP Reversion dashboards are to be rebuilt as TV MCP screener
+  queries; the sector rotation report is in a parallel test on TV MCP (see SID_Project_Continuity.md §0b and
+  scheduled-tasks/). Live tasks stay unchanged until the side-by-side runs agree.
+
 REPO NOTE — 24 October 2026: Trading Indicators repo restructured to match the charts.
 • Folders are now current/ testing/ archive/ (each with indicators/ and strategies/). CHART_INVENTORY.md at
   the repo root lists every script on every layout (hidden included) and its file. Paths "strategies/..."
