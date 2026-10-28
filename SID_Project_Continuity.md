@@ -1,7 +1,7 @@
 # SID Strategy — Project Continuity
 
 **Living doc — git is the version history (no more numbered copies).**
-**Last updated:** 27 October 2026
+**Last updated:** 29 October 2026
 **Supersedes:** SID_Project_Continuity_9 (29 Mar 2026) + the iCloud `v10` draft — both archive only.
 **Strategy:** SID Strategy v10.5.21 (backtest) · **Indicator:** SID Trading Signals Pro v8.5.22 (entry+confluence) — code in `~/Trading Indicators` repo, `current/` folder; what is on each chart is in that repo's `CHART_INVENTORY.md`
 
@@ -536,6 +536,10 @@ Agreed with David after the Tramlines study (1n). Entry context only — not a g
   rail; add "Flat" only if slope is within ±0.05%/bar (rare, ~1% of entries).
   BB room — more than 2 ATR from the BB mid at entry = Stretched, otherwise Normal.
   Used alongside the existing Trend – Supports / Does Not Support tag.
+- **Waiting for the close above the BB mid does not help (29 Oct study, 1,056 longs):** 85% of SID longs close
+  above the mid within 15 bars (median 7, price already +1.8%); the 15% that never do are the losers (13% WR,
+  −5.7%). Entering at that first close above the mid instead: next 5/10 bars +0.06%/+0.48%, 52%/56% positive —
+  near a coin toss, and the move to the mid is missed. Enter on the SID signal while approaching the mid.
 - Worked example: AEP long, 5 Oct 2026 — label "−0.01%/bar, pos 60%" → Tramline Inside, Flat; ~1 ATR to the
   BB mid → BB room Normal; crossed the mid within two bars, RSI-50 exit.
 
