@@ -540,6 +540,9 @@ Agreed with David after the Tramlines study (1n). Entry context only — not a g
   above the mid within 15 bars (median 7, price already +1.8%); the 15% that never do are the losers (13% WR,
   −5.7%). Entering at that first close above the mid instead: next 5/10 bars +0.06%/+0.48%, 52%/56% positive —
   near a coin toss, and the move to the mid is missed. Enter on the SID signal while approaching the mid.
+- **David's discretionary entry rule (29 Oct 2026, applies to SID and LORP):** two consecutive candles in the
+  trade direction before entry — two green for a long, two red for a short. A single candle is not enough
+  except in unusual circumstances. Personal requirement on top of the SID signal; not coded anywhere.
 - Worked example: AEP long, 5 Oct 2026 — label "−0.01%/bar, pos 60%" → Tramline Inside, Flat; ~1 ATR to the
   BB mid → BB room Normal; crossed the mid within two bars, RSI-50 exit.
 

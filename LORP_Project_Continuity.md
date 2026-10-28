@@ -9,10 +9,15 @@ the corrected watchlist-sections note in Section 8 below and SID_Project_Continu
 ---
 
 ╔══════════════════════════════════════════════════════════════════╗
-║ CURRENT STATE — updated 3 October 2026 (supersedes items below    ║
+║ CURRENT STATE — updated 29 October 2026 (supersedes items below    ║
 ║ where they conflict; original 11 May 2026 document retained       ║
 ║ beneath as history)                                                ║
 ╚═══════════════════════════════════════════════════════════════════════╝
+
+DISCRETIONARY ENTRY RULE — 29 October 2026 (David, applies to LORP and SID):
+• Two candles in the trade direction before entry: two consecutive green candles for a long (two red for
+  a short). A single candle is not enough except in unusual circumstances. Personal entry requirement on
+  top of the signal — not coded in the indicators, strategies or brief.
 
 REPO NOTE — 24 October 2026: Trading Indicators repo restructured to match the charts.
 • Folders are now current/ testing/ archive/ (each with indicators/ and strategies/). CHART_INVENTORY.md at
