@@ -2,4 +2,4 @@
      Turn a single line off by putting # at the start of it. Anything inside <!-- --> is ignored.
      Empty (or only comments) = no reminders. Write your reminders below this block, one per line. -->
 Check the 4H chart potential MACD0 changes as well as any supply/demand zones during a trade!
-CHECK Bar Prediction Values!
+Monitor Earnings dates - same as SID.
