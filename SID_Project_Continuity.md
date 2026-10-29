@@ -550,6 +550,15 @@ Agreed with David after the Tramlines study (1n). Entry context only — not a g
 - Worked example: AEP long, 5 Oct 2026 — label "−0.01%/bar, pos 60%" → Tramline Inside, Flat; ~1 ATR to the
   BB mid → BB room Normal; crossed the mid within two bars, RSI-50 exit.
 
+## 1w. Live trades review — TradeZella export (29 October 2026)
+- 91 closed live trades (Dec 2025 – Oct 2026) filed in trading-indicators `data/live_trades/`; review in
+  `analysis/live-trades/RESULTS_2026-10-29.md`. SID: 44 trades, 64% WR, +$574 (longs 71%, shorts 59%) — in line
+  with the backtest. Small samples, directional only.
+- SID shorts at ADX 35–45: 5/12 winners — supports the high-ADX short warning. "Stutter in OB/OS" exits: 0/6.
+  PAT - HS tag: 9/9 winners.
+- Tramlines on live shorts: inside 4/8 vs through-rail 12/17 — does not yet support the 1n shorts candidate.
+  Two red candles at a short signal 7/9 vs 9/16 — supports David's two-candle rule on shorts; no gain on longs.
+
 ## 5. Open items (need input — not resolvable from files)
 - [ ] Reconcile the 300-trade manual journal (`analysis/sid-btw-universe/Backtesting_Sheet_300_SID.xlsx`) against `data/trades/trades_all.csv` and the automated BTW-universe backtest — three SID datasets now exist and haven't been cross-checked against each other.
 - [x] ~30% of brief candidates were funds/trusts, not equities — fixed 17 Sep 2026 by excluding sector "Miscellaneous" tickers from both `lorpAll` and `sidPass` in `analyse-brief.cjs`; see `LORP_Project_Continuity.md`'s 17 Sep entry for the full writeup (applies to both strategies).

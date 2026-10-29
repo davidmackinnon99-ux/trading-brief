@@ -14,6 +14,12 @@ the corrected watchlist-sections note in Section 8 below and SID_Project_Continu
 ║ beneath as history)                                                ║
 ╚═══════════════════════════════════════════════════════════════════════╝
 
+LIVE TRADES REVIEW — 29 October 2026 (TradeZella export, trading-indicators analysis/live-trades/):
+• 45 LORP longs Dec 2025 – Oct 2026: 47% WR, +$236, avg R 0.07 (close to breakeven). First closed LORP history.
+• Exits: "LORP Default" 15/16 winners (+$424); Manual 5/17 (−$38); stops −$222. Manual exits include cutting
+  failing trades, so not proof, but letting the default exit run has worked.
+• Two green candles at entry: 11/28 (39%) vs 9/15 (60%) without — the two-candle rule has not helped LORP so far.
+
 DISCRETIONARY ENTRY RULE — 29 October 2026 (David, applies to LORP and SID):
 • Two candles in the trade direction before entry: two consecutive green candles for a long (two red for
   a short). A single candle is not enough except in unusual circumstances. Personal entry requirement on
