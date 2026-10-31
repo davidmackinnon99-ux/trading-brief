@@ -53,3 +53,9 @@ brief_date,symbol,price,native_label,entry_type,structure,pattern,sd_ago,extende
 2026-10-30,IYH,77.55,,No LC data,TREND,,,0,0.31,,26.14,2.35,LORP
 2026-10-30,OPLN,38.76,,No LC data,PB,,,0,0.13,,31.76,0.92,SID
 2026-10-30,XLV,184.04,,No LC data,TREND,,0,0,0.67,,27.09,1.72,SECTOR
+2026-10-31,GM,87.40,,No LC data,TREND,,0,0,0.84,,20.60,1.41,SBT
+2026-10-31,KO,94.08,,No LC data,TREND,,,0,0.06,,27.86,1.10,BTW
+2026-10-31,QLYS,224.12,,No LC data,TREND,,5,0,2.77,,20.21,1.01,SID
+2026-10-31,RAMP,38.50,,No LC data,PB,,,0,0.05,,23.36,2.96,SID
+2026-10-31,SMA,36.53,,No LC data,PB,,,0,0.23,,28.00,0.85,SID
+2026-10-31,WMT,123.51,,No LC data,PB,,0,0,0.44,,40.69,1.49,SBT
