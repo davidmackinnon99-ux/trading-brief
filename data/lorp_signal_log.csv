@@ -59,3 +59,7 @@ brief_date,symbol,price,native_label,entry_type,structure,pattern,sd_ago,extende
 2026-10-31,RAMP,38.50,,No LC data,PB,,,0,0.05,,23.36,2.96,SID
 2026-10-31,SMA,36.53,,No LC data,PB,,,0,0.23,,28.00,0.85,SID
 2026-10-31,WMT,123.51,,No LC data,PB,,0,0,0.44,,40.69,1.49,SBT
+2026-11-03,HNGE,115.48,,No LC data,TREND · HIST20,,1,0,0.50,,29.71,1.17,SBT
+2026-11-03,ITB,96.97,,No LC data,PB,,0,0,1.15,,23.41,1.62,LORP
+2026-11-03,NDAQ,108.62,,No LC data,TREND · HIST20,,,0,1.25,,32.24,0.92,LORP
+2026-11-03,OPLN,39.60,,No LC data,PB,,,0,0.20,,35.60,1.11,SID
