@@ -63,3 +63,5 @@ brief_date,symbol,price,native_label,entry_type,structure,pattern,sd_ago,extende
 2026-11-03,ITB,96.97,,No LC data,PB,,0,0,1.15,,23.41,1.62,LORP
 2026-11-03,NDAQ,108.62,,No LC data,TREND · HIST20,,,0,1.25,,32.24,0.92,LORP
 2026-11-03,OPLN,39.60,,No LC data,PB,,,0,0.20,,35.60,1.11,SID
+2026-11-04,AMRX,20.21,,No LC data,OTHER,,0,0,-0.02,,20.29,1.52,SID
+2026-11-04,HGTY,17.03,,No LC data,TREND,,0,0,0.06,,37.62,1.69,TVX
