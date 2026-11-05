@@ -2137,7 +2137,12 @@ if (!VERBOSE) {
   if (totalFiltered === 0) {
     console.log('**✅ LORP — 0 candidates** *(TV Screener returned no tickers passing brief filters)*\n');
   } else {
-    console.log(`**✅ LORP — ${filteredBuyVD} LC entries** *(actionable; +${filteredSellVD} context = no live entry)*`);
+    // David (5 Nov 2026): header counts the fired LC rows actually shown — Buys in the table,
+    // Sells listed as context (LORP is long-only). Old wording "+N context = no live entry" was misleading.
+    const _firedSeen = new Set();
+    const _fired = allLorpFiltered.filter(r => (r.lorpBuySignal || r.lorpSellSignal) && !_firedSeen.has(r.sym) && _firedSeen.add(r.sym));
+    const _nBuy = _fired.filter(r => r.lorpBuySignal).length, _nSell = _fired.length - _nBuy;
+    console.log(`**✅ LORP — ${_nBuy} LC Buy${_nBuy === 1 ? '' : 's'}** *(+${_nSell} LC Sell${_nSell === 1 ? '' : 's'} — context only, LORP is long-only)*`);
     console.log('*Pre-filtered by TV Screener + brief filters — check chart before acting*\n');
     console.log('*Every row below is a genuine LC entry. PB/TREND/OTHER/HIST20 uses the revised 7/20-bar price-structure definition; momentum and path fields are context, not gates.*\n');
     console.log('*Structure (confirmed 2-bar pivots): PB = confirmed HH followed by confirmed HL, with the HL no more than 7 completed bars old · TREND = not PB and price higher than 7 bars ago · OTHER = neither · HIST20 = the same HH→HL structure is 8–20 bars old. Pattern = SID Pattern Finder v2.8, most recent forming/confirmed pattern in the last 20 bars, n bars ago (— = Pattern Finder not on the LORP chart). SD = CAP Strong Demand fired today (now) or n briefs ago. Context only — not gates; the revised structure definition has not yet been outcome-validated.*\n');
@@ -2346,13 +2351,14 @@ if (!VERBOSE) {
     })();
 
     return {
-      entry: [r.sym, lorpDirection === 'long' ? 'Long' : lorpDirection === 'short' ? 'Short' : '—', `$${fmt(r.price)}`, dipStr, histStr, patStr, sigStr],
+      entry: [r.sym, sigStr, `$${fmt(r.price)}`, dipStr, histStr, patStr],
       path: [r.sym, pathStr, hurdleStr, roomStr, capStr, macd0Str, diStr, adxStr, rvolStr, vdBrief, atrBrief, distStr, sdStr || '—'],
-      context: [r.sym, avwapStr, `${sectorNameStr} / ${sectorEtfStr}`, sectorStr, macdXStr, normalizeSrc(r)],
+      context: [r.sym, avwapStr, `${sectorNameStr} / ${sectorEtfStr}`, sectorStr, macdXStr, r._srcLabel || normalizeSrc(r)],
     };
   }
 
-  function printLorpTable(rows) {
+  function printLorpTable(rows, printKey = true, keyOnly = false) {
+    if (keyOnly) rows = [];
     const packets = rows.map(lorpRowCells);
     const render = (title, key, headers, right = new Set()) => {
       const cells = packets.map(p => p[key]);
@@ -2364,10 +2370,12 @@ if (!VERBOSE) {
       cells.forEach(c => console.log('| ' + c.map((x, i) => pad(x, i)).join(' | ') + ' |'));
       console.log('');
     };
-    render('1. Entry, structure & ticker history', 'entry', ['Ticker', 'Side', 'Price', 'Structure', 'Matching history', 'Pattern', 'Signals'], new Set([2]));
+    if (!keyOnly) {
+    render('1. Entry, structure & ticker history', 'entry', ['Ticker', 'Signals', 'Price', 'Structure', 'Matching history', 'Pattern'], new Set([2]));
     render('2. Path & momentum', 'path', ['Ticker', 'Path', 'First hurdle', 'Room', 'CAP', 'MACD0', 'DI', 'ADX', 'RVOL', 'VD', 'ATR%', 'Kernel dist', 'SD'], new Set([3, 8, 9, 10, 11]));
     render('3. AVWAP, sector & MACD-cross context', 'context', ['Ticker', 'AVWAP', 'Sector / ETF', 'Sector Support', 'MACD Cross', 'Src']);
-    console.log('*Key: Matching history = this ticker’s prior adapter results for the current PB / TREND / OTHER structure, using the adapter’s selected test range and exits; fewer than 6 trades is always labelled small. It is a triage flag, not a gate. Room = ATR to the nearest CAP opposing zone · LC envelopes are model references, not labelled as resistance/support hurdles · AVWAP shows anchors above price and the nearest Year/Quarter/Month/Earnings anchor in ATR · Path, RVOL, VD, ATR%, AVWAP, sector rotation and MACD Cross are context, not new entry gates.*\n');
+    }
+    if (printKey) console.log('*Key: Matching history = this ticker’s prior adapter results for the current PB / TREND / OTHER structure, using the adapter’s selected test range and exits; fewer than 6 trades is always labelled small. It is a triage flag, not a gate. Room = ATR to the nearest CAP opposing zone · LC envelopes are model references, not labelled as resistance/support hurdles · AVWAP shows anchors above price and the nearest Year/Quarter/Month/Earnings anchor in ATR · Path, RVOL, VD, ATR%, AVWAP, sector rotation and MACD Cross are context, not new entry gates.*\n');
   }
 
   const sortLorp = arr => [...arr].sort((a, b) => {
@@ -2381,6 +2389,23 @@ if (!VERBOSE) {
     const dB = b.distFromKernel != null ? b.distFromKernel : Infinity;
     return dA - dB;
   });
+
+  function printLorpCombined(groups) {
+    const seen = new Set(), buys = [], sells = [];
+    groups.forEach(([rows, tag], gi) => {
+      sortLorp(rows).forEach(r => {
+        if (!(r.lorpBuySignal || r.lorpSellSignal) || seen.has(r.sym)) return;
+        if (lorpContextOnlySet.has(r.sym)) return;
+        seen.add(r.sym);
+        const row = { ...r, _srcLabel: tag || normalizeSrc(r), _grp: gi };
+        (r.lorpBuySignal ? buys : sells).push(row);
+      });
+    });
+    if (!buys.length && !sells.length) { console.log('*No LC entries on this bar.*\n'); return; }
+    if (buys.length) printLorpTable(buys, false);
+    if (sells.length) console.log(`*LC Sell signals (context only — LORP is long-only): ${sells.map(r => `${bareSym(r.sym)} (${r._srcLabel})`).join(' · ')}*\n`);
+    if (buys.length) printLorpTable([], true, true);
+  }
 
   function printLorpSection(tickers, label) {
     if (tickers.length === 0 && label !== 'LORP Screener') return;
@@ -2429,11 +2454,11 @@ if (!VERBOSE) {
   }
 
   { const _rs = readReminders('lorp'); if (_rs.length) console.log('\n' + _rs.map(x => `\uD83D\uDCCC ${x}`).join('\n') + '\n'); }
-  printLorpSection(lorpScreener, 'LORP Screener');
-  printLorpSection(lorpBriefTickers, 'Watch List (carry forward)');
-  // Fired LC entries that live in another watchlist section (e.g. LFST in SID SCREENER).
-  // Surfaced now the scan reads all sections; the Also column shows section-of-origin.
-  printLorpSection(lorpFiredOther, 'Fired entry — other section');
+  // David (5 Nov 2026): one LORP table set instead of one per watchlist section — the split
+  // was by section only (same columns, same Key repeated). Src shows the origin: Screener,
+  // Watch list (carry forward) or the other section's tag. Screener rows sort first.
+  // LC Buys only in the tables; LC Sells are one context line (LORP is long-only).
+  printLorpCombined([[lorpScreener, 'Screener'], [lorpBriefTickers, 'Watch list'], [lorpFiredOther, null]]);
 
   // Screener comparison
   if (lorpScreenerSet.size > 0) {
