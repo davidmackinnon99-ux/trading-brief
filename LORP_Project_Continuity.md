@@ -9,10 +9,20 @@ the corrected watchlist-sections note in Section 8 below and SID_Project_Continu
 ---
 
 ╔══════════════════════════════════════════════════════════════════╗
-║ CURRENT STATE — updated 29 October 2026 (supersedes items below    ║
+║ CURRENT STATE — updated 5 November 2026 (supersedes items below    ║
 ║ where they conflict; original 11 May 2026 document retained       ║
 ║ beneath as history)                                                ║
 ╚═══════════════════════════════════════════════════════════════════════╝
+
+BRIEF LAYOUT — 5 November 2026 (analyse-brief.cjs, David):
+• LORP now prints ONE set of three tables instead of one set per watchlist section (the old
+  "LORP Screener" / "Fired entry — other section" split was by section only — same columns, same Key).
+  Src column shows origin: Screener, Watch list, or the other section's tag (SID/BTW/SBT/TVX).
+  Screener rows sort first. Signals column moved next to Ticker; Side column dropped.
+• Tables hold LC Buys only. LC Sells are one context line under the tables (LORP is long-only).
+  Header reads "LORP — N LC Buys (+M LC Sells — context only)". Key printed once.
+• Repo daily auto-commit had been failing to push since 29 Oct (remote diverged). Fixed 5 Nov:
+  the launchd job now pulls --rebase before pushing.
 
 LIVE TRADES REVIEW — 29 October 2026 (TradeZella export, trading-indicators analysis/live-trades/):
 • 45 LORP longs Dec 2025 – Oct 2026: 47% WR, +$236, avg R 0.07 (close to breakeven). First closed LORP history.
