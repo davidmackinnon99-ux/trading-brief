@@ -580,7 +580,7 @@ Agreed with David after the Tramlines study (1n). Entry context only — not a g
       opposition/chop, DI shift and event risk improve selection; only then consider upstream alert changes.
 - [ ] Re-add SID Tramlines to the SID and ETF SECTORS layouts at the intended version (now v1.4; chart runs v1.1), and SID Trading Signals Pro v8.5.22 on ETF SECTORS.
 - [ ] Confirm the Tramlines shorts candidate (inside rising channel vs through lower rail) on trades after Oct 2026.
-- [ ] ATR SL v2.4 label check (FLQM, 6 Nov): "ATR: 1.24" = H+1.24 / L−1.24 lines, but ATR% 1.3% × 62.19 ≈ 0.83 raw ATR and 1.5 × 0.83 ≈ 1.24 — label likely shows the multiplied stop distance, not raw ATR. Confirm in the Pine source and relabel.
+- [x] ATR SL label (6 Nov): confirmed v2.4 table "ATR" was ATR × multiplier. Fixed in ATR SL v2.5 (trading-indicators `current/indicators/`): table now shows raw ATR + "Stop 1.5×" distance; calcs and Data Window keys unchanged, brief unaffected. **David: paste v2.5 onto the charts.**
 - [ ] Decide whether the hidden scripts on the SID layout (10 of them) stay or move to a test layout.
 - [ ] Recent live-trade findings (39-trade journal is in `SID DATA/`; losers catalogued in
       `scripts/sid_factor_grade.py`).
