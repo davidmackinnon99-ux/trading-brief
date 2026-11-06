@@ -1,7 +1,7 @@
 # SID Strategy — Project Continuity
 
 **Living doc — git is the version history (no more numbered copies).**
-**Last updated:** 29 October 2026
+**Last updated:** 6 November 2026
 **Supersedes:** SID_Project_Continuity_9 (29 Mar 2026) + the iCloud `v10` draft — both archive only.
 **Strategy:** SID Strategy v10.5.21 (backtest) · **Indicator:** SID Trading Signals Pro v8.5.22 (entry+confluence) — code in `~/Trading Indicators` repo, `current/` folder; what is on each chart is in that repo's `CHART_INVENTORY.md`
 
@@ -559,6 +559,16 @@ Agreed with David after the Tramlines study (1n). Entry context only — not a g
 - Tramlines on live shorts: inside 4/8 vs through-rail 12/17 — does not yet support the 1n shorts candidate.
   Two red candles at a short signal 7/9 vs 9/16 — supports David's two-candle rule on shorts; no gain on longs.
 
+## 1x. Gap/ATR reminder added to the brief — 6 November 2026
+- Trigger: FLQM short alert review — David had forgotten the Gap/ATR rule and the brief only showed the raw number.
+- `analyse-brief.cjs` table 2 now marks Gap/ATR `⚠️` <1.5 and `✓` ≥2.0, plus a callout naming any
+  Review/Conditional ticker <1.5 (⛔ when RVOL <1.0 too — the 64% SL combo) and a standing one-line reminder.
+- Still **context, not a gate** (STRATEGIES.md unchanged). Definition reminder: Gap/ATR = room to the 10-bar
+  swing stop in ATRs — *not* MACD distance and *not* candle size. The older "short MACD0 gap >0.75 avoid"
+  note (Mar 2026 study) is not in STRATEGIES.md and was NOT implemented.
+- Seasonality: monthly win/loss on a single ticker needs ~15–20 trades per month before it means anything;
+  pool across tickers for a strategy-level read.
+
 ## 5. Open items (need input — not resolvable from files)
 - [ ] Reconcile the 300-trade manual journal (`analysis/sid-btw-universe/Backtesting_Sheet_300_SID.xlsx`) against `data/trades/trades_all.csv` and the automated BTW-universe backtest — three SID datasets now exist and haven't been cross-checked against each other.
 - [x] ~30% of brief candidates were funds/trusts, not equities — fixed 17 Sep 2026 by excluding sector "Miscellaneous" tickers from both `lorpAll` and `sidPass` in `analyse-brief.cjs`; see `LORP_Project_Continuity.md`'s 17 Sep entry for the full writeup (applies to both strategies).
@@ -570,6 +580,7 @@ Agreed with David after the Tramlines study (1n). Entry context only — not a g
       opposition/chop, DI shift and event risk improve selection; only then consider upstream alert changes.
 - [ ] Re-add SID Tramlines to the SID and ETF SECTORS layouts at the intended version (now v1.4; chart runs v1.1), and SID Trading Signals Pro v8.5.22 on ETF SECTORS.
 - [ ] Confirm the Tramlines shorts candidate (inside rising channel vs through lower rail) on trades after Oct 2026.
+- [ ] ATR SL v2.4 label check (FLQM, 6 Nov): "ATR: 1.24" = H+1.24 / L−1.24 lines, but ATR% 1.3% × 62.19 ≈ 0.83 raw ATR and 1.5 × 0.83 ≈ 1.24 — label likely shows the multiplied stop distance, not raw ATR. Confirm in the Pine source and relabel.
 - [ ] Decide whether the hidden scripts on the SID layout (10 of them) stay or move to a test layout.
 - [ ] Recent live-trade findings (39-trade journal is in `SID DATA/`; losers catalogued in
       `scripts/sid_factor_grade.py`).

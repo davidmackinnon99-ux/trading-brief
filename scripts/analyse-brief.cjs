@@ -2730,7 +2730,7 @@ if (!VERBOSE) {
           return [T.bare(t.sym), short(t.cells.macd),
             t.cells.di.replace('Shift–', 'Sh ').replace('Control–', 'Ct ').replace(/Buyers/g, 'Buy').replace(/Sellers/g, 'Sell'),
             t.cells.adx.replace('rising', '↑').replace('falling', '↓').replace('flat', '→'), t.cells.rvol,
-            r.gatrRatio == null ? '-' : r.gatrRatio.toFixed(2), warningCell(t)];
+            r.gatrRatio == null ? '-' : r.gatrRatio.toFixed(2) + (r.gatrRatio < 1.5 ? ' ⚠️' : r.gatrRatio >= 2.0 ? ' ✓' : ''), warningCell(t)];
         }), new Set([4, 5]));
       console.log('\n**3. Price, sector & event context**\n');
       const supportCell = t => {
@@ -2756,6 +2756,11 @@ if (!VERBOSE) {
       if (runover.length) console.log(`\n> ⚠️ SHORT material run-over risk — ADX 40–50 (expanded sample: −1.43% mean, PF 0.51): ${runover.map(r => `${T.bare(r.sym)} (${r.adx.toFixed(1)})`).join(', ')}`);
       const diWide = rvS.filter(r => { const g = diGap(r); return g != null && g >= 20; });
       if (diWide.length) console.log(`\n> ⚠️ SHORT probability risk — DI spread ≥ 20 (expanded sample: 25.8% win rate; not an expectancy gate): ${diWide.map(r => `${T.bare(r.sym)} (${diGap(r).toFixed(0)})`).join(', ')}`);
+      // Gap/ATR reminder (David, 6 Nov 2026) — canonical STRATEGIES.md: ≥2.0 ideal · <1.5 avoid
+      // (danger flag F1; context, not a hard filter). F1 + RVOL<1.0 is the worst validated combo (64% SL).
+      const gLow = rv.filter(r => r.gatrRatio != null && r.gatrRatio < 1.5);
+      if (gLow.length) console.log(`\n> ⚠️ Gap/ATR < 1.5 — stop too tight for the swing (F1; with RVOL<1.0 = 64% SL): ${gLow.map(r => `${T.bare(r.sym)} (${r.gatrRatio.toFixed(2)}${r.rvol != null && r.rvol < 1.0 ? ', RVOL ' + r.rvol.toFixed(2) + ' ⛔' : ''})`).join(', ')}`);
+      console.log(`\n> 📏 Gap/ATR reminder: ≥2.0 ideal · 1.5–2.0 caution · <1.5 avoid (F1 danger flag; 2+ flags = avoid).`);
     } else {
       console.log('\n*No alert reached Review now or Conditional today — see the appendix for every alert and its reason.*');
     }
