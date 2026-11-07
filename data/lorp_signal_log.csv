@@ -77,3 +77,5 @@ brief_date,symbol,price,native_label,entry_type,structure,pattern,sd_ago,extende
 2026-11-05,UHS,196.46,,No LC data,TREND,,2,0,0.28,,20.49,2.48,SID
 2026-11-05,WEN,7.65,,No LC data,TREND,,0,0,0.16,,28.18,1.25,BTW
 2026-11-05,XLY,122.33,,No LC data,PB,,2,0,0.70,,22.56,2.24,SECTOR
+2026-11-07,RYTM,112.28,,No LC data,TREND,none,,0,2.73,,26.88,2.90,LORP
+2026-11-07,VCEL,54.62,,No LC data,PB,none,,0,1.23,,22.33,2.08,SBT
