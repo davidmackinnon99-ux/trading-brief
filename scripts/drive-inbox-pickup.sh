@@ -55,7 +55,9 @@ for SRC in "$INBOX"/*; do
   fi
   # Copy to a temp name first so readers never see a half-written file
   # (Drive may still be downloading an online-only file).
-  if cat "$SRC" > "$DEST/.$NAME.part" 2>>"$LOG" && [ -s "$DEST/.$NAME.part" ]; then
+  # Python helper lets this launchd job download online-only Drive files itself
+  # (plain cp/cat get "Resource deadlock avoided" when run from launchd).
+  if /usr/bin/python3 "$(dirname "$0")/drive-inbox-copy.py" "$SRC" "$DEST/.$NAME.part" 2>>"$LOG" && [ -s "$DEST/.$NAME.part" ]; then
     mv "$DEST/.$NAME.part" "$DEST/$NAME"
     echo "$NAME" >> "$LEDGER"
     echo "$(ts) copied $NAME -> $DEST/" >> "$LOG"

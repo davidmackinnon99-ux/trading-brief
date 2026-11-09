@@ -35,8 +35,9 @@ CLOUD TASKS NO LONGER WRITE TO THE MAC — 10 November 2026 (David, security):
   ~/Downloads/Briefs, *_tvmcp.* → Briefs/tvmcp_test, tvremix_sid_lorp_<date>.csv → SBT_Latest.
   Strict name patterns only, never overwrites, ledger ~/.tradingview-mcp/drive-inbox-copied.txt,
   log ~/.tradingview-mcp/briefs/drive-inbox.log.
-• Needs the Trading Inbox folder set to "Available offline" in Google Drive for Desktop —
-  launchd can't download online-only files ("Resource deadlock avoided").
+• launchd jobs can't download online-only Drive files by default ("Resource deadlock avoided"),
+  so the copy goes through scripts/drive-inbox-copy.py, which turns materialisation on for
+  itself (setiopolicy_np). Tested with a dataless file — no "Available offline" setting needed.
 • Rule now: any request to access the Mac that David didn't start himself is suspicious.
 
 LIVE TRADES REVIEW — 29 October 2026 (TradeZella export, trading-indicators analysis/live-trades/):
