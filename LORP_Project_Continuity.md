@@ -24,6 +24,21 @@ BRIEF LAYOUT — 5 November 2026 (analyse-brief.cjs, David):
 • Repo daily auto-commit had been failing to push since 29 Oct (remote diverged). Fixed 5 Nov:
   the launchd job now pulls --rebase before pushing.
 
+CLOUD TASKS NO LONGER WRITE TO THE MAC — 10 November 2026 (David, security):
+• The three evening cloud tasks (Daily sector rotation report, TEST sector rotation on TV MCP,
+  SID/LORP nightly pull) used to write onto the Mac through the device bridge, which needed
+  David's approval each night; approvals queued while he was away and he couldn't tell them
+  from an intrusion attempt. They now upload to Google Drive › "Trading Inbox"
+  (folder id 1UhrLrms6-DQiH8wBz4xmocsi6sVp6DzC) and never touch the Mac.
+• Mac side: scripts/drive-inbox-pickup.sh, launchd com.davidmackinnon.drive-inbox-pickup
+  (every 5 min, also in ensure-launchd-agents.sh). Copies sector_rotation_<date>.md/json →
+  ~/Downloads/Briefs, *_tvmcp.* → Briefs/tvmcp_test, tvremix_sid_lorp_<date>.csv → SBT_Latest.
+  Strict name patterns only, never overwrites, ledger ~/.tradingview-mcp/drive-inbox-copied.txt,
+  log ~/.tradingview-mcp/briefs/drive-inbox.log.
+• Needs the Trading Inbox folder set to "Available offline" in Google Drive for Desktop —
+  launchd can't download online-only files ("Resource deadlock avoided").
+• Rule now: any request to access the Mac that David didn't start himself is suspicious.
+
 LIVE TRADES REVIEW — 29 October 2026 (TradeZella export, trading-indicators analysis/live-trades/):
 • 45 LORP longs Dec 2025 – Oct 2026: 47% WR, +$236, avg R 0.07 (close to breakeven). First closed LORP history.
 • Exits: "LORP Default" 15/16 winners (+$424); Manual 5/17 (−$38); stops −$222. Manual exits include cutting

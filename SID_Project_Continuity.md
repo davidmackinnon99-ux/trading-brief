@@ -569,6 +569,13 @@ Agreed with David after the Tramlines study (1n). Entry context only — not a g
 - Seasonality: monthly win/loss on a single ticker needs ~15–20 trades per month before it means anything;
   pool across tickers for a strategy-level read.
 
+## 1y. Cloud tasks deliver via Google Drive, not the Mac — 10 November 2026
+- The sector rotation report (feeds the brief's Rotation header + SID TRIGGER/SETUP context) and the
+  SID/LORP nightly pull now upload to Google Drive › "Trading Inbox"; they no longer access the Mac
+  (David: nightly approval prompts couldn't be told apart from an intrusion attempt).
+- `scripts/drive-inbox-pickup.sh` (launchd, every 5 min) copies them into ~/Downloads/Briefs and
+  ~/Downloads/SBT_Latest. Full details in LORP_Project_Continuity.md, 10 Nov entry.
+
 ## 5. Open items (need input — not resolvable from files)
 - [ ] Reconcile the 300-trade manual journal (`analysis/sid-btw-universe/Backtesting_Sheet_300_SID.xlsx`) against `data/trades/trades_all.csv` and the automated BTW-universe backtest — three SID datasets now exist and haven't been cross-checked against each other.
 - [x] ~30% of brief candidates were funds/trusts, not equities — fixed 17 Sep 2026 by excluding sector "Miscellaneous" tickers from both `lorpAll` and `sidPass` in `analyse-brief.cjs`; see `LORP_Project_Continuity.md`'s 17 Sep entry for the full writeup (applies to both strategies).

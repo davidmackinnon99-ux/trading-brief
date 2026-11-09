@@ -15,6 +15,7 @@ LABELS=(
   "com.davidmackinnon.brief-backup"
   "com.davidmackinnon.lorp-monitor"
   "com.david.trading-brief-autocommit"
+  "com.davidmackinnon.drive-inbox-pickup"
 )
 
 mkdir -p "$(dirname "$LOGFILE")"
