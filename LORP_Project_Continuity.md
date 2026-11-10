@@ -14,6 +14,17 @@ the corrected watchlist-sections note in Section 8 below and SID_Project_Continu
 ║ beneath as history)                                                ║
 ╚═══════════════════════════════════════════════════════════════════════╝
 
+BAR SIZE COLUMN — 10 November 2026 (analyse-brief.cjs, David):
+• New "Bar" column in LORP table 1 and the Pullback Watch: signal candle high–low in ATR(14), from the
+  captured OHLC bars (falls back to ATR SL ATR%). ⚠️ ≥1.5 ATR, 🚩 ≥2.0 ATR. Context, not a gate.
+  Basis: WRB on the entry bar was negative on 7/10 tickers (confluence study) — a big entry candle = chasing.
+• Minervini Trend Template (TrendSpider) on trial alongside LORP. Read partials by WHICH checks fail:
+  Full · Partial-pullback (only price>SMA50 / near-high fails) · Partial-structural (MA stack / SMA200
+  rising fails) · Fail. Hypothesis: structural partials hold the losers — log and test on live trades.
+• FOUND: the 10 Nov LORP scan read only 3 studies per symbol (LC Premium, CAP Tools, RSI) vs 10 on 31 Oct
+  — ADX/DI, MACD0, MACD Sep, RVOL-Z, ATR SL, Adapter all missing; 5–7 Nov already down to 8–9 (ATR SL and
+  52WH gone). LORP layout needs checking.
+
 BRIEF LAYOUT — 5 November 2026 (analyse-brief.cjs, David):
 • LORP now prints ONE set of three tables instead of one set per watchlist section (the old
   "LORP Screener" / "Fired entry — other section" split was by section only — same columns, same Key).

@@ -1627,8 +1627,21 @@ const results = brief.symbols_scanned.filter(s => !EXCLUDED_TICKERS.has(s.symbol
     : (patKind != null && patKind > 0 && PAT_NAMES[patKind]) ? `${PAT_NAMES[patKind]}${patStat === 0 ? ' (forming)' : ''}${patBars != null ? ' ' + patBars + 'b' : ''}`
     : 'none';
 
+  // 10 Nov 2026: bar-based ATR(14, Wilder) + last bar range from the captured OHLC bars, so the
+  // Bar column works even when the ATR SL study is missing from the scan. Bars = [t,o,h,l,c].
+  let barRangeAtr = null;
+  if (Array.isArray(s.bars) && s.bars.length >= 16) {
+    const B = s.bars, n = 14;
+    const tr = i => Math.max(B[i][2] - B[i][3], Math.abs(B[i][2] - B[i-1][4]), Math.abs(B[i][3] - B[i-1][4]));
+    let atr = 0; for (let i = 1; i <= n; i++) atr += tr(i); atr /= n;
+    for (let i = n + 1; i < B.length; i++) atr = (atr * (n - 1) + tr(i)) / n;
+    const L = B[B.length - 1];
+    const fresh = price == null || Math.abs(L[4] - price) / price <= 0.03;   // same guard as Dip
+    if (atr > 0 && fresh) barRangeAtr = (L[2] - L[3]) / atr;
+  }
+
   return {
-    sym: s.symbol, price, strategy,
+    sym: s.symbol, price, strategy, barRangeAtr,
     // LORP context
     aboveEMA50, ema50Detail, aboveSMA200, sma200Detail,
     ema50AboveSMA200, macdPos, aroonPos, aroonCtxLORP,
@@ -2333,6 +2346,14 @@ if (!VERBOSE) {
       : `${r.avwapAboveCount == null ? '—' : r.avwapAboveCount}/4 above${nearestAvwap ? ` · ${nearestAvwap[0]} ${nearestAvwap[1] >= 0 ? '+' : ''}${nearestAvwap[1].toFixed(1)}A` : ''}`;
     const vdBrief = r.vd == null ? '—' : `${r.vd >= 0 ? '+' : ''}${r.vd.toFixed(2)}`;
     const atrBrief = r.atrPct == null ? '—' : `${r.atrPct.toFixed(1)}%`;
+    // David (10 Nov 2026): signal-bar size in ATR. A big candle on the entry bar = chasing
+    // (WRB-on-entry-bar was negative on 7/10 tickers in the LORP confluence study).
+    // ⚠️ >= 1.5 ATR, 🚩 >= 2.0 ATR. Context only — not a gate.
+    const barAtr = r.barRangeAtr != null ? r.barRangeAtr
+      : (r.high != null && r.low != null && r.atrPct != null && r.price != null && r.atrPct > 0 && r.price > 0)
+      ? (r.high - r.low) / (r.atrPct / 100 * r.price) : null;
+    const barR = barAtr == null ? null : Math.round(barAtr * 10) / 10;
+    const barStr = barR == null ? '—' : `${barR.toFixed(1)}A${barR >= 2.0 ? ' 🚩' : barR >= 1.5 ? ' ⚠️' : ''}`;
 
     // History flag for the current structure class. Small samples are deliberately
     // labelled rather than promoted as favourable/unfavourable evidence.
@@ -2351,7 +2372,7 @@ if (!VERBOSE) {
     })();
 
     return {
-      entry: [r.sym, sigStr, `$${fmt(r.price)}`, dipStr, histStr, patStr],
+      entry: [r.sym, sigStr, `$${fmt(r.price)}`, barStr, dipStr, histStr, patStr],
       path: [r.sym, pathStr, hurdleStr, roomStr, capStr, macd0Str, diStr, adxStr, rvolStr, vdBrief, atrBrief, distStr, sdStr || '—'],
       context: [r.sym, avwapStr, `${sectorNameStr} / ${sectorEtfStr}`, sectorStr, macdXStr, r._srcLabel || normalizeSrc(r)],
     };
@@ -2371,11 +2392,11 @@ if (!VERBOSE) {
       console.log('');
     };
     if (!keyOnly) {
-    render('1. Entry, structure & ticker history', 'entry', ['Ticker', 'Signals', 'Price', 'Structure', 'Matching history', 'Pattern'], new Set([2]));
+    render('1. Entry, structure & ticker history', 'entry', ['Ticker', 'Signals', 'Price', 'Bar', 'Structure', 'Matching history', 'Pattern'], new Set([2, 3]));
     render('2. Path & momentum', 'path', ['Ticker', 'Path', 'First hurdle', 'Room', 'CAP', 'MACD0', 'DI', 'ADX', 'RVOL', 'VD', 'ATR%', 'Kernel dist', 'SD'], new Set([3, 8, 9, 10, 11]));
     render('3. AVWAP, sector & MACD-cross context', 'context', ['Ticker', 'AVWAP', 'Sector / ETF', 'Sector Support', 'MACD Cross', 'Src']);
     }
-    if (printKey) console.log('*Key: Matching history = this ticker’s prior adapter results for the current PB / TREND / OTHER structure, using the adapter’s selected test range and exits; fewer than 6 trades is always labelled small. It is a triage flag, not a gate. Room = ATR to the nearest CAP opposing zone · LC envelopes are model references, not labelled as resistance/support hurdles · AVWAP shows anchors above price and the nearest Year/Quarter/Month/Earnings anchor in ATR · Path, RVOL, VD, ATR%, AVWAP, sector rotation and MACD Cross are context, not new entry gates.*\n');
+    if (printKey) console.log('*Key: Bar = signal candle’s high–low in ATR (⚠️ ≥1.5, 🚩 ≥2.0 — big entry candle = chasing; context, not a gate) · Matching history = this ticker’s prior adapter results for the current PB / TREND / OTHER structure, using the adapter’s selected test range and exits; fewer than 6 trades is always labelled small. It is a triage flag, not a gate. Room = ATR to the nearest CAP opposing zone · LC envelopes are model references, not labelled as resistance/support hurdles · AVWAP shows anchors above price and the nearest Year/Quarter/Month/Earnings anchor in ATR · Path, RVOL, VD, ATR%, AVWAP, sector rotation and MACD Cross are context, not new entry gates.*\n');
   }
 
   const sortLorp = arr => [...arr].sort((a, b) => {
@@ -2554,8 +2575,8 @@ if (!VERBOSE) {
       console.log('---\n');
       console.log(`**📋 LORP PULLBACK WATCH — ${activeWatch.length} tickers**`);
       console.log('*Tracks reversion tickers for up to 5 trading days while the pullback develops*\n');
-      console.log('| Ticker | Price | Days | First Seen | Entry $ | Type | Status |');
-      console.log('|--------|-------|------|------------|---------|------|--------|');
+      console.log('| Ticker | Price | Bar | Days | First Seen | Entry $ | Type | Status |');
+      console.log('|--------|-------|-----|------|------------|---------|------|--------|');
 
       for (const [sym, entry] of activeWatch) {
         const r = lorpAll.find(t => bareSym(t.sym) === sym);
@@ -2569,8 +2590,11 @@ if (!VERBOSE) {
         const entryPrice = entry.pb_first_price != null ? `$${entry.pb_first_price.toFixed(2)}` : '—';
         const typeStr     = entry.pb_native_label || r?.lorpNativeLabel || '—';
         const statusStr   = r ? 'Active' : 'Active ⚠ not in scan';
+        const bA = r?.barRangeAtr;   // 10 Nov 2026: today's candle size in ATR (⚠️ >=1.5, 🚩 >=2.0)
+        const bR = bA == null ? null : Math.round(bA * 10) / 10;
+        const barCell = bR == null ? '—' : `${bR.toFixed(1)}A${bR >= 2.0 ? ' 🚩' : bR >= 1.5 ? ' ⚠️' : ''}`;
 
-        console.log(`| ${sym} | ${priceStr} | ${days} | ${seenDate} | ${entryPrice} | ${typeStr} | ${statusStr} |`);
+        console.log(`| ${sym} | ${priceStr} | ${barCell} | ${days} | ${seenDate} | ${entryPrice} | ${typeStr} | ${statusStr} |`);
       }
       console.log('');
 
