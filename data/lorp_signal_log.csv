@@ -79,3 +79,8 @@ brief_date,symbol,price,native_label,entry_type,structure,pattern,sd_ago,extende
 2026-11-05,XLY,122.33,,No LC data,PB,,2,0,0.70,,22.56,2.24,SECTOR
 2026-11-07,RYTM,112.28,,No LC data,TREND,none,,0,2.73,,26.88,2.90,LORP
 2026-11-07,VCEL,54.62,,No LC data,PB,none,,0,1.23,,22.33,2.08,SBT
+2026-11-10,CMG,35.74,LORP Long,Pullback 🔄,TREND,,7,0,,3.07,,,BTW
+2026-11-10,SKY,96.39,LORP Long,Pullback 🔄,TREND · HIST20,,,0,,2.75,,,SID
+2026-11-10,TROW,110.82,LORP Long,—,TREND,,,0,,1.54,,,LORP
+2026-11-10,VTRS,20.49,LORP Long,Pullback 🔄,PB,,0,0,,2.57,,,LORP
+2026-11-10,ZBH,108.33,LORP Long,Pullback 🔄,TREND,,,0,,2.27,,,LORP

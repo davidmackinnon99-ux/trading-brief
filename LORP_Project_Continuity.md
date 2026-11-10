@@ -18,9 +18,10 @@ BAR SIZE COLUMN — 10 November 2026 (analyse-brief.cjs, David):
 • New "Bar" column in LORP table 1 and the Pullback Watch: signal candle high–low in ATR(14), from the
   captured OHLC bars (falls back to ATR SL ATR%). ⚠️ ≥1.5 ATR, 🚩 ≥2.0 ATR. Context, not a gate.
   Basis: WRB on the entry bar was negative on 7/10 tickers (confluence study) — a big entry candle = chasing.
-• Minervini Trend Template (TrendSpider) on trial alongside LORP. Read partials by WHICH checks fail:
-  Full · Partial-pullback (only price>SMA50 / near-high fails) · Partial-structural (MA stack / SMA200
-  rising fails) · Fail. Hypothesis: structural partials hold the losers — log and test on live trades.
+• Minervini Trend Template (TrendSpider) tested vs LORP longs (10 Nov, trading-indicators analysis/minervini/RESULTS.md):
+  live 38 trades FULL 20 avg -1.04% WR 35% · STRUCT 11 -0.44% WR 55% · FAIL 7 +0.09%; no PB entries (LORP fires on the bounce).
+  Historical 598: no edge (all groups median ~-1.5%). Structural-partial hypothesis NOT supported; full-template entries did
+  worst live (matches the near-52WH finding). TV indicator not built — David to decide.
 • FOUND: the 10 Nov LORP scan read only 3 studies per symbol (LC Premium, CAP Tools, RSI) vs 10 on 31 Oct
   — ADX/DI, MACD0, MACD Sep, RVOL-Z, ATR SL, Adapter all missing; 5–7 Nov already down to 8–9 (ATR SL and
   52WH gone). LORP layout needs checking.
