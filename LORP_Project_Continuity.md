@@ -21,7 +21,7 @@ BAR SIZE COLUMN — 10 November 2026 (analyse-brief.cjs, David):
 • Minervini Trend Template (TrendSpider) tested vs LORP longs (10 Nov, trading-indicators analysis/minervini/RESULTS.md):
   live 38 trades FULL 20 avg -1.04% WR 35% · STRUCT 11 -0.44% WR 55% · FAIL 7 +0.09%; no PB entries (LORP fires on the bounce).
   Historical 598: no edge (all groups median ~-1.5%). Structural-partial hypothesis NOT supported; full-template entries did
-  worst live (matches the near-52WH finding). TV indicator not built — David to decide.
+  worst live (matches the near-52WH finding). DECISION (David, 10 Nov): not pursued — no indicator, no brief column.
 • FOUND: the 10 Nov LORP scan read only 3 studies per symbol (LC Premium, CAP Tools, RSI) vs 10 on 31 Oct
   — ADX/DI, MACD0, MACD Sep, RVOL-Z, ATR SL, Adapter all missing; 5–7 Nov already down to 8–9 (ATR SL and
   52WH gone). LORP layout needs checking.
