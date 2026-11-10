@@ -418,6 +418,10 @@ to the RSI-50 objective, then (2) do momentum/participation/context support taki
   **Pos reminder:** where the entry close sits between the rails (0% lower, 100% upper; below 0 / above 100 =
   outside, as a share of channel width) — not a price change. WMG: rails 30.87–33.60, close 30.29 → −21%.
   **v1.5:** entry labels offset from the candle (default 1 ATR) + label size setting; display only.
+- **v1.6 (10 Nov 2026):** David thought turning on past SID entries overwrote the live tramlines. It doesn't: an entry in
+  the last few bars is fitted to nearly the same candles, so its thicker past-entry lines sat on top of the live rails.
+  v1.6 draws the live channel last (on top) and makes both midlines white and dotted ("Midline colour" setting). Display
+  only; compile check 0 errors. File: `testing/indicators/SID_Tramlines_v1.6.pine` (trading-indicators).
 
 ## 1r. SID Pattern Finder v2.8 — 19 October 2026
 - `indicators/SID_Pattern_Finder_v2.8.pine`: three new Data Window values (Recent Pattern Kind 1-4/0, Recent
