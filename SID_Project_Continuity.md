@@ -580,6 +580,13 @@ Agreed with David after the Tramlines study (1n). Entry context only — not a g
 - `scripts/drive-inbox-pickup.sh` (launchd, every 5 min) copies them into ~/Downloads/Briefs and
   ~/Downloads/SBT_Latest. Full details in LORP_Project_Continuity.md, 10 Nov entry.
 
+## 1y. RSI divergence as a SID check — 11 November 2026
+- David: entries often see a next candle the wrong way; does RSI divergence warn of it? Tested TV built-in RSI Divergence
+  logic (5/5 pivots) on 2,545 SID trades (trading-indicators `analysis/sid-rsi-divergence/RESULTS.md`).
+- Next candle against = 51% of ALL SID entries (normal noise). Divergence known on the signal day does not predict it
+  (48-59% in every group) or the outcome (shorts did better WITH an opposing bullish divergence). Hindsight view looks
+  good only because the indicator draws the divergence back at the pivot 5 bars later. Not adopted, not context.
+
 ## 5. Open items (need input — not resolvable from files)
 - [ ] Reconcile the 300-trade manual journal (`analysis/sid-btw-universe/Backtesting_Sheet_300_SID.xlsx`) against `data/trades/trades_all.csv` and the automated BTW-universe backtest — three SID datasets now exist and haven't been cross-checked against each other.
 - [x] ~30% of brief candidates were funds/trusts, not equities — fixed 17 Sep 2026 by excluding sector "Miscellaneous" tickers from both `lorpAll` and `sidPass` in `analyse-brief.cjs`; see `LORP_Project_Continuity.md`'s 17 Sep entry for the full writeup (applies to both strategies).
