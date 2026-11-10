@@ -265,6 +265,9 @@ CURRENT TOOLING:
   4→30 for a ~2-month lookback.
 
 OPEN THREADS:
+  [ ] FUTURE (David, 10 Nov 2026): if building a LORP alternative from scratch, start from jdehorty's free
+      "Machine Learning: Lorentzian Classification" source (open). A Python port would also allow repaint-proof
+      backtests (signals computed bar-by-bar without hindsight), which the Premium history cannot give.
   [ ] Forward-monitor First Pullback + kernel colour/direction vs the v2.13
       adapter behaviour.
   [ ] Run Wait-ON + MACD0-exit-ON and split the export by REV/TREND tag —
