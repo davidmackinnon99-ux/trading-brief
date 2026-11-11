@@ -594,6 +594,18 @@ Agreed with David after the Tramlines study (1n). Entry context only — not a g
   trading-indicators `analysis/sid-ultimate-rsi/RESULTS.md`. Old strategies RSI Bullish Divergence and RSI OB/OS
   Reversal_DM retired and archived (`archive/strategies/`).
 
+## 2a. Weekly RSI gate corrected — v8.5.23 / v10.5.22 — 11 November 2026
+- SNEX (alert 9 Nov, RSI 45.8, MACD had turned 3 Nov) prompted a review. The v8.5.20/v10.5.20 gate (completed weeks
+  only, 16 Oct repaint fix) blocked ~94% of signals on the day and delayed entries; Python port longs avg +0.87% →
+  +0.34%. David: "against all the rules of SID". Checked the 300-trade journal: SID is applied on THIS WEEK SO FAR vs last
+  completed week (82% of journal longs pass) — the coded completed-weeks rule passes 5%. This-week rule in the port:
+  +0.88% (removes ~5% of trades, no delay). trading-indicators `analysis/sid-weekly-gate/RESULTS.md`.
+- v8.5.23 / v10.5.22 compute the this-week weekly RSI from daily bars inside the script (Wilder RSI on weekly closes,
+  current week = today's close): same value live and on reload/backtest, so the 16 Oct alert-without-marker problem
+  does not return. SNEX under the new rule: weekly passes from 2 Nov (completed rule only from 9 Nov).
+- "Weekly RSI" Data Window value now = this week so far (merge_trades.py column meaning changes from 11 Nov).
+- Install: paste into existing saved scripts, rename, recreate the SID ENTRY alert. Pending David.
+
 ## 5. Open items (need input — not resolvable from files)
 - [ ] Reconcile the 300-trade manual journal (`analysis/sid-btw-universe/Backtesting_Sheet_300_SID.xlsx`) against `data/trades/trades_all.csv` and the automated BTW-universe backtest — three SID datasets now exist and haven't been cross-checked against each other.
 - [x] ~30% of brief candidates were funds/trusts, not equities — fixed 17 Sep 2026 by excluding sector "Miscellaneous" tickers from both `lorpAll` and `sidPass` in `analyse-brief.cjs`; see `LORP_Project_Continuity.md`'s 17 Sep entry for the full writeup (applies to both strategies).
