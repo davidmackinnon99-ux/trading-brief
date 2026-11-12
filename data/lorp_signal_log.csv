@@ -84,3 +84,7 @@ brief_date,symbol,price,native_label,entry_type,structure,pattern,sd_ago,extende
 2026-11-10,TROW,110.82,LORP Long,—,TREND,,,0,,1.54,,,LORP
 2026-11-10,VTRS,20.49,LORP Long,Pullback 🔄,PB,,0,0,,2.57,,,LORP
 2026-11-10,ZBH,108.33,LORP Long,Pullback 🔄,TREND,,,0,,2.27,,,LORP
+2026-11-12,ANET,196.68,,No LC data,TREND,none,,0,2.41,,20.15,0.98,SBT
+2026-11-12,EVT,27.74,,No LC data,TREND,none,2,0,0.05,,26.13,1.07,SID
+2026-11-12,IMVT,37.04,,No LC data,PB,none,,0,1.20,,33.08,1.14,TVX
+2026-11-12,ZETA,37.74,,No LC data,TREND · HIST20,none,0,0,0.33,,23.20,1.60,SBT
