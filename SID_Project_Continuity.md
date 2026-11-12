@@ -606,6 +606,14 @@ Agreed with David after the Tramlines study (1n). Entry context only — not a g
 - "Weekly RSI" Data Window value now = this week so far (merge_trades.py column meaning changes from 11 Nov).
 - Install: paste into existing saved scripts, rename, recreate the SID ENTRY alert. Pending David.
 
+## 2b. DI/ADX context flags in the brief — 12 November 2026
+
+David approved items 1, 2 and 4 of the DI/ADX review (item 3, the RSI "late entry" flag, was rejected). All are information only and never gate a trade. "DI against" = DI+ − DI− for shorts, DI− − DI+ for longs. Evidence: `Trading Indicators/analysis/sid-whipsaw` (older strategy rules, so treat as tendencies).
+- **1 (kept):** short ⚠️ ADX 40–50 (avg −3.30%) and ⚠️ DI against ≥ 20 (avg −1.16%).
+- **2 (new):** short ✓ "DI supportive" when DI against < 10 (avg +0.03%, 29% whipsaw, the best short group).
+- **4 (new):** long ℹ️ "Rough ride" when DI against ≥ 20 (whipsaw ~44% but avg +1.29%; a heads-up, not a skip).
+Shown in the Caution column of SID table 2 plus a callout line under the tables (`scripts/analyse-brief.cjs`). The 12 Nov brief was regenerated with them.
+
 ## 5. Open items (need input — not resolvable from files)
 - [ ] Reconcile the 300-trade manual journal (`analysis/sid-btw-universe/Backtesting_Sheet_300_SID.xlsx`) against `data/trades/trades_all.csv` and the automated BTW-universe backtest — three SID datasets now exist and haven't been cross-checked against each other.
 - [x] ~30% of brief candidates were funds/trusts, not equities — fixed 17 Sep 2026 by excluding sector "Miscellaneous" tickers from both `lorpAll` and `sidPass` in `analyse-brief.cjs`; see `LORP_Project_Continuity.md`'s 17 Sep entry for the full writeup (applies to both strategies).

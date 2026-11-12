@@ -2739,7 +2739,17 @@ if (!VERBOSE) {
       const warningCell = t => (t.warnings || []).map(w => ({
         SHORT_ADX_RUNOVER: 'ADX 40–50 risk', SHORT_DI_RUNOVER: 'DI≥20 low-WR',
         SECTOR_ROTATION_OPPOSED: 'Sector opposed',
-      }[w] || w)).join(', ') || '—';
+      }[w] || w)).concat(diFlags(t)).join(', ') || '—';
+      // DI flags (David, 12 Nov 2026 — items 2 & 4 of the DI/ADX review; info only, never a gate).
+      // DI against = DI+ − DI− for shorts, DI− − DI+ for longs. Source: analysis/sid-whipsaw.
+      function diFlags(t) {
+        const r = rowOf.get(t.sym);
+        if (!r || r.diPlus == null || r.diMinus == null) return [];
+        const against = t.dir === 'long' ? r.diMinus - r.diPlus : r.diPlus - r.diMinus;
+        if (t.dir !== 'long' && against < 10) return ['✓ DI supportive'];
+        if (t.dir === 'long' && against >= 20) return ['ℹ️ Rough ride'];
+        return [];
+      }
       mdTable(['Ticker', 'Side', 'Status', 'Price', 'Path', 'First hurdle', 'Room', 'CAP'],
         primary.map(t => {
           const r = rowOf.get(t.sym);
@@ -2780,6 +2790,10 @@ if (!VERBOSE) {
       if (runover.length) console.log(`\n> ⚠️ SHORT material run-over risk — ADX 40–50 (expanded sample: −1.43% mean, PF 0.51): ${runover.map(r => `${T.bare(r.sym)} (${r.adx.toFixed(1)})`).join(', ')}`);
       const diWide = rvS.filter(r => { const g = diGap(r); return g != null && g >= 20; });
       if (diWide.length) console.log(`\n> ⚠️ SHORT probability risk — DI spread ≥ 20 (expanded sample: 25.8% win rate; not an expectancy gate): ${diWide.map(r => `${T.bare(r.sym)} (${diGap(r).toFixed(0)})`).join(', ')}`);
+      const diSup = rvS.filter(r => { const g = diGap(r); return g != null && g < 10; });
+      if (diSup.length) console.log(`\n> ✓ SHORT DI supportive — DI against < 10 (best short group: +0.03% avg, 29% whipsaw): ${diSup.map(r => `${T.bare(r.sym)} (${diGap(r).toFixed(0)})`).join(', ')}`);
+      const rough = rv.filter(r => r.isLongPass && diGap(r) != null && -diGap(r) >= 20);
+      if (rough.length) console.log(`\n> ℹ️ LONG rough ride — DI against ≥ 20 (whipsaw rate ~44% but still +1.29% avg; expect a bumpy entry, not a skip): ${rough.map(r => `${T.bare(r.sym)} (${(-diGap(r)).toFixed(0)})`).join(', ')}`);
       // Gap/ATR reminder (David, 6 Nov 2026) — canonical STRATEGIES.md: ≥2.0 ideal · <1.5 avoid
       // (danger flag F1; context, not a hard filter). F1 + RVOL<1.0 is the worst validated combo (64% SL).
       const gLow = rv.filter(r => r.gatrRatio != null && r.gatrRatio < 1.5);
