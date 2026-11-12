@@ -1,0 +1,1022 @@
+{
+  "dashboard_house_power": {
+    "views": [
+      {
+        "type": "sections",
+        "sections": [
+          {
+            "type": "grid",
+            "column_span": 3,
+            "cards": [
+              {
+                "type": "heading",
+                "heading": "Current House Power",
+                "heading_style": "title",
+                "icon": "mdi:home-lightning-bolt"
+              },
+              {
+                "type": "history-graph",
+                "grid_options": {
+                  "columns": 36,
+                  "rows": 5
+                },
+                "entities": [
+                  {
+                    "entity": "sensor.roof_gosungrow_1498605_sungrow_gosungrow_load_information_load_power",
+                    "name": "Current House Power"
+                  }
+                ],
+                "title": "Current House Power – 24 Hours",
+                "hours_to_show": 24
+              },
+              {
+                "type": "tile",
+                "grid_options": {
+                  "columns": 18,
+                  "rows": 1
+                },
+                "entity": "sensor.roof_gosungrow_1498605_sungrow_gosungrow_load_information_load_power",
+                "name": "Current House Power",
+                "color": "red",
+                "vertical": false,
+                "features_position": "bottom"
+              },
+              {
+                "type": "tile",
+                "entity": "sensor.total_monitored_house_consumption",
+                "name": "Monitored Appliances",
+                "vertical": false,
+                "features_position": "bottom",
+                "grid_options": {
+                  "columns": 18,
+                  "rows": 1
+                }
+              }
+            ]
+          },
+          {
+            "type": "grid",
+            "cards": [
+              {
+                "type": "heading",
+                "heading": "Daily House Energy",
+                "heading_style": "title"
+              },
+              {
+                "type": "tile",
+                "grid_options": {
+                  "columns": 36,
+                  "rows": 1
+                },
+                "entity": "sensor.roof_gosungrow_1498605_sungrow_gosungrow_other_information_daily_load_consumption",
+                "name": "Total House Energy Today — Grid + Solar",
+                "vertical": false,
+                "features_position": "bottom"
+              },
+              {
+                "type": "statistics-graph",
+                "grid_options": {
+                  "columns": "full"
+                },
+                "entities": [
+                  {
+                    "entity": "sensor.roof_gosungrow_1498605_sungrow_gosungrow_other_information_daily_load_consumption",
+                    "name": "Daily House Energy"
+                  }
+                ],
+                "title": "30 Days Daily House Energy",
+                "days_to_show": 30,
+                "period": "day",
+                "chart_type": "bar",
+                "stat_types": [
+                  "max"
+                ]
+              }
+            ],
+            "column_span": 3
+          },
+          {
+            "type": "grid",
+            "cards": [
+              {
+                "type": "heading",
+                "heading_style": "title",
+                "heading": "Inside House Power Consumption",
+                "icon": "mdi:flash"
+              },
+              {
+                "type": "history-graph",
+                "entities": [
+                  "sensor.smart_switch_25082125780459513801c4e7ae2055b8_power"
+                ],
+                "title": "Washing Machine",
+                "hours_to_show": 12,
+                "min_y_axis": 0.1
+              },
+              {
+                "type": "history-graph",
+                "entities": [
+                  "sensor.smart_switch_25060319498379513801c4e7ae179ed1_power"
+                ],
+                "title": "Dishwasher",
+                "hours_to_show": 12,
+                "min_y_axis": 0.2
+              },
+              {
+                "type": "history-graph",
+                "entities": [
+                  "sensor.smart_switch_25082169977280513801c4e7ae2055c2_power"
+                ],
+                "title": "Refrigerator",
+                "hours_to_show": 12,
+                "show_names": true
+              }
+            ]
+          },
+          {
+            "type": "grid",
+            "cards": [
+              {
+                "type": "heading",
+                "heading": "Outside House Power Consumption",
+                "heading_style": "title",
+                "icon": "mdi:home-battery"
+              },
+              {
+                "type": "history-graph",
+                "entities": [
+                  "sensor.outside_heat_pump_plug_power"
+                ],
+                "title": "Madimack Heat Pump",
+                "hours_to_show": 12
+              },
+              {
+                "type": "history-graph",
+                "entities": [
+                  "sensor.smart_switch_25060331373497513801c4e7ae1784e7_power"
+                ],
+                "title": "Pool Plug Power",
+                "hours_to_show": 12
+              },
+              {
+                "type": "history-graph",
+                "entities": [
+                  "sensor.smart_switch_26020957301179513804c4e7ae27f759_power"
+                ],
+                "title": "iStore Hot Water",
+                "hours_to_show": 12
+              }
+            ]
+          },
+          {
+            "type": "grid",
+            "cards": [
+              {
+                "type": "heading",
+                "heading": "Solar",
+                "heading_style": "title",
+                "icon": "mdi:solar-power"
+              },
+              {
+                "type": "history-graph",
+                "entities": [
+                  "sensor.solar_surplus_available"
+                ],
+                "title": "Solar Surplus",
+                "hours_to_show": 12
+              }
+            ]
+          },
+          {
+            "type": "grid",
+            "cards": [
+              {
+                "type": "heading",
+                "heading": "Day / Night & Tariffs",
+                "heading_style": "title"
+              },
+              {
+                "type": "vertical-stack",
+                "cards": [
+                  {
+                    "type": "markdown",
+                    "title": "Battery & tariff analysis",
+                    "content": "**Measurement period:** Day = sunrise to sunset; night = sunset to sunrise.\n**Current tariff:** {{ states('sensor.red_energy_current_tariff') }}\n**Red Energy rates (bill issued 10 Jun 2026):** Peak 4-9 pm, Shoulder 9 pm-11 am, Off Peak 11 am-4 pm. All three usage bands are currently **$0.3203/kWh**. Solar feed-in is **$0.05/kWh** and daily supply is **$1.293/day**.\nTonight is a partial night because tracking started after sunset. The first complete day will be stored after the next sunset; the first complete night after the following sunrise. Rolling history becomes meaningful after several completed periods."
+                  },
+                  {
+                    "type": "grid",
+                    "columns": 2,
+                    "square": false,
+                    "cards": [
+                      {
+                        "type": "tile",
+                        "entity": "sensor.house_day_energy",
+                        "name": "Current daylight period"
+                      },
+                      {
+                        "type": "tile",
+                        "entity": "sensor.house_night_energy_since_sunset",
+                        "name": "Current night period"
+                      },
+                      {
+                        "type": "tile",
+                        "entity": "input_number.last_completed_day_energy",
+                        "name": "Last completed day"
+                      },
+                      {
+                        "type": "tile",
+                        "entity": "input_number.last_completed_night_energy",
+                        "name": "Last completed night"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "history-graph",
+                    "title": "Completed day and night energy - 30 days",
+                    "hours_to_show": 720,
+                    "entities": [
+                      {
+                        "entity": "input_number.last_completed_day_energy",
+                        "name": "Day"
+                      },
+                      {
+                        "entity": "input_number.last_completed_night_energy",
+                        "name": "Night"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "entities",
+                    "title": "Grid import by Red Energy tariff",
+                    "entities": [
+                      {
+                        "entity": "sensor.red_energy_current_tariff",
+                        "name": "Current tariff"
+                      },
+                      {
+                        "entity": "sensor.house_grid_import_by_tariff_peak",
+                        "name": "Peak today (4-9 pm)"
+                      },
+                      {
+                        "entity": "sensor.house_grid_import_by_tariff_shoulder",
+                        "name": "Shoulder today (9 pm-11 am)"
+                      },
+                      {
+                        "entity": "sensor.house_grid_import_by_tariff_off_peak",
+                        "name": "Off Peak today (11 am-4 pm)"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "history-graph",
+                    "title": "House load vs solar generation - 24 hours",
+                    "hours_to_show": 24,
+                    "entities": [
+                      {
+                        "entity": "sensor.roof_gosungrow_1498605_sungrow_gosungrow_load_information_load_power",
+                        "name": "House load"
+                      },
+                      {
+                        "entity": "sensor.pv_generation",
+                        "name": "Solar generation"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "grid",
+            "cards": [
+              {
+                "type": "heading",
+                "heading": "Energy Comparison",
+                "heading_style": "title"
+              },
+              {
+                "type": "vertical-stack",
+                "cards": [
+                  {
+                    "type": "markdown",
+                    "content": "## Electricity Company Comparison\nCompare completed Home Assistant days with Red Energy when Red publishes them the following day.\n**Red “kWh used” = HA Grid Import. Red “Solar Cr” = HA Solar Export.**\n"
+                  },
+                  {
+                    "type": "grid",
+                    "columns": 2,
+                    "square": false,
+                    "cards": [
+                      {
+                        "type": "tile",
+                        "entity": "sensor.roof_gosungrow_1498605_sungrow_gosungrow_grid_information_energy_purchased_today",
+                        "name": "Grid Import Today",
+                        "icon": "mdi:transmission-tower-import"
+                      },
+                      {
+                        "type": "tile",
+                        "entity": "sensor.roof_gosungrow_1498605_sungrow_gosungrow_grid_information_feed_in_energy_today",
+                        "name": "Solar Export Today",
+                        "icon": "mdi:transmission-tower-export"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "statistics-graph",
+                    "title": "30 Days — Grid Import and Solar Export",
+                    "chart_type": "bar",
+                    "period": "day",
+                    "days_to_show": 30,
+                    "stat_types": [
+                      "max"
+                    ],
+                    "entities": [
+                      {
+                        "entity": "sensor.roof_gosungrow_1498605_sungrow_gosungrow_grid_information_energy_purchased_today",
+                        "name": "HA Grid Import"
+                      },
+                      {
+                        "entity": "sensor.roof_gosungrow_1498605_sungrow_gosungrow_grid_information_feed_in_energy_today",
+                        "name": "HA Solar Export"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "grid",
+            "cards": [
+              {
+                "type": "heading",
+                "heading": "Air Conditioner Estimates",
+                "heading_style": "title"
+              },
+              {
+                "type": "markdown",
+                "content": "**Method:** When one AC starts while every other AC is off, HA records the whole-house load, waits **7 minutes**, and measures the increase. Later valid samples are smoothed to reduce normal household-load noise.\n\n| Air conditioner | Directional estimate |\n|---|---:|\n| Kitchen AC | {% set v = states('input_number.kitchen_ac_estimated_power') | float(0) %}{% if v > 0 %}**{{ v | round(1) }} kW**{% else %}Waiting for an isolated start{% endif %} |\n| Lounge Room AC | {% set v = states('input_number.lounge_room_ac_estimated_power') | float(0) %}{% if v > 0 %}**{{ v | round(1) }} kW**{% else %}Waiting for an isolated start{% endif %} |\n| Main Bedroom AC | {% set v = states('input_number.main_bedroom_ac_estimated_power') | float(0) %}{% if v > 0 %}**{{ v | round(1) }} kW**{% else %}Waiting for an isolated start{% endif %} |\n| Study AC | {% set v = states('input_number.study_ac_estimated_power') | float(0) %}{% if v > 0 %}**{{ v | round(1) }} kW**{% else %}Waiting for an isolated start{% endif %} |\n| Bed2 AC | {% set v = states('input_number.bed2_ac_estimated_power') | float(0) %}{% if v > 0 %}**{{ v | round(1) }} kW**{% else %}Waiting for an isolated start{% endif %} |\n\n*These are directional estimates, not meter-grade readings. Starts are ignored when another AC is already running.*"
+              }
+            ]
+          },
+          {
+            "type": "grid",
+            "column_span": 2,
+            "cards": [
+              {
+                "type": "heading",
+                "heading": "Grid Import by Tariff",
+                "icon": "mdi:transmission-tower-import"
+              },
+              {
+                "type": "statistics-graph",
+                "title": "Daily (last 30 days)",
+                "entities": [
+                  {
+                    "entity": "sensor.house_grid_import_by_tariff_peak",
+                    "name": "Peak"
+                  },
+                  {
+                    "entity": "sensor.house_grid_import_by_tariff_shoulder",
+                    "name": "Shoulder"
+                  },
+                  {
+                    "entity": "sensor.house_grid_import_by_tariff_off_peak",
+                    "name": "Off Peak"
+                  }
+                ],
+                "stat_types": [
+                  "change"
+                ],
+                "period": "day",
+                "days_to_show": 30,
+                "chart_type": "bar",
+                "unit": "kWh",
+                "grid_options": {
+                  "columns": "full"
+                }
+              },
+              {
+                "type": "custom:apexcharts-card",
+                "header": {
+                  "show": true,
+                  "title": "Monthly — kWh (bars) and cost (lines)",
+                  "show_states": false
+                },
+                "graph_span": "6month",
+                "span": {
+                  "end": "month"
+                },
+                "apex_config": {
+                  "legend": {
+                    "show": true
+                  },
+                  "plotOptions": {
+                    "bar": {
+                      "columnWidth": "80%"
+                    }
+                  },
+                  "stroke": {
+                    "width": [
+                      0,
+                      0,
+                      0,
+                      3,
+                      3,
+                      3
+                    ]
+                  },
+                  "markers": {
+                    "size": [
+                      0,
+                      0,
+                      0,
+                      4,
+                      4,
+                      4
+                    ]
+                  },
+                  "xaxis": {
+                    "type": "datetime",
+                    "labels": {
+                      "format": "MMM yy"
+                    }
+                  }
+                },
+                "yaxis": [
+                  {
+                    "id": "kwh",
+                    "min": 0,
+                    "decimals": 0,
+                    "apex_config": {
+                      "title": {
+                        "text": "kWh"
+                      }
+                    }
+                  },
+                  {
+                    "id": "cost",
+                    "opposite": true,
+                    "min": 0,
+                    "decimals": 0,
+                    "apex_config": {
+                      "title": {
+                        "text": "$"
+                      }
+                    }
+                  }
+                ],
+                "series": [
+                  {
+                    "entity": "sensor.house_grid_import_by_tariff_peak",
+                    "name": "Peak",
+                    "color": "#6f86d6",
+                    "statistics": {
+                      "type": "change",
+                      "period": "month",
+                      "align": "middle"
+                    },
+                    "type": "column",
+                    "yaxis_id": "kwh",
+                    "unit": "kWh",
+                    "float_precision": 1,
+                    "group_by": {
+                      "func": "last",
+                      "duration": "1month",
+                      "fill": "null"
+                    }
+                  },
+                  {
+                    "entity": "sensor.house_grid_import_by_tariff_shoulder",
+                    "name": "Shoulder",
+                    "color": "#f2c46d",
+                    "statistics": {
+                      "type": "change",
+                      "period": "month",
+                      "align": "middle"
+                    },
+                    "type": "column",
+                    "yaxis_id": "kwh",
+                    "unit": "kWh",
+                    "float_precision": 1,
+                    "group_by": {
+                      "func": "last",
+                      "duration": "1month",
+                      "fill": "null"
+                    }
+                  },
+                  {
+                    "entity": "sensor.house_grid_import_by_tariff_off_peak",
+                    "name": "Off Peak",
+                    "color": "#ef8a7a",
+                    "statistics": {
+                      "type": "change",
+                      "period": "month",
+                      "align": "middle"
+                    },
+                    "type": "column",
+                    "yaxis_id": "kwh",
+                    "unit": "kWh",
+                    "float_precision": 1,
+                    "group_by": {
+                      "func": "last",
+                      "duration": "1month",
+                      "fill": "null"
+                    }
+                  },
+                  {
+                    "entity": "sensor.house_grid_import_by_tariff_peak",
+                    "name": "Peak $",
+                    "color": "#6f86d6",
+                    "statistics": {
+                      "type": "change",
+                      "period": "month",
+                      "align": "middle"
+                    },
+                    "type": "line",
+                    "yaxis_id": "cost",
+                    "unit": "$",
+                    "float_precision": 2,
+                    "transform": "const r = parseFloat(hass.states['input_number.grid_rate_peak'] ? hass.states['input_number.grid_rate_peak'].state : 0) || 0; return x * r / 100;",
+                    "group_by": {
+                      "func": "last",
+                      "duration": "1month",
+                      "fill": "null"
+                    },
+                    "curve": "straight"
+                  },
+                  {
+                    "entity": "sensor.house_grid_import_by_tariff_shoulder",
+                    "name": "Shoulder $",
+                    "color": "#f2c46d",
+                    "statistics": {
+                      "type": "change",
+                      "period": "month",
+                      "align": "middle"
+                    },
+                    "type": "line",
+                    "yaxis_id": "cost",
+                    "unit": "$",
+                    "float_precision": 2,
+                    "transform": "const r = parseFloat(hass.states['input_number.grid_rate_shoulder'] ? hass.states['input_number.grid_rate_shoulder'].state : 0) || 0; return x * r / 100;",
+                    "group_by": {
+                      "func": "last",
+                      "duration": "1month",
+                      "fill": "null"
+                    },
+                    "curve": "straight"
+                  },
+                  {
+                    "entity": "sensor.house_grid_import_by_tariff_off_peak",
+                    "name": "Off Peak $",
+                    "color": "#ef8a7a",
+                    "statistics": {
+                      "type": "change",
+                      "period": "month",
+                      "align": "middle"
+                    },
+                    "type": "line",
+                    "yaxis_id": "cost",
+                    "unit": "$",
+                    "float_precision": 2,
+                    "transform": "const r = parseFloat(hass.states['input_number.grid_rate_off_peak'] ? hass.states['input_number.grid_rate_off_peak'].state : 0) || 0; return x * r / 100;",
+                    "group_by": {
+                      "func": "last",
+                      "duration": "1month",
+                      "fill": "null"
+                    },
+                    "curve": "straight"
+                  }
+                ]
+              },
+              {
+                "type": "custom:apexcharts-card",
+                "header": {
+                  "show": true,
+                  "title": "Daily cost (last 30 days)",
+                  "show_states": false
+                },
+                "graph_span": "30d",
+                "span": {
+                  "end": "day"
+                },
+                "stacked": true,
+                "apex_config": {
+                  "legend": {
+                    "show": true
+                  }
+                },
+                "yaxis": [
+                  {
+                    "min": 0,
+                    "decimals": 2,
+                    "apex_config": {
+                      "title": {
+                        "text": "$"
+                      }
+                    }
+                  }
+                ],
+                "series": [
+                  {
+                    "entity": "sensor.house_grid_import_by_tariff_peak",
+                    "name": "Peak",
+                    "color": "#6f86d6",
+                    "type": "column",
+                    "unit": "$",
+                    "float_precision": 2,
+                    "statistics": {
+                      "type": "change",
+                      "period": "day",
+                      "align": "middle"
+                    },
+                    "transform": "const r = parseFloat(hass.states['input_number.grid_rate_peak'] ? hass.states['input_number.grid_rate_peak'].state : 0) || 0; return x * r / 100;"
+                  },
+                  {
+                    "entity": "sensor.house_grid_import_by_tariff_shoulder",
+                    "name": "Shoulder",
+                    "color": "#f2c46d",
+                    "type": "column",
+                    "unit": "$",
+                    "float_precision": 2,
+                    "statistics": {
+                      "type": "change",
+                      "period": "day",
+                      "align": "middle"
+                    },
+                    "transform": "const r = parseFloat(hass.states['input_number.grid_rate_shoulder'] ? hass.states['input_number.grid_rate_shoulder'].state : 0) || 0; return x * r / 100;"
+                  },
+                  {
+                    "entity": "sensor.house_grid_import_by_tariff_off_peak",
+                    "name": "Off Peak",
+                    "color": "#ef8a7a",
+                    "type": "column",
+                    "unit": "$",
+                    "float_precision": 2,
+                    "statistics": {
+                      "type": "change",
+                      "period": "day",
+                      "align": "middle"
+                    },
+                    "transform": "const r = parseFloat(hass.states['input_number.grid_rate_off_peak'] ? hass.states['input_number.grid_rate_off_peak'].state : 0) || 0; return x * r / 100;"
+                  }
+                ]
+              },
+              {
+                "type": "entities",
+                "title": "Grid rates (c/kWh)",
+                "entities": [
+                  {
+                    "entity": "input_number.grid_rate_peak",
+                    "name": "Peak"
+                  },
+                  {
+                    "entity": "input_number.grid_rate_shoulder",
+                    "name": "Shoulder"
+                  },
+                  {
+                    "entity": "input_number.grid_rate_off_peak",
+                    "name": "Off Peak"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "max_columns": 3,
+        "title": "All Power",
+        "icon": "mdi:home",
+        "cards": []
+      },
+      {
+        "type": "sections",
+        "max_columns": 4,
+        "title": "Pool Manual Override",
+        "path": "pool-manual-override",
+        "icon": "mdi:toggle-switch-variant",
+        "sections": [
+          {
+            "type": "grid",
+            "cards": []
+          }
+        ]
+      }
+    ]
+  },
+  "automation_study_curtain": {
+    "id": "1790067879397",
+    "alias": "Study Curtain",
+    "description": "Study curtain. Between 12:30 pm and 5:30 pm (checked every 5 min): closes fully if the Study AC reads above 28 °C and the curtain is not already closed, then notifies. At 5:30 pm: if the curtain is below 90% open, sets it to 90% open and notifies; otherwise does nothing. Paused while Curtain Manual Override is on.",
+    "triggers": [
+      {
+        "trigger": "time_pattern",
+        "minutes": "/5",
+        "id": "daytime_check"
+      },
+      {
+        "trigger": "time",
+        "at": "17:30:00",
+        "id": "evening"
+      },
+      {
+        "trigger": "webhook",
+        "webhook_id": "51516b3c-98b4-4d93-9582-1ed23c439768",
+        "allowed_methods": [
+          "POST",
+          "PUT"
+        ],
+        "local_only": false,
+        "id": "controller"
+      }
+    ],
+    "conditions": [
+      {
+        "condition": "state",
+        "entity_id": "input_boolean.curtain_manual_override",
+        "state": "off"
+      }
+    ],
+    "actions": [
+      {
+        "choose": [
+          {
+            "conditions": [
+              {
+                "condition": "trigger",
+                "id": "evening"
+              },
+              {
+                "condition": "template",
+                "value_template": "{{ states('cover.aqara_roller_shade_driver_e1_2') not in ['unavailable', 'unknown'] and state_attr('cover.aqara_roller_shade_driver_e1_2', 'current_position') | int(90) < 90 }}"
+              }
+            ],
+            "sequence": [
+              {
+                "action": "cover.set_cover_position",
+                "target": {
+                  "entity_id": "cover.aqara_roller_shade_driver_e1_2"
+                },
+                "data": {
+                  "position": 90
+                }
+              },
+              {
+                "action": "notify.mobile_app_davids_iphone_17",
+                "data": {
+                  "title": "Study Curtain",
+                  "message": "Study Curtain set to 90% open at 5:30 pm."
+                }
+              }
+            ]
+          },
+          {
+            "conditions": [
+              {
+                "condition": "time",
+                "before": "17:30:00",
+                "after": "12:30:00"
+              },
+              {
+                "condition": "template",
+                "value_template": "{{ state_attr('climate.study_study', 'current_temperature') | float(-999) > 28 }}"
+              },
+              {
+                "condition": "template",
+                "value_template": "{{ states('cover.aqara_roller_shade_driver_e1_2') not in ['unavailable', 'unknown'] and state_attr('cover.aqara_roller_shade_driver_e1_2', 'current_position') | int(0) > 0 }}"
+              }
+            ],
+            "sequence": [
+              {
+                "action": "cover.close_cover",
+                "target": {
+                  "entity_id": "cover.aqara_roller_shade_driver_e1_2"
+                }
+              },
+              {
+                "action": "notify.mobile_app_davids_iphone_17",
+                "data": {
+                  "title": "Study Curtain",
+                  "message": "Study Curtain closed because the Study AC temperature exceeded 28 C."
+                }
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "mode": "queued",
+    "max": 3
+  },
+  "automation_flop_room_curtain": {
+    "id": "1790068519452",
+    "alias": "Flop Room Curtain",
+    "description": "Flop Room curtain. Before 5:30 pm (checked every 5 min): closes fully if the Kitchen AC reads above 26 °C and the sun is in the north-facing sector, and the curtain is not already closed, then notifies. At 5:30 pm: if the curtain is below 90% open, sets it to 90% open and notifies; otherwise does nothing. Paused while Curtain Manual Override is on.",
+    "triggers": [
+      {
+        "trigger": "time_pattern",
+        "minutes": "/5",
+        "id": "daytime_check"
+      },
+      {
+        "trigger": "time",
+        "at": "17:30:00",
+        "id": "evening"
+      },
+      {
+        "trigger": "webhook",
+        "webhook_id": "8d531d88-c861-4de5-a6a3-79f79483472c",
+        "allowed_methods": [
+          "POST",
+          "PUT"
+        ],
+        "local_only": false,
+        "id": "controller"
+      }
+    ],
+    "conditions": [
+      {
+        "condition": "state",
+        "entity_id": "input_boolean.curtain_manual_override",
+        "state": "off"
+      }
+    ],
+    "actions": [
+      {
+        "choose": [
+          {
+            "conditions": [
+              {
+                "condition": "trigger",
+                "id": "evening"
+              },
+              {
+                "condition": "template",
+                "value_template": "{{ states('cover.aqara_roller_shade_driver_e1') not in ['unavailable', 'unknown'] and state_attr('cover.aqara_roller_shade_driver_e1', 'current_position') | int(90) < 90 }}"
+              }
+            ],
+            "sequence": [
+              {
+                "action": "cover.set_cover_position",
+                "target": {
+                  "entity_id": "cover.aqara_roller_shade_driver_e1"
+                },
+                "data": {
+                  "position": 90
+                }
+              },
+              {
+                "action": "notify.mobile_app_davids_iphone_17",
+                "data": {
+                  "title": "Flop Room Curtain",
+                  "message": "Flop Room Curtain set to 90% open at 5:30 pm."
+                }
+              }
+            ]
+          },
+          {
+            "conditions": [
+              {
+                "condition": "time",
+                "before": "17:30:00"
+              },
+              {
+                "condition": "template",
+                "value_template": "{{ state_attr('climate.kitchen_kitchen', 'current_temperature') | float(-999) > 26 }}"
+              },
+              {
+                "condition": "template",
+                "value_template": "{% set az = state_attr('sun.sun', 'azimuth') | float(-999) %} {{ az <= 20 or az >= 330 }}"
+              },
+              {
+                "condition": "template",
+                "value_template": "{{ states('cover.aqara_roller_shade_driver_e1') not in ['unavailable', 'unknown'] and state_attr('cover.aqara_roller_shade_driver_e1', 'current_position') | int(0) > 0 }}"
+              }
+            ],
+            "sequence": [
+              {
+                "action": "cover.close_cover",
+                "target": {
+                  "entity_id": "cover.aqara_roller_shade_driver_e1"
+                }
+              },
+              {
+                "action": "notify.mobile_app_davids_iphone_17",
+                "data": {
+                  "title": "Flop Room Curtain",
+                  "message": "Flop Room Curtain closed because Kitchen AC exceeded 26 C AND sun azimuth was in the north-facing sector."
+                }
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "mode": "queued",
+    "max": 3
+  },
+  "helpers_2026_11_13": {
+    "template_sensors": [
+      {
+        "entity": "sensor.kitchen_ac_power",
+        "state": "{{ states('input_number.kitchen_ac_estimated_power') | float(0) }}",
+        "unit": "kW",
+        "device_class": "power",
+        "state_class": "measurement"
+      },
+      {
+        "entity": "sensor.lounge_room_ac_power",
+        "state": "{{ states('input_number.lounge_room_ac_estimated_power') | float(0) }}",
+        "unit": "kW",
+        "device_class": "power",
+        "state_class": "measurement"
+      },
+      {
+        "entity": "sensor.main_bedroom_ac_power",
+        "state": "{{ states('input_number.main_bedroom_ac_estimated_power') | float(0) }}",
+        "unit": "kW",
+        "device_class": "power",
+        "state_class": "measurement"
+      },
+      {
+        "entity": "sensor.study_ac_power",
+        "state": "{{ states('input_number.study_ac_estimated_power') | float(0) }}",
+        "unit": "kW",
+        "device_class": "power",
+        "state_class": "measurement"
+      },
+      {
+        "entity": "sensor.bed2_ac_power",
+        "state": "{{ states('input_number.bed2_ac_estimated_power') | float(0) }}",
+        "unit": "kW",
+        "device_class": "power",
+        "state_class": "measurement"
+      }
+    ],
+    "integration_sensors": [
+      {
+        "entity": "sensor.pool_solar_energy",
+        "source": "sensor.pool_solar_power",
+        "unit": "kWh"
+      },
+      {
+        "entity": "sensor.pool_grid_energy",
+        "source": "sensor.pool_grid_power",
+        "unit": "kWh"
+      },
+      {
+        "entity": "sensor.kitchen_washing_machine_energy",
+        "source": "sensor.smart_switch_25082125780459513801c4e7ae2055b8_power",
+        "unit": "kWh"
+      },
+      {
+        "entity": "sensor.kitchen_dishwasher_energy",
+        "source": "sensor.smart_switch_25060319498379513801c4e7ae179ed1_power",
+        "unit": "kWh"
+      },
+      {
+        "entity": "sensor.kitchen_refrigerator_energy",
+        "source": "sensor.smart_switch_25082169977280513801c4e7ae2055c2_power",
+        "unit": "kWh"
+      },
+      {
+        "entity": "sensor.spa_pool_plug_energy",
+        "source": "sensor.smart_switch_25060331373497513801c4e7ae1784e7_power",
+        "unit": "kWh"
+      },
+      {
+        "entity": "sensor.outside_istore_water_heater_energy",
+        "source": "sensor.smart_switch_26020957301179513804c4e7ae27f759_power",
+        "unit": "kWh"
+      },
+      {
+        "entity": "sensor.kitchen_ac_energy",
+        "source": "sensor.kitchen_ac_power",
+        "unit": "kWh"
+      },
+      {
+        "entity": "sensor.lounge_room_ac_energy",
+        "source": "sensor.lounge_room_ac_power",
+        "unit": "kWh"
+      },
+      {
+        "entity": "sensor.main_bedroom_ac_energy",
+        "source": "sensor.main_bedroom_ac_power",
+        "unit": "kWh"
+      },
+      {
+        "entity": "sensor.study_ac_energy",
+        "source": "sensor.study_ac_power",
+        "unit": "kWh"
+      },
+      {
+        "entity": "sensor.bed2_ac_energy",
+        "source": "sensor.bed2_ac_power",
+        "unit": "kWh"
+      }
+    ],
+    "input_numbers": [
+      "input_number.grid_rate_peak",
+      "input_number.grid_rate_shoulder",
+      "input_number.grid_rate_off_peak"
+    ]
+  }
+}
