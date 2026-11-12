@@ -8,3 +8,4 @@
 - House Power dashboard: "Grid Import by Tariff" section — daily kWh (statistics-graph), monthly kWh bars + $ lines (apexcharts),
   daily $ (apexcharts). Rates from input_number.grid_rate_{peak,shoulder,off_peak} (c/kWh); cost uses the current rate for all history.
 - Full export: ha_export_2026-11-13.json
+- 13 Nov: grid rates set to 25.431 c/kWh (temporary, all tariffs); monthly chart labels costs per month, tooltip shows full breakdown; cost charts no longer cache. Current dashboard: dashboard_house_power.json

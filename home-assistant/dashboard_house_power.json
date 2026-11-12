@@ -1,0 +1,782 @@
+{
+  "views": [
+    {
+      "type": "sections",
+      "sections": [
+        {
+          "type": "grid",
+          "column_span": 3,
+          "cards": [
+            {
+              "type": "heading",
+              "heading": "Current House Power",
+              "heading_style": "title",
+              "icon": "mdi:home-lightning-bolt"
+            },
+            {
+              "type": "history-graph",
+              "grid_options": {
+                "columns": 36,
+                "rows": 5
+              },
+              "entities": [
+                {
+                  "entity": "sensor.roof_gosungrow_1498605_sungrow_gosungrow_load_information_load_power",
+                  "name": "Current House Power"
+                }
+              ],
+              "title": "Current House Power – 24 Hours",
+              "hours_to_show": 24
+            },
+            {
+              "type": "tile",
+              "grid_options": {
+                "columns": 18,
+                "rows": 1
+              },
+              "entity": "sensor.roof_gosungrow_1498605_sungrow_gosungrow_load_information_load_power",
+              "name": "Current House Power",
+              "color": "red",
+              "vertical": false,
+              "features_position": "bottom"
+            },
+            {
+              "type": "tile",
+              "entity": "sensor.total_monitored_house_consumption",
+              "name": "Monitored Appliances",
+              "vertical": false,
+              "features_position": "bottom",
+              "grid_options": {
+                "columns": 18,
+                "rows": 1
+              }
+            }
+          ]
+        },
+        {
+          "type": "grid",
+          "cards": [
+            {
+              "type": "heading",
+              "heading": "Daily House Energy",
+              "heading_style": "title"
+            },
+            {
+              "type": "tile",
+              "grid_options": {
+                "columns": 36,
+                "rows": 1
+              },
+              "entity": "sensor.roof_gosungrow_1498605_sungrow_gosungrow_other_information_daily_load_consumption",
+              "name": "Total House Energy Today — Grid + Solar",
+              "vertical": false,
+              "features_position": "bottom"
+            },
+            {
+              "type": "statistics-graph",
+              "grid_options": {
+                "columns": "full"
+              },
+              "entities": [
+                {
+                  "entity": "sensor.roof_gosungrow_1498605_sungrow_gosungrow_other_information_daily_load_consumption",
+                  "name": "Daily House Energy"
+                }
+              ],
+              "title": "30 Days Daily House Energy",
+              "days_to_show": 30,
+              "period": "day",
+              "chart_type": "bar",
+              "stat_types": [
+                "max"
+              ]
+            }
+          ],
+          "column_span": 3
+        },
+        {
+          "type": "grid",
+          "cards": [
+            {
+              "type": "heading",
+              "heading_style": "title",
+              "heading": "Inside House Power Consumption",
+              "icon": "mdi:flash"
+            },
+            {
+              "type": "history-graph",
+              "entities": [
+                "sensor.smart_switch_25082125780459513801c4e7ae2055b8_power"
+              ],
+              "title": "Washing Machine",
+              "hours_to_show": 12,
+              "min_y_axis": 0.1
+            },
+            {
+              "type": "history-graph",
+              "entities": [
+                "sensor.smart_switch_25060319498379513801c4e7ae179ed1_power"
+              ],
+              "title": "Dishwasher",
+              "hours_to_show": 12,
+              "min_y_axis": 0.2
+            },
+            {
+              "type": "history-graph",
+              "entities": [
+                "sensor.smart_switch_25082169977280513801c4e7ae2055c2_power"
+              ],
+              "title": "Refrigerator",
+              "hours_to_show": 12,
+              "show_names": true
+            }
+          ]
+        },
+        {
+          "type": "grid",
+          "cards": [
+            {
+              "type": "heading",
+              "heading": "Outside House Power Consumption",
+              "heading_style": "title",
+              "icon": "mdi:home-battery"
+            },
+            {
+              "type": "history-graph",
+              "entities": [
+                "sensor.outside_heat_pump_plug_power"
+              ],
+              "title": "Madimack Heat Pump",
+              "hours_to_show": 12
+            },
+            {
+              "type": "history-graph",
+              "entities": [
+                "sensor.smart_switch_25060331373497513801c4e7ae1784e7_power"
+              ],
+              "title": "Pool Plug Power",
+              "hours_to_show": 12
+            },
+            {
+              "type": "history-graph",
+              "entities": [
+                "sensor.smart_switch_26020957301179513804c4e7ae27f759_power"
+              ],
+              "title": "iStore Hot Water",
+              "hours_to_show": 12
+            }
+          ]
+        },
+        {
+          "type": "grid",
+          "cards": [
+            {
+              "type": "heading",
+              "heading": "Solar",
+              "heading_style": "title",
+              "icon": "mdi:solar-power"
+            },
+            {
+              "type": "history-graph",
+              "entities": [
+                "sensor.solar_surplus_available"
+              ],
+              "title": "Solar Surplus",
+              "hours_to_show": 12
+            }
+          ]
+        },
+        {
+          "type": "grid",
+          "cards": [
+            {
+              "type": "heading",
+              "heading": "Day / Night & Tariffs",
+              "heading_style": "title"
+            },
+            {
+              "type": "vertical-stack",
+              "cards": [
+                {
+                  "type": "markdown",
+                  "title": "Battery & tariff analysis",
+                  "content": "**Measurement period:** Day = sunrise to sunset; night = sunset to sunrise.\n**Current tariff:** {{ states('sensor.red_energy_current_tariff') }}\n**Red Energy rates (bill issued 10 Jun 2026):** Peak 4-9 pm, Shoulder 9 pm-11 am, Off Peak 11 am-4 pm. All three usage bands are currently **$0.3203/kWh**. Solar feed-in is **$0.05/kWh** and daily supply is **$1.293/day**.\nTonight is a partial night because tracking started after sunset. The first complete day will be stored after the next sunset; the first complete night after the following sunrise. Rolling history becomes meaningful after several completed periods."
+                },
+                {
+                  "type": "grid",
+                  "columns": 2,
+                  "square": false,
+                  "cards": [
+                    {
+                      "type": "tile",
+                      "entity": "sensor.house_day_energy",
+                      "name": "Current daylight period"
+                    },
+                    {
+                      "type": "tile",
+                      "entity": "sensor.house_night_energy_since_sunset",
+                      "name": "Current night period"
+                    },
+                    {
+                      "type": "tile",
+                      "entity": "input_number.last_completed_day_energy",
+                      "name": "Last completed day"
+                    },
+                    {
+                      "type": "tile",
+                      "entity": "input_number.last_completed_night_energy",
+                      "name": "Last completed night"
+                    }
+                  ]
+                },
+                {
+                  "type": "history-graph",
+                  "title": "Completed day and night energy - 30 days",
+                  "hours_to_show": 720,
+                  "entities": [
+                    {
+                      "entity": "input_number.last_completed_day_energy",
+                      "name": "Day"
+                    },
+                    {
+                      "entity": "input_number.last_completed_night_energy",
+                      "name": "Night"
+                    }
+                  ]
+                },
+                {
+                  "type": "entities",
+                  "title": "Grid import by Red Energy tariff",
+                  "entities": [
+                    {
+                      "entity": "sensor.red_energy_current_tariff",
+                      "name": "Current tariff"
+                    },
+                    {
+                      "entity": "sensor.house_grid_import_by_tariff_peak",
+                      "name": "Peak today (4-9 pm)"
+                    },
+                    {
+                      "entity": "sensor.house_grid_import_by_tariff_shoulder",
+                      "name": "Shoulder today (9 pm-11 am)"
+                    },
+                    {
+                      "entity": "sensor.house_grid_import_by_tariff_off_peak",
+                      "name": "Off Peak today (11 am-4 pm)"
+                    }
+                  ]
+                },
+                {
+                  "type": "history-graph",
+                  "title": "House load vs solar generation - 24 hours",
+                  "hours_to_show": 24,
+                  "entities": [
+                    {
+                      "entity": "sensor.roof_gosungrow_1498605_sungrow_gosungrow_load_information_load_power",
+                      "name": "House load"
+                    },
+                    {
+                      "entity": "sensor.pv_generation",
+                      "name": "Solar generation"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "grid",
+          "cards": [
+            {
+              "type": "heading",
+              "heading": "Energy Comparison",
+              "heading_style": "title"
+            },
+            {
+              "type": "vertical-stack",
+              "cards": [
+                {
+                  "type": "markdown",
+                  "content": "## Electricity Company Comparison\nCompare completed Home Assistant days with Red Energy when Red publishes them the following day.\n**Red “kWh used” = HA Grid Import. Red “Solar Cr” = HA Solar Export.**\n"
+                },
+                {
+                  "type": "grid",
+                  "columns": 2,
+                  "square": false,
+                  "cards": [
+                    {
+                      "type": "tile",
+                      "entity": "sensor.roof_gosungrow_1498605_sungrow_gosungrow_grid_information_energy_purchased_today",
+                      "name": "Grid Import Today",
+                      "icon": "mdi:transmission-tower-import"
+                    },
+                    {
+                      "type": "tile",
+                      "entity": "sensor.roof_gosungrow_1498605_sungrow_gosungrow_grid_information_feed_in_energy_today",
+                      "name": "Solar Export Today",
+                      "icon": "mdi:transmission-tower-export"
+                    }
+                  ]
+                },
+                {
+                  "type": "statistics-graph",
+                  "title": "30 Days — Grid Import and Solar Export",
+                  "chart_type": "bar",
+                  "period": "day",
+                  "days_to_show": 30,
+                  "stat_types": [
+                    "max"
+                  ],
+                  "entities": [
+                    {
+                      "entity": "sensor.roof_gosungrow_1498605_sungrow_gosungrow_grid_information_energy_purchased_today",
+                      "name": "HA Grid Import"
+                    },
+                    {
+                      "entity": "sensor.roof_gosungrow_1498605_sungrow_gosungrow_grid_information_feed_in_energy_today",
+                      "name": "HA Solar Export"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "grid",
+          "cards": [
+            {
+              "type": "heading",
+              "heading": "Air Conditioner Estimates",
+              "heading_style": "title"
+            },
+            {
+              "type": "markdown",
+              "content": "**Method:** When one AC starts while every other AC is off, HA records the whole-house load, waits **7 minutes**, and measures the increase. Later valid samples are smoothed to reduce normal household-load noise.\n\n| Air conditioner | Directional estimate |\n|---|---:|\n| Kitchen AC | {% set v = states('input_number.kitchen_ac_estimated_power') | float(0) %}{% if v > 0 %}**{{ v | round(1) }} kW**{% else %}Waiting for an isolated start{% endif %} |\n| Lounge Room AC | {% set v = states('input_number.lounge_room_ac_estimated_power') | float(0) %}{% if v > 0 %}**{{ v | round(1) }} kW**{% else %}Waiting for an isolated start{% endif %} |\n| Main Bedroom AC | {% set v = states('input_number.main_bedroom_ac_estimated_power') | float(0) %}{% if v > 0 %}**{{ v | round(1) }} kW**{% else %}Waiting for an isolated start{% endif %} |\n| Study AC | {% set v = states('input_number.study_ac_estimated_power') | float(0) %}{% if v > 0 %}**{{ v | round(1) }} kW**{% else %}Waiting for an isolated start{% endif %} |\n| Bed2 AC | {% set v = states('input_number.bed2_ac_estimated_power') | float(0) %}{% if v > 0 %}**{{ v | round(1) }} kW**{% else %}Waiting for an isolated start{% endif %} |\n\n*These are directional estimates, not meter-grade readings. Starts are ignored when another AC is already running.*"
+            }
+          ]
+        },
+        {
+          "type": "grid",
+          "column_span": 2,
+          "cards": [
+            {
+              "type": "heading",
+              "heading": "Grid Import by Tariff",
+              "icon": "mdi:transmission-tower-import"
+            },
+            {
+              "type": "statistics-graph",
+              "title": "Daily (last 30 days)",
+              "entities": [
+                {
+                  "entity": "sensor.house_grid_import_by_tariff_peak",
+                  "name": "Peak"
+                },
+                {
+                  "entity": "sensor.house_grid_import_by_tariff_shoulder",
+                  "name": "Shoulder"
+                },
+                {
+                  "entity": "sensor.house_grid_import_by_tariff_off_peak",
+                  "name": "Off Peak"
+                }
+              ],
+              "stat_types": [
+                "change"
+              ],
+              "period": "day",
+              "days_to_show": 30,
+              "chart_type": "bar",
+              "unit": "kWh",
+              "grid_options": {
+                "columns": "full"
+              }
+            },
+            {
+              "type": "custom:apexcharts-card",
+              "header": {
+                "show": true,
+                "title": "Monthly — kWh (bars) and $ cost (lines)",
+                "show_states": false
+              },
+              "graph_span": "6month",
+              "span": {
+                "end": "month"
+              },
+              "apex_config": {
+                "legend": {
+                  "show": true
+                },
+                "plotOptions": {
+                  "bar": {
+                    "columnWidth": "70%"
+                  }
+                },
+                "stroke": {
+                  "width": [
+                    0,
+                    0,
+                    0,
+                    3,
+                    3,
+                    3
+                  ]
+                },
+                "markers": {
+                  "size": [
+                    0,
+                    0,
+                    0,
+                    4,
+                    4,
+                    4
+                  ]
+                },
+                "xaxis": {
+                  "type": "datetime",
+                  "labels": {
+                    "format": "MMM yyyy",
+                    "datetimeUTC": false
+                  },
+                  "tickAmount": 6
+                },
+                "tooltip": {
+                  "shared": true,
+                  "intersect": false,
+                  "x": {
+                    "format": "MMMM yyyy"
+                  }
+                },
+                "dataLabels": {
+                  "formatter": "EVAL:function(v){return v==null?\"\":\"$\"+Number(v).toFixed(2);}",
+                  "style": {
+                    "fontSize": "11px"
+                  },
+                  "background": {
+                    "enabled": true
+                  },
+                  "offsetY": -6
+                },
+                "chart": {
+                  "height": 320
+                }
+              },
+              "yaxis": [
+                {
+                  "id": "kwh",
+                  "min": 0,
+                  "decimals": 0,
+                  "apex_config": {
+                    "title": {
+                      "text": "kWh"
+                    }
+                  }
+                },
+                {
+                  "id": "cost",
+                  "opposite": true,
+                  "min": 0,
+                  "decimals": 0,
+                  "apex_config": {
+                    "title": {
+                      "text": "$"
+                    }
+                  }
+                }
+              ],
+              "series": [
+                {
+                  "entity": "sensor.house_grid_import_by_tariff_peak",
+                  "name": "Peak",
+                  "color": "#6f86d6",
+                  "statistics": {
+                    "type": "change",
+                    "period": "month",
+                    "align": "middle"
+                  },
+                  "type": "column",
+                  "yaxis_id": "kwh",
+                  "unit": "",
+                  "float_precision": 0,
+                  "group_by": {
+                    "func": "last",
+                    "duration": "1month",
+                    "fill": "null"
+                  },
+                  "show": {
+                    "legend_value": false,
+                    "datalabels": false
+                  }
+                },
+                {
+                  "entity": "sensor.house_grid_import_by_tariff_shoulder",
+                  "name": "Shoulder",
+                  "color": "#f2c46d",
+                  "statistics": {
+                    "type": "change",
+                    "period": "month",
+                    "align": "middle"
+                  },
+                  "type": "column",
+                  "yaxis_id": "kwh",
+                  "unit": "",
+                  "float_precision": 0,
+                  "group_by": {
+                    "func": "last",
+                    "duration": "1month",
+                    "fill": "null"
+                  },
+                  "show": {
+                    "legend_value": false,
+                    "datalabels": false
+                  }
+                },
+                {
+                  "entity": "sensor.house_grid_import_by_tariff_off_peak",
+                  "name": "Off Peak",
+                  "color": "#ef8a7a",
+                  "statistics": {
+                    "type": "change",
+                    "period": "month",
+                    "align": "middle"
+                  },
+                  "type": "column",
+                  "yaxis_id": "kwh",
+                  "unit": "",
+                  "float_precision": 0,
+                  "group_by": {
+                    "func": "last",
+                    "duration": "1month",
+                    "fill": "null"
+                  },
+                  "show": {
+                    "legend_value": false,
+                    "datalabels": false
+                  }
+                },
+                {
+                  "entity": "sensor.house_grid_import_by_tariff_peak",
+                  "name": "Peak cost",
+                  "color": "#6f86d6",
+                  "statistics": {
+                    "type": "change",
+                    "period": "month",
+                    "align": "middle"
+                  },
+                  "type": "line",
+                  "yaxis_id": "cost",
+                  "unit": "",
+                  "float_precision": 2,
+                  "transform": "const r = parseFloat(hass.states['input_number.grid_rate_peak'] ? hass.states['input_number.grid_rate_peak'].state : 0) || 0; return x * r / 100;",
+                  "group_by": {
+                    "func": "last",
+                    "duration": "1month",
+                    "fill": "null"
+                  },
+                  "curve": "straight",
+                  "show": {
+                    "legend_value": false,
+                    "datalabels": true
+                  }
+                },
+                {
+                  "entity": "sensor.house_grid_import_by_tariff_shoulder",
+                  "name": "Shoulder cost",
+                  "color": "#f2c46d",
+                  "statistics": {
+                    "type": "change",
+                    "period": "month",
+                    "align": "middle"
+                  },
+                  "type": "line",
+                  "yaxis_id": "cost",
+                  "unit": "",
+                  "float_precision": 2,
+                  "transform": "const r = parseFloat(hass.states['input_number.grid_rate_shoulder'] ? hass.states['input_number.grid_rate_shoulder'].state : 0) || 0; return x * r / 100;",
+                  "group_by": {
+                    "func": "last",
+                    "duration": "1month",
+                    "fill": "null"
+                  },
+                  "curve": "straight",
+                  "show": {
+                    "legend_value": false,
+                    "datalabels": true
+                  }
+                },
+                {
+                  "entity": "sensor.house_grid_import_by_tariff_off_peak",
+                  "name": "Off Peak cost",
+                  "color": "#ef8a7a",
+                  "statistics": {
+                    "type": "change",
+                    "period": "month",
+                    "align": "middle"
+                  },
+                  "type": "line",
+                  "yaxis_id": "cost",
+                  "unit": "",
+                  "float_precision": 2,
+                  "transform": "const r = parseFloat(hass.states['input_number.grid_rate_off_peak'] ? hass.states['input_number.grid_rate_off_peak'].state : 0) || 0; return x * r / 100;",
+                  "group_by": {
+                    "func": "last",
+                    "duration": "1month",
+                    "fill": "null"
+                  },
+                  "curve": "straight",
+                  "show": {
+                    "legend_value": false,
+                    "datalabels": true
+                  }
+                }
+              ],
+              "cache": false,
+              "update_interval": "15min",
+              "grid_options": {
+                "columns": "full",
+                "rows": "auto"
+              }
+            },
+            {
+              "type": "custom:apexcharts-card",
+              "header": {
+                "show": true,
+                "title": "Daily cost (last 30 days)",
+                "show_states": false
+              },
+              "graph_span": "30d",
+              "span": {
+                "end": "day"
+              },
+              "stacked": true,
+              "apex_config": {
+                "legend": {
+                  "show": true
+                },
+                "tooltip": {
+                  "shared": true,
+                  "intersect": false
+                },
+                "chart": {
+                  "height": 280
+                },
+                "xaxis": {
+                  "labels": {
+                    "datetimeUTC": false
+                  }
+                }
+              },
+              "yaxis": [
+                {
+                  "min": 0,
+                  "decimals": 2,
+                  "apex_config": {
+                    "title": {
+                      "text": "$"
+                    }
+                  }
+                }
+              ],
+              "series": [
+                {
+                  "entity": "sensor.house_grid_import_by_tariff_peak",
+                  "name": "Peak",
+                  "color": "#6f86d6",
+                  "type": "column",
+                  "unit": "$",
+                  "float_precision": 2,
+                  "statistics": {
+                    "type": "change",
+                    "period": "day",
+                    "align": "middle"
+                  },
+                  "transform": "const r = parseFloat(hass.states['input_number.grid_rate_peak'] ? hass.states['input_number.grid_rate_peak'].state : 0) || 0; return x * r / 100;",
+                  "show": {
+                    "legend_value": false
+                  }
+                },
+                {
+                  "entity": "sensor.house_grid_import_by_tariff_shoulder",
+                  "name": "Shoulder",
+                  "color": "#f2c46d",
+                  "type": "column",
+                  "unit": "$",
+                  "float_precision": 2,
+                  "statistics": {
+                    "type": "change",
+                    "period": "day",
+                    "align": "middle"
+                  },
+                  "transform": "const r = parseFloat(hass.states['input_number.grid_rate_shoulder'] ? hass.states['input_number.grid_rate_shoulder'].state : 0) || 0; return x * r / 100;",
+                  "show": {
+                    "legend_value": false
+                  }
+                },
+                {
+                  "entity": "sensor.house_grid_import_by_tariff_off_peak",
+                  "name": "Off Peak",
+                  "color": "#ef8a7a",
+                  "type": "column",
+                  "unit": "$",
+                  "float_precision": 2,
+                  "statistics": {
+                    "type": "change",
+                    "period": "day",
+                    "align": "middle"
+                  },
+                  "transform": "const r = parseFloat(hass.states['input_number.grid_rate_off_peak'] ? hass.states['input_number.grid_rate_off_peak'].state : 0) || 0; return x * r / 100;",
+                  "show": {
+                    "legend_value": false
+                  }
+                }
+              ],
+              "cache": false,
+              "update_interval": "15min",
+              "grid_options": {
+                "columns": "full",
+                "rows": "auto"
+              }
+            },
+            {
+              "type": "entities",
+              "title": "Grid rates (c/kWh)",
+              "entities": [
+                {
+                  "entity": "input_number.grid_rate_peak",
+                  "name": "Peak"
+                },
+                {
+                  "entity": "input_number.grid_rate_shoulder",
+                  "name": "Shoulder"
+                },
+                {
+                  "entity": "input_number.grid_rate_off_peak",
+                  "name": "Off Peak"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "max_columns": 3,
+      "title": "All Power",
+      "icon": "mdi:home",
+      "cards": []
+    },
+    {
+      "type": "sections",
+      "max_columns": 4,
+      "title": "Pool Manual Override",
+      "path": "pool-manual-override",
+      "icon": "mdi:toggle-switch-variant",
+      "sections": [
+        {
+          "type": "grid",
+          "cards": []
+        }
+      ]
+    }
+  ]
+}
