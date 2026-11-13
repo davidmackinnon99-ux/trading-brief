@@ -10,3 +10,4 @@
 - Full export: ha_export_2026-11-13.json
 - 13 Nov: grid rates set to 25.431 c/kWh (temporary, all tariffs); monthly chart labels costs per month, tooltip shows full breakdown; cost charts no longer cache. Current dashboard: dashboard_house_power.json
 - 13 Nov: Grid Rates section (moved above Day/Night & Tariffs) now holds Peak/Shoulder/Off Peak (25.431c), Solar feed-in offset (input_number.grid_rate_solar_feed_in, -5c) and daily supply (input_number.grid_daily_supply_charge, $1.293). Battery & Tariff Analysis, Energy Comparison (new 'Cost today so far' table) and Air Conditioner Estimates (cost/hour, cost since 13 Nov) all read these helpers; no hard-coded rates remain.
+- 13 Nov: Solar Power dashboard history graphs reordered so Grid is blue and Solar/PV yellow (matching House Power); Solar (sensor.pv_generation) added to the Power Balance graphs.
