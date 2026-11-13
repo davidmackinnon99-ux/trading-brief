@@ -14,6 +14,12 @@ the corrected watchlist-sections note in Section 8 below and SID_Project_Continu
 ║ beneath as history)                                                ║
 ╚═══════════════════════════════════════════════════════════════════════╝
 
+CAP TOOLS v1.8 DRAFTED — 13 November 2026 (affects LORP's CAP room/Path too):
+• v1.7's "Max Zone Height % of pivot price" 0.25 = 0.25% of price (not 25%) — trimmed ~75% of zones
+  to ~0.1 ATR. v1.8 (trading-indicators testing/indicators/) caps in ATR instead, default 1.0 (~3% trimmed).
+  Data Window keys unchanged. Pending David: paste onto layouts. Expect CAP zone edges to move outward,
+  so LORP "Room" to CAP will read slightly smaller. Study: analysis/sid-hurdles/RESULTS.md.
+
 SECTOR SUPPORT n/a FIX — 13 November 2026 (analyse-brief.cjs, shared with SID):
 • The 12 Nov sector ETF scan wrote an empty file, which blanked Sector Support (n/a) for every ticker
   on 13 Nov and would have done so until 17 Nov. History now uses the last 3 usable scans; still n/a
