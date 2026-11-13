@@ -191,6 +191,42 @@
           "cards": [
             {
               "type": "heading",
+              "heading": "Grid Rates",
+              "heading_style": "title"
+            },
+            {
+              "type": "entities",
+              "title": "Grid rates",
+              "entities": [
+                {
+                  "entity": "input_number.grid_rate_peak",
+                  "name": "Peak (4–9 pm)"
+                },
+                {
+                  "entity": "input_number.grid_rate_shoulder",
+                  "name": "Shoulder (9 pm–11 am)"
+                },
+                {
+                  "entity": "input_number.grid_rate_off_peak",
+                  "name": "Off Peak (11 am–4 pm)"
+                },
+                {
+                  "entity": "input_number.grid_rate_solar_feed_in",
+                  "name": "Solar feed-in offset"
+                },
+                {
+                  "entity": "input_number.grid_daily_supply_charge",
+                  "name": "Daily supply charge"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "grid",
+          "cards": [
+            {
+              "type": "heading",
               "heading": "Day / Night & Tariffs",
               "heading_style": "title"
             },
@@ -199,8 +235,8 @@
               "cards": [
                 {
                   "type": "markdown",
-                  "title": "Battery & tariff analysis",
-                  "content": "**Measurement period:** Day = sunrise to sunset; night = sunset to sunrise.\n**Current tariff:** {{ states('sensor.red_energy_current_tariff') }}\n**Red Energy rates (bill issued 10 Jun 2026):** Peak 4-9 pm, Shoulder 9 pm-11 am, Off Peak 11 am-4 pm. All three usage bands are currently **$0.3203/kWh**. Solar feed-in is **$0.05/kWh** and daily supply is **$1.293/day**.\nTonight is a partial night because tracking started after sunset. The first complete day will be stored after the next sunset; the first complete night after the following sunrise. Rolling history becomes meaningful after several completed periods."
+                  "title": "Battery & Tariff Analysis",
+                  "content": "{%- set p = states('input_number.grid_rate_peak') | float(0) -%}\n{%- set s = states('input_number.grid_rate_shoulder') | float(0) -%}\n{%- set o = states('input_number.grid_rate_off_peak') | float(0) -%}\n{%- set f = states('input_number.grid_rate_solar_feed_in') | float(0) -%}\n{%- set sup = states('input_number.grid_daily_supply_charge') | float(0) -%}\n{%- set t = states('sensor.red_energy_current_tariff') -%}\n{%- set cur = {'Peak': p, 'Shoulder': s, 'Off Peak': o}.get(t, 0) -%}\n{%- set kp = states('sensor.house_grid_import_by_tariff_peak') | float(0) -%}\n{%- set ks = states('sensor.house_grid_import_by_tariff_shoulder') | float(0) -%}\n{%- set ko = states('sensor.house_grid_import_by_tariff_off_peak') | float(0) -%}\n{%- set exp = states('sensor.roof_gosungrow_1498605_sungrow_gosungrow_grid_information_feed_in_energy_today') | float(0) -%}\n{%- set imp_cost = (kp*p + ks*s + ko*o) / 100 -%}\n{%- set exp_cost = exp * f / 100 -%}\n**Measurement period:** Day = sunrise to sunset; night = sunset to sunrise.\n\n**Current tariff:** {{ t }} at **{{ cur }} c/kWh**\n\n**Red Energy rates (from Grid Rates):** Peak 4–9 pm **{{ p }}c**, Shoulder 9 pm–11 am **{{ s }}c**, Off Peak 11 am–4 pm **{{ o }}c** per kWh. Solar feed-in **{{ f }}c/kWh**; daily supply **${{ '%.3f' | format(sup) }}/day**.\n\n**Grid cost today so far:** ${{ '%.2f' | format(imp_cost) }} usage ({{ (kp+ks+ko) | round(1) }} kWh) + ${{ '%.2f' | format(sup) }} supply = **${{ '%.2f' | format(imp_cost + sup) }}**"
                 },
                 {
                   "type": "grid",
@@ -320,6 +356,11 @@
                   ]
                 },
                 {
+                  "type": "markdown",
+                  "title": "Cost today so far",
+                  "content": "{%- set p = states('input_number.grid_rate_peak') | float(0) -%}\n{%- set s = states('input_number.grid_rate_shoulder') | float(0) -%}\n{%- set o = states('input_number.grid_rate_off_peak') | float(0) -%}\n{%- set f = states('input_number.grid_rate_solar_feed_in') | float(0) -%}\n{%- set sup = states('input_number.grid_daily_supply_charge') | float(0) -%}\n{%- set t = states('sensor.red_energy_current_tariff') -%}\n{%- set cur = {'Peak': p, 'Shoulder': s, 'Off Peak': o}.get(t, 0) -%}\n{%- set kp = states('sensor.house_grid_import_by_tariff_peak') | float(0) -%}\n{%- set ks = states('sensor.house_grid_import_by_tariff_shoulder') | float(0) -%}\n{%- set ko = states('sensor.house_grid_import_by_tariff_off_peak') | float(0) -%}\n{%- set exp = states('sensor.roof_gosungrow_1498605_sungrow_gosungrow_grid_information_feed_in_energy_today') | float(0) -%}\n{%- set imp_cost = (kp*p + ks*s + ko*o) / 100 -%}\n{%- set exp_cost = exp * f / 100 -%}\n| | kWh | $ |\n|---|---:|---:|\n| Grid import — Peak ({{ p }}c) | {{ kp | round(2) }} | {{ '%.2f' | format(kp*p/100) }} |\n| Grid import — Shoulder ({{ s }}c) | {{ ks | round(2) }} | {{ '%.2f' | format(ks*s/100) }} |\n| Grid import — Off Peak ({{ o }}c) | {{ ko | round(2) }} | {{ '%.2f' | format(ko*o/100) }} |\n| Solar export ({{ f }}c) | {{ exp | round(2) }} | {{ '%.2f' | format(exp_cost) }} |\n| Daily supply | | {{ '%.2f' | format(sup) }} |\n| **Net cost today** | | **{{ '%.2f' | format(imp_cost + exp_cost + sup) }}** |\n\n*Compare with Red's daily figures when published. Solar export is shown as a negative cost if the feed-in rate is entered as negative.*"
+                },
+                {
                   "type": "statistics-graph",
                   "title": "30 Days — Grid Import and Solar Export",
                   "chart_type": "bar",
@@ -353,7 +394,7 @@
             },
             {
               "type": "markdown",
-              "content": "**Method:** When one AC starts while every other AC is off, HA records the whole-house load, waits **7 minutes**, and measures the increase. Later valid samples are smoothed to reduce normal household-load noise.\n\n| Air conditioner | Directional estimate |\n|---|---:|\n| Kitchen AC | {% set v = states('input_number.kitchen_ac_estimated_power') | float(0) %}{% if v > 0 %}**{{ v | round(1) }} kW**{% else %}Waiting for an isolated start{% endif %} |\n| Lounge Room AC | {% set v = states('input_number.lounge_room_ac_estimated_power') | float(0) %}{% if v > 0 %}**{{ v | round(1) }} kW**{% else %}Waiting for an isolated start{% endif %} |\n| Main Bedroom AC | {% set v = states('input_number.main_bedroom_ac_estimated_power') | float(0) %}{% if v > 0 %}**{{ v | round(1) }} kW**{% else %}Waiting for an isolated start{% endif %} |\n| Study AC | {% set v = states('input_number.study_ac_estimated_power') | float(0) %}{% if v > 0 %}**{{ v | round(1) }} kW**{% else %}Waiting for an isolated start{% endif %} |\n| Bed2 AC | {% set v = states('input_number.bed2_ac_estimated_power') | float(0) %}{% if v > 0 %}**{{ v | round(1) }} kW**{% else %}Waiting for an isolated start{% endif %} |\n\n*These are directional estimates, not meter-grade readings. Starts are ignored when another AC is already running.*"
+              "content": "{%- set p = states('input_number.grid_rate_peak') | float(0) -%}\n{%- set s = states('input_number.grid_rate_shoulder') | float(0) -%}\n{%- set o = states('input_number.grid_rate_off_peak') | float(0) -%}\n{%- set f = states('input_number.grid_rate_solar_feed_in') | float(0) -%}\n{%- set sup = states('input_number.grid_daily_supply_charge') | float(0) -%}\n{%- set t = states('sensor.red_energy_current_tariff') -%}\n{%- set cur = {'Peak': p, 'Shoulder': s, 'Off Peak': o}.get(t, 0) -%}\n{%- set kp = states('sensor.house_grid_import_by_tariff_peak') | float(0) -%}\n{%- set ks = states('sensor.house_grid_import_by_tariff_shoulder') | float(0) -%}\n{%- set ko = states('sensor.house_grid_import_by_tariff_off_peak') | float(0) -%}\n{%- set exp = states('sensor.roof_gosungrow_1498605_sungrow_gosungrow_grid_information_feed_in_energy_today') | float(0) -%}\n{%- set imp_cost = (kp*p + ks*s + ko*o) / 100 -%}\n{%- set exp_cost = exp * f / 100 -%}\n**Method:** When one AC starts while every other AC is off, HA records the whole-house load, waits **7 minutes**, and measures the increase. Later valid samples are smoothed to reduce normal household-load noise.\n\n| Air conditioner | Estimate | Cost per hour* | Since 13 Nov* |\n|---|---:|---:|---:|\n| Kitchen AC | {% set v = states('input_number.kitchen_ac_estimated_power') | float(0) %}{% set e = states('sensor.kitchen_ac_energy') | float(0) %}{% if v > 0 %}**{{ v | round(1) }} kW** | ${{ '%.2f' | format(v * cur / 100) }} | {{ e | round(1) }} kWh / ${{ '%.2f' | format(e * cur / 100) }}{% else %}Waiting for an isolated start | – | {{ e | round(1) }} kWh{% endif %} |\n| Lounge Room AC | {% set v = states('input_number.lounge_room_ac_estimated_power') | float(0) %}{% set e = states('sensor.lounge_room_ac_energy') | float(0) %}{% if v > 0 %}**{{ v | round(1) }} kW** | ${{ '%.2f' | format(v * cur / 100) }} | {{ e | round(1) }} kWh / ${{ '%.2f' | format(e * cur / 100) }}{% else %}Waiting for an isolated start | – | {{ e | round(1) }} kWh{% endif %} |\n| Main Bedroom AC | {% set v = states('input_number.main_bedroom_ac_estimated_power') | float(0) %}{% set e = states('sensor.main_bedroom_ac_energy') | float(0) %}{% if v > 0 %}**{{ v | round(1) }} kW** | ${{ '%.2f' | format(v * cur / 100) }} | {{ e | round(1) }} kWh / ${{ '%.2f' | format(e * cur / 100) }}{% else %}Waiting for an isolated start | – | {{ e | round(1) }} kWh{% endif %} |\n| Study AC | {% set v = states('input_number.study_ac_estimated_power') | float(0) %}{% set e = states('sensor.study_ac_energy') | float(0) %}{% if v > 0 %}**{{ v | round(1) }} kW** | ${{ '%.2f' | format(v * cur / 100) }} | {{ e | round(1) }} kWh / ${{ '%.2f' | format(e * cur / 100) }}{% else %}Waiting for an isolated start | – | {{ e | round(1) }} kWh{% endif %} |\n| Bed2 AC | {% set v = states('input_number.bed2_ac_estimated_power') | float(0) %}{% set e = states('sensor.bed2_ac_energy') | float(0) %}{% if v > 0 %}**{{ v | round(1) }} kW** | ${{ '%.2f' | format(v * cur / 100) }} | {{ e | round(1) }} kWh / ${{ '%.2f' | format(e * cur / 100) }}{% else %}Waiting for an isolated start | – | {{ e | round(1) }} kWh{% endif %} |\n\n*Costs use the current tariff rate ({{ t }}, {{ cur }} c/kWh) from Grid Rates. These are directional estimates, not meter-grade readings. Starts are ignored when another AC is already running.*"
             }
           ]
         },
@@ -368,7 +409,9 @@
             },
             {
               "type": "statistics-graph",
-              "title": "Daily (last 30 days)",
+              "grid_options": {
+                "columns": "full"
+              },
               "entities": [
                 {
                   "entity": "sensor.house_grid_import_by_tariff_peak",
@@ -383,22 +426,120 @@
                   "name": "Off Peak"
                 }
               ],
+              "title": "Daily Imports (last 30 days)",
+              "days_to_show": 30,
+              "period": "day",
+              "chart_type": "bar",
               "stat_types": [
                 "change"
               ],
-              "period": "day",
-              "days_to_show": 30,
-              "chart_type": "bar",
-              "unit": "kWh",
+              "unit": "kWh"
+            },
+            {
+              "type": "custom:apexcharts-card",
+              "header": {
+                "show": true,
+                "title": "Daily Costs (last 30 days)",
+                "show_states": false
+              },
+              "graph_span": "30d",
+              "span": {
+                "end": "day"
+              },
+              "stacked": true,
+              "apex_config": {
+                "legend": {
+                  "show": true
+                },
+                "tooltip": {
+                  "shared": true,
+                  "intersect": false
+                },
+                "chart": {
+                  "height": 280
+                },
+                "xaxis": {
+                  "labels": {
+                    "datetimeUTC": false
+                  }
+                }
+              },
+              "yaxis": [
+                {
+                  "min": 0,
+                  "decimals": 2,
+                  "apex_config": {
+                    "title": {
+                      "text": "$"
+                    }
+                  }
+                }
+              ],
+              "series": [
+                {
+                  "entity": "sensor.house_grid_import_by_tariff_peak",
+                  "name": "Peak",
+                  "color": "#6f86d6",
+                  "type": "column",
+                  "unit": "$",
+                  "float_precision": 2,
+                  "statistics": {
+                    "type": "change",
+                    "period": "day",
+                    "align": "middle"
+                  },
+                  "transform": "const r = parseFloat(hass.states['input_number.grid_rate_peak'] ? hass.states['input_number.grid_rate_peak'].state : 0) || 0; return x * r / 100;",
+                  "show": {
+                    "legend_value": false
+                  }
+                },
+                {
+                  "entity": "sensor.house_grid_import_by_tariff_shoulder",
+                  "name": "Shoulder",
+                  "color": "#f2c46d",
+                  "type": "column",
+                  "unit": "$",
+                  "float_precision": 2,
+                  "statistics": {
+                    "type": "change",
+                    "period": "day",
+                    "align": "middle"
+                  },
+                  "transform": "const r = parseFloat(hass.states['input_number.grid_rate_shoulder'] ? hass.states['input_number.grid_rate_shoulder'].state : 0) || 0; return x * r / 100;",
+                  "show": {
+                    "legend_value": false
+                  }
+                },
+                {
+                  "entity": "sensor.house_grid_import_by_tariff_off_peak",
+                  "name": "Off Peak",
+                  "color": "#ef8a7a",
+                  "type": "column",
+                  "unit": "$",
+                  "float_precision": 2,
+                  "statistics": {
+                    "type": "change",
+                    "period": "day",
+                    "align": "middle"
+                  },
+                  "transform": "const r = parseFloat(hass.states['input_number.grid_rate_off_peak'] ? hass.states['input_number.grid_rate_off_peak'].state : 0) || 0; return x * r / 100;",
+                  "show": {
+                    "legend_value": false
+                  }
+                }
+              ],
+              "cache": false,
+              "update_interval": "15min",
               "grid_options": {
-                "columns": "full"
+                "columns": "full",
+                "rows": "auto"
               }
             },
             {
               "type": "custom:apexcharts-card",
               "header": {
                 "show": true,
-                "title": "Monthly — kWh (bars) and $ cost (lines)",
+                "title": "Monthly Costs",
                 "show_states": false
               },
               "graph_span": "6month",
@@ -638,124 +779,6 @@
                 "columns": "full",
                 "rows": "auto"
               }
-            },
-            {
-              "type": "custom:apexcharts-card",
-              "header": {
-                "show": true,
-                "title": "Daily cost (last 30 days)",
-                "show_states": false
-              },
-              "graph_span": "30d",
-              "span": {
-                "end": "day"
-              },
-              "stacked": true,
-              "apex_config": {
-                "legend": {
-                  "show": true
-                },
-                "tooltip": {
-                  "shared": true,
-                  "intersect": false
-                },
-                "chart": {
-                  "height": 280
-                },
-                "xaxis": {
-                  "labels": {
-                    "datetimeUTC": false
-                  }
-                }
-              },
-              "yaxis": [
-                {
-                  "min": 0,
-                  "decimals": 2,
-                  "apex_config": {
-                    "title": {
-                      "text": "$"
-                    }
-                  }
-                }
-              ],
-              "series": [
-                {
-                  "entity": "sensor.house_grid_import_by_tariff_peak",
-                  "name": "Peak",
-                  "color": "#6f86d6",
-                  "type": "column",
-                  "unit": "$",
-                  "float_precision": 2,
-                  "statistics": {
-                    "type": "change",
-                    "period": "day",
-                    "align": "middle"
-                  },
-                  "transform": "const r = parseFloat(hass.states['input_number.grid_rate_peak'] ? hass.states['input_number.grid_rate_peak'].state : 0) || 0; return x * r / 100;",
-                  "show": {
-                    "legend_value": false
-                  }
-                },
-                {
-                  "entity": "sensor.house_grid_import_by_tariff_shoulder",
-                  "name": "Shoulder",
-                  "color": "#f2c46d",
-                  "type": "column",
-                  "unit": "$",
-                  "float_precision": 2,
-                  "statistics": {
-                    "type": "change",
-                    "period": "day",
-                    "align": "middle"
-                  },
-                  "transform": "const r = parseFloat(hass.states['input_number.grid_rate_shoulder'] ? hass.states['input_number.grid_rate_shoulder'].state : 0) || 0; return x * r / 100;",
-                  "show": {
-                    "legend_value": false
-                  }
-                },
-                {
-                  "entity": "sensor.house_grid_import_by_tariff_off_peak",
-                  "name": "Off Peak",
-                  "color": "#ef8a7a",
-                  "type": "column",
-                  "unit": "$",
-                  "float_precision": 2,
-                  "statistics": {
-                    "type": "change",
-                    "period": "day",
-                    "align": "middle"
-                  },
-                  "transform": "const r = parseFloat(hass.states['input_number.grid_rate_off_peak'] ? hass.states['input_number.grid_rate_off_peak'].state : 0) || 0; return x * r / 100;",
-                  "show": {
-                    "legend_value": false
-                  }
-                }
-              ],
-              "cache": false,
-              "update_interval": "15min",
-              "grid_options": {
-                "columns": "full",
-                "rows": "auto"
-              }
-            },
-            {
-              "type": "entities",
-              "title": "Grid rates (c/kWh)",
-              "entities": [
-                {
-                  "entity": "input_number.grid_rate_peak",
-                  "name": "Peak"
-                },
-                {
-                  "entity": "input_number.grid_rate_shoulder",
-                  "name": "Shoulder"
-                },
-                {
-                  "entity": "input_number.grid_rate_off_peak",
-                  "name": "Off Peak"
-                }
-              ]
             }
           ]
         }
