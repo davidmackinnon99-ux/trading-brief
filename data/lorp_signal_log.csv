@@ -88,3 +88,4 @@ brief_date,symbol,price,native_label,entry_type,structure,pattern,sd_ago,extende
 2026-11-12,EVT,27.74,,No LC data,TREND,none,2,0,0.05,,26.13,1.07,SID
 2026-11-12,IMVT,37.04,,No LC data,PB,none,,0,1.20,,33.08,1.14,TVX
 2026-11-12,ZETA,37.74,,No LC data,TREND · HIST20,none,0,0,0.33,,23.20,1.60,SBT
+2026-11-13,ATI,190.16,,No LC data,TREND,,,0,2.79,,22.09,1.10,SBT
