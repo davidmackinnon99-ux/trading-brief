@@ -183,6 +183,110 @@
               ],
               "title": "Solar Surplus",
               "hours_to_show": 12
+            },
+            {
+              "type": "custom:apexcharts-card",
+              "cache": false,
+              "update_interval": "15min",
+              "graph_span": "7d",
+              "span": {
+                "end": "hour"
+              },
+              "header": {
+                "show": true,
+                "title": "Hourly grid import vs solar (last 7 days)",
+                "show_states": false
+              },
+              "grid_options": {
+                "columns": "full",
+                "rows": "auto"
+              },
+              "apex_config": {
+                "chart": {
+                  "height": 300
+                },
+                "legend": {
+                  "show": true
+                },
+                "xaxis": {
+                  "labels": {
+                    "datetimeUTC": false
+                  }
+                },
+                "tooltip": {
+                  "shared": true,
+                  "intersect": false,
+                  "x": {
+                    "format": "ddd d MMM, h tt"
+                  }
+                },
+                "stroke": {
+                  "width": [
+                    0,
+                    2,
+                    2
+                  ]
+                }
+              },
+              "yaxis": [
+                {
+                  "min": 0,
+                  "decimals": 1,
+                  "apex_config": {
+                    "title": {
+                      "text": "kW (hourly average)"
+                    }
+                  }
+                }
+              ],
+              "series": [
+                {
+                  "entity": "sensor.house_grid_import_power",
+                  "name": "Grid import",
+                  "type": "column",
+                  "color": "#6f86d6",
+                  "float_precision": 2,
+                  "show": {
+                    "legend_value": false
+                  },
+                  "statistics": {
+                    "type": "mean",
+                    "period": "hour",
+                    "align": "start"
+                  }
+                },
+                {
+                  "entity": "sensor.pv_generation",
+                  "name": "Solar",
+                  "type": "area",
+                  "color": "#f2c46d",
+                  "opacity": 0.35,
+                  "float_precision": 2,
+                  "show": {
+                    "legend_value": false
+                  },
+                  "statistics": {
+                    "type": "mean",
+                    "period": "hour",
+                    "align": "start"
+                  }
+                },
+                {
+                  "entity": "sensor.roof_gosungrow_1498605_sungrow_gosungrow_load_information_load_power",
+                  "name": "House load",
+                  "type": "line",
+                  "color": "#ef8a7a",
+                  "float_precision": 2,
+                  "show": {
+                    "legend_value": false
+                  },
+                  "statistics": {
+                    "type": "mean",
+                    "period": "hour",
+                    "align": "start"
+                  }
+                }
+              ]
             }
           ]
         },
