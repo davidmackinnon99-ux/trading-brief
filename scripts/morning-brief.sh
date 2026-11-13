@@ -180,7 +180,7 @@ echo "[$(date)] Scanning SID layout (XN1LuowU) — full watchlist..." >> "$LOGFI
 SID_CHECK=$(TRADINGVIEW_LAYOUT_ID="XN1LuowU" "$NODE" "$TV_DIR/src/cli/index.js" ui eval --code "$(cat "$TV_DIR/scripts/sid-layout-check.js")" 2>/dev/null | tr -d '\n')
 echo "[$(date)] SID layout check: $SID_CHECK" >> "$LOGFILE"
 sleep 5
-TRADINGVIEW_LAYOUT_ID="XN1LuowU" READY_REQUIRE_STUDY="SID Trading Signals" READY_SOFT_STUDIES="CAP Tools Supplement" \
+TRADINGVIEW_LAYOUT_ID="XN1LuowU" READY_REQUIRE_STUDY="SID Trading Signals" READY_SOFT_STUDIES="CAP Tools Supplement,SID Stretch" \
   "$NODE" "$TV_DIR/src/cli/index.js" brief > "$OUTFILE_SID" 2>> "$LOGFILE"
 SID_SCAN_EXIT=$?
 # 24 Sep 2026: if the SID indicator wasn't computing (scan aborts with REQUIRED STUDY
@@ -189,7 +189,7 @@ if [ $SID_SCAN_EXIT -ne 0 ] && tail -5 "$LOGFILE" | grep -q "REQUIRED STUDY MISS
     echo "[$(date)] SID indicator not computing — reloading SID tab and retrying once" >> "$LOGFILE"
     TRADINGVIEW_LAYOUT_ID="XN1LuowU" READY_REQUIRE_STUDY="SID Trading Signals" "$NODE" "$TV_DIR/src/cli/index.js" ui eval --code 'location.reload(); 1' >/dev/null 2>> "$LOGFILE" || true
     sleep 90
-    TRADINGVIEW_LAYOUT_ID="XN1LuowU" READY_REQUIRE_STUDY="SID Trading Signals" READY_SOFT_STUDIES="CAP Tools Supplement" \
+    TRADINGVIEW_LAYOUT_ID="XN1LuowU" READY_REQUIRE_STUDY="SID Trading Signals" READY_SOFT_STUDIES="CAP Tools Supplement,SID Stretch" \
       "$NODE" "$TV_DIR/src/cli/index.js" brief > "$OUTFILE_SID" 2>> "$LOGFILE"
     SID_SCAN_EXIT=$?
 fi

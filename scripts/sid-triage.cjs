@@ -30,6 +30,7 @@ const CFG = {
   ENTRY_MISSED_LOOKBACK: 3,  // same-direction SID alert within this many trading days earlier ...
   ENTRY_MISSED_ATR: 1.0,     // ... and price already moved this far in the trade direction since → missed
   SHORT_RVOL_LOW: 0.75,      // preliminary short context only; never changes status
+  STRETCH_UNUSUAL_PCTL: 80,  // SID Stretch percentile >= this (longs below the mid) → warning
 };
 
 const STATUS = {
@@ -270,6 +271,11 @@ function triageAlert(a) {
   // opposed sector lowers review priority; supportive rotation improves rank
   // only among otherwise comparable candidates and never cancels a risk flag.
   if (a.sectorRotation === 'Unsupported') warnings.push('SECTOR_ROTATION_OPPOSED');
+  // 13 Nov 2026 (David): long stretched below the BB mid further than this stock usually goes
+  // (SID Stretch v1.0, top 20% of its own 500-bar history). Longs only — no effect on shorts.
+  // Evidence: analysis/sid-hurdles/STRETCH_RESULTS.md (63% vs 78% WR; flagged losers larger).
+  const stretch = a.stretch && isNum(a.stretch.pctl) ? a.stretch : null;
+  if (dir === 'long' && stretch && stretch.side < 0 && stretch.pctl >= CFG.STRETCH_UNUSUAL_PCTL) warnings.push('LONG_UNUSUAL_STRETCH');
 
   // ── Path state ──
   let path;
@@ -359,7 +365,8 @@ function triageAlert(a) {
     : a.sectorRotation === 'Neutral' ? 'Rotation neutral' : 'Rotation n/a';
 
   return {
-    sym: a.sym, dir, status, reasons, conditions, warnings, dataGaps, notes, isFund: !!(a.isFund || a.isBondEtf), isEtf: !!a.isEtf, source: a.source || 'Scan',
+    sym: a.sym, dir, status, reasons, conditions, warnings, dataGaps, notes,
+    stretchPctl: stretch ? r2(stretch.pctl) : null, isFund: !!(a.isFund || a.isBondEtf), isEtf: !!a.isEtf, source: a.source || 'Scan',
     path, roomAtr,
     hurdle: fh.hurdle ? { label: fh.hurdle.label, price: r2(fh.hurdle.price), distAtr: r2(fh.hurdle.distAtr) } : null,
     levelsAhead: fh.ahead.map((x) => ({ name: x.name, price: r2(x.price), distAtr: r2(x.distAtr) })),
@@ -401,6 +408,7 @@ const REASON_TEXT = {
   SHORT_ADX_RUNOVER: 'short ADX 40–50 — material run-over risk in the expanded sample, not an automatic veto',
   SHORT_DI_RUNOVER: 'short DI spread at least 20 — low hit-rate warning, not an expectancy gate',
   SECTOR_ROTATION_OPPOSED: 'sector rotation is opposed to the trade direction — lower priority, not an automatic veto',
+  LONG_UNUSUAL_STRETCH: 'stretched below the BB mid further than this stock usually goes (top 20% of its own history) — weaker longs and larger failures, not a veto',
 };
 
 function whyLine(t) {

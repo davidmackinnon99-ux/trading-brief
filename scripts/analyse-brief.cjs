@@ -926,7 +926,13 @@ const sidResults = sidBrief ? sidBrief.symbols_scanned.filter(s => !EXCLUDED_TIC
   // David (7 Oct 2026): SMA50/SMA200 come from the Moving Average Ribbon (MA #2 = SMA50,
   // MA #4 = SMA200) — the values he uses on the chart.
   const ribbonSt = exactStudy('Moving Average Ribbon');
+  // 13 Nov 2026 (David): SID Stretch v1.0 — how unusual the stretch from the BB mid is for THIS stock.
+  const stretchSt = exactStudy('SID Stretch');
   const triageRaw = {
+    stretch: stretchSt ? {
+      pctl: exactNum(stretchSt, 'Stretch Pctl'), atr: exactNum(stretchSt, 'Stretch ATR'),
+      side: exactNum(stretchSt, 'Stretch Side'), unusual: exactNum(stretchSt, 'Unusual Stretch'),
+    } : null,
     ma50: exactNum(ribbonSt, 'MA #2'), ma200: exactNum(ribbonSt, 'MA #4'),
     resolvedSymbol: s.state?.symbol || null,
     close: s.quote?.close ?? s.quote?.last ?? null,
@@ -1127,6 +1133,7 @@ function buildSidTriage(fired) {
       sym: r.sym, dir, close, open: tr.open, atr, atrPct: r.atrPct, gatr: r.gatrRatio, rsi: tr.rsi,
       bbMid: tr.bbMid, bbUp: tr.bbUp, bbLo: tr.bbLo, sma50: tr.ma50 ?? r.sma50, sma200: tr.ma200 ?? r.sma200,
       cap: tr.cap || {},
+      stretch: tr.stretch || null,
       macd: {
         macd: r.macd, sig: r.macdSig, raw: tr.macdRaw ?? ((r.macd != null && r.macdSig != null) ? r.macd - r.macdSig : null),
         sep: tr.macdSep, closingSpeed: tr.macdClosingSpeed, barsSinceCross: tr.macdBarsSinceCross,
@@ -2743,6 +2750,7 @@ if (!VERBOSE) {
       const warningCell = t => (t.warnings || []).map(w => ({
         SHORT_ADX_RUNOVER: 'ADX 40–50 risk', SHORT_DI_RUNOVER: 'DI≥20 low-WR',
         SECTOR_ROTATION_OPPOSED: 'Sector opposed',
+        LONG_UNUSUAL_STRETCH: `Unusual stretch P${Math.round(t.stretchPctl ?? 0)}`,
       }[w] || w)).concat(diFlags(t)).join(', ') || '—';
       // DI flags (David, 12 Nov 2026 — items 2 & 4 of the DI/ADX review; info only, never a gate).
       // DI against = DI+ − DI− for shorts, DI− − DI+ for longs. Source: analysis/sid-whipsaw.
@@ -2786,7 +2794,7 @@ if (!VERBOSE) {
           return [T.bare(t.sym), t.cells.bb.replace(' ATR', ''), t.cells.ma.replace('50 ', '').replace(' · 200 ', ' / ').replace(' · gap ', ' · '),
             `${sector} / ${etf}`, supportCell(t), t.cells.event, srcTag(t)];
         }));
-      console.log('\n*Key: ⚠️ on Status = structure OK but section 2 has a caution (Gap/ATR < 1.5, short ADX 40–50, short DI ≥ 20 or sector opposed) · Room = ATR to first hurdle · MA distances are descriptive context, not a SID veto · Hist% = (MACD − signal) / price × 100; conv/exp and fast/slow describe MACD Histogram behaviour, not the validated MACD-line speed measure · DI Sh = 3-bar shift, Ct = current control · RVOL ↑/↓/→ = volume building/fading/flat (HMA vs SMA of volume) · RVOL * labels are preliminary short context only and never change status · Src A = TV alert, S = scan · Sector Support = sector ETF vs SPY over the last 3 sector scans, in the trade direction (rotation only — not sector chart structure).*\n');
+      console.log('\n*Key: ⚠️ on Status = structure OK but section 2 has a caution (Gap/ATR < 1.5, short ADX 40–50, short DI ≥ 20, sector opposed or long unusual stretch) · Unusual stretch P = how far below the BB mid vs this stock’s own last 500 bars (SID Stretch v1.0; ≥ P80 flagged, longs only) · Room = ATR to first hurdle · MA distances are descriptive context, not a SID veto · Hist% = (MACD − signal) / price × 100; conv/exp and fast/slow describe MACD Histogram behaviour, not the validated MACD-line speed measure · DI Sh = 3-bar shift, Ct = current control · RVOL ↑/↓/→ = volume building/fading/flat (HMA vs SMA of volume) · RVOL * labels are preliminary short context only and never change status · Src A = TV alert, S = scan · Sector Support = sector ETF vs SPY over the last 3 sector scans, in the trade direction (rotation only — not sector chart structure).*\n');
       primary.forEach(t => console.log(`- **${T.bare(t.sym)}** — ${T.whyLine(t)}`));
 
       // Validated cautions (unchanged logic) — shown for the reviewed rows only.
@@ -2801,6 +2809,8 @@ if (!VERBOSE) {
       if (diSup.length) console.log(`\n> ✓ SHORT DI supportive — DI against < 10 (best short group: +0.03% avg, 29% whipsaw): ${diSup.map(r => `${T.bare(r.sym)} (${diGap(r).toFixed(0)})`).join(', ')}`);
       const rough = rv.filter(r => r.isLongPass && diGap(r) != null && -diGap(r) >= 20);
       if (rough.length) console.log(`\n> ℹ️ LONG rough ride — DI against ≥ 20 (whipsaw rate ~44% but still +1.29% avg; expect a bumpy entry, not a skip): ${rough.map(r => `${T.bare(r.sym)} (${(-diGap(r)).toFixed(0)})`).join(', ')}`);
+      const ustr = primary.filter(t => (t.warnings || []).includes('LONG_UNUSUAL_STRETCH'));
+      if (ustr.length) console.log(`\n> ⚠️ LONG unusual stretch — further below the BB mid than this stock usually goes (top 20% of its own 500 bars; 63% vs 78% WR, flagged losers larger): ${ustr.map(t => `${T.bare(t.sym)} (P${Math.round(t.stretchPctl)})`).join(', ')}`);
       // Gap/ATR reminder (David, 6 Nov 2026) — canonical STRATEGIES.md: ≥2.0 ideal · <1.5 avoid
       // (danger flag F1; context, not a hard filter). F1 + RVOL<1.0 is the worst validated combo (64% SL).
       const gLow = rv.filter(r => r.gatrRatio != null && r.gatrRatio < 1.5);
