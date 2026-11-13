@@ -2757,7 +2757,10 @@ if (!VERBOSE) {
       mdTable(['Ticker', 'Side', 'Status', 'Price', 'Path', 'First hurdle', 'Room', 'CAP'],
         primary.map(t => {
           const r = rowOf.get(t.sym);
-          return [T.bare(t.sym), t.dir === 'long' ? 'Long' : 'Short', t.status, fmt(r.triageRaw.close ?? r.price), t.path,
+          // 13 Nov 2026 (David): section 1 stays structural, but flag ⚠️ when section 2 carries a
+          // caution (short ADX 40–50, short DI ≥ 20, sector opposed, Gap/ATR < 1.5) so it's visible on the first pass.
+          const s2Warn = (t.warnings || []).length > 0 || (r.gatrRatio != null && r.gatrRatio < 1.5);
+          return [T.bare(t.sym), t.dir === 'long' ? 'Long' : 'Short', t.status + (s2Warn ? ' ⚠️' : ''), fmt(r.triageRaw.close ?? r.price), t.path,
             t.hurdle ? `${t.hurdle.label} ${t.hurdle.price.toFixed(2)}` : '-',
             t.hurdle && t.hurdle.distAtr != null ? t.hurdle.distAtr.toFixed(1) : '-', t.cells.cap];
         }), new Set([3, 6]));
@@ -2783,7 +2786,7 @@ if (!VERBOSE) {
           return [T.bare(t.sym), t.cells.bb.replace(' ATR', ''), t.cells.ma.replace('50 ', '').replace(' · 200 ', ' / ').replace(' · gap ', ' · '),
             `${sector} / ${etf}`, supportCell(t), t.cells.event, srcTag(t)];
         }));
-      console.log('\n*Key: Room = ATR to first hurdle · MA distances are descriptive context, not a SID veto · Hist% = (MACD − signal) / price × 100; conv/exp and fast/slow describe MACD Histogram behaviour, not the validated MACD-line speed measure · DI Sh = 3-bar shift, Ct = current control · RVOL ↑/↓/→ = volume building/fading/flat (HMA vs SMA of volume) · RVOL * labels are preliminary short context only and never change status · Src A = TV alert, S = scan · Sector Support = sector ETF vs SPY over the last 3 sector scans, in the trade direction (rotation only — not sector chart structure).*\n');
+      console.log('\n*Key: ⚠️ on Status = structure OK but section 2 has a caution (Gap/ATR < 1.5, short ADX 40–50, short DI ≥ 20 or sector opposed) · Room = ATR to first hurdle · MA distances are descriptive context, not a SID veto · Hist% = (MACD − signal) / price × 100; conv/exp and fast/slow describe MACD Histogram behaviour, not the validated MACD-line speed measure · DI Sh = 3-bar shift, Ct = current control · RVOL ↑/↓/→ = volume building/fading/flat (HMA vs SMA of volume) · RVOL * labels are preliminary short context only and never change status · Src A = TV alert, S = scan · Sector Support = sector ETF vs SPY over the last 3 sector scans, in the trade direction (rotation only — not sector chart structure).*\n');
       primary.forEach(t => console.log(`- **${T.bare(t.sym)}** — ${T.whyLine(t)}`));
 
       // Validated cautions (unchanged logic) — shown for the reviewed rows only.
