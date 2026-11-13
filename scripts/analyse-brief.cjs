@@ -1039,6 +1039,31 @@ function loadSidHistory(symSet) {
   return out;
 }
 
+// 13 Nov 2026 (David): market state for the SID Stretch caution. The stretch flag separates winners from
+// losers in calm/rising markets (SPY > 200-day or VIX < 20) and not in stressed ones
+// (trading-indicators analysis/sid-hurdles/STRETCH_RESULTS.md). One call to TradingView's public scanner.
+function fetchMarketState() {
+  try {
+    const body = JSON.stringify({ symbols: { tickers: ['AMEX:SPY', 'CBOE:VIX'] }, columns: ['name', 'close', 'SMA200'] });
+    const res = require('child_process').execFileSync('curl', ['-s', '--max-time', '20', '-X', 'POST',
+      'https://scanner.tradingview.com/global/scan', '-H', 'Content-Type: application/json', '-d', body], { encoding: 'utf8' });
+    const rows = Object.fromEntries((JSON.parse(res).data || []).map(r => [r.s, r.d]));
+    const spy = rows['AMEX:SPY'], vix = rows['CBOE:VIX'];
+    const st = {
+      spy: spy ? spy[1] : null, spy200: spy ? spy[2] : null, vix: vix ? vix[1] : null,
+    };
+    st.spyAbove200 = st.spy != null && st.spy200 != null ? st.spy > st.spy200 : null;
+    // Calm = either condition holds. Unknown (fetch failed) → null → triage keeps the caution (fail-safe).
+    st.calm = st.spyAbove200 == null && st.vix == null ? null
+      : (st.spyAbove200 === true) || (st.vix != null && st.vix < 20);
+    process.stderr.write(`[sid-triage] market: SPY ${st.spy} vs 200d ${st.spy200 && st.spy200.toFixed(2)}, VIX ${st.vix} → ${st.calm ? 'calm' : st.calm === false ? 'stressed' : 'unknown'}\n`);
+    return st;
+  } catch (e) {
+    process.stderr.write(`[sid-triage] market state fetch failed (${e.message}) — stretch caution applied regardless\n`);
+    return { calm: null };
+  }
+}
+
 function fetchSidEvents(bareTickers) {
   const out = new Map();
   if (!bareTickers.length) return out;
@@ -1109,10 +1134,12 @@ function rotationForEtf(etf, direction) {
   return rels.every(sup) ? 'Supported' : rels.every(uns) ? 'Unsupported' : 'Neutral';
 }
 
+let sidMarket = null; // set by buildSidTriage (SPY vs 200-day, VIX) — used by the stretch caution + market line
 function buildSidTriage(fired) {
   const T = sidTriageLib;
   const hist = loadSidHistory(new Set(fired.map(r => bareSym(r.sym))));  // saved scans key rows by bare ticker
   const events = fetchSidEvents([...new Set(fired.map(r => bareSym(r.sym)))]);
+  sidMarket = fired.length ? fetchMarketState() : null;
   const pick = (arr, prefs) => { for (const p of prefs) { const h = arr.find(x => x.tdAgo === p); if (h) return h; } return null; };
   const triaged = fired.map(r => {
     const dir = r.isLongPass ? 'long' : 'short';
@@ -1134,6 +1161,7 @@ function buildSidTriage(fired) {
       bbMid: tr.bbMid, bbUp: tr.bbUp, bbLo: tr.bbLo, sma50: tr.ma50 ?? r.sma50, sma200: tr.ma200 ?? r.sma200,
       cap: tr.cap || {},
       stretch: tr.stretch || null,
+      marketCalm: sidMarket ? sidMarket.calm : null,
       macd: {
         macd: r.macd, sig: r.macdSig, raw: tr.macdRaw ?? ((r.macd != null && r.macdSig != null) ? r.macd - r.macdSig : null),
         sep: tr.macdSep, closingSpeed: tr.macdClosingSpeed, barsSinceCross: tr.macdBarsSinceCross,
@@ -2745,13 +2773,20 @@ if (!VERBOSE) {
       };
       const short = (x) => String(x).replace('Opposed, ', 'Opp, ').replace('Aligned, ', 'Aln, ').replace('converging', 'conv').replace('expanding', 'exp').replace(' (fast)', ' fast').replace(' (slow)', ' slow');
       const srcTag = t => t.source === 'Alert + scan' ? 'A+S' : t.source === 'Alert only' ? 'A' : t.source === 'Scan only' ? 'S' : '-';
+      if (sidMarket && (sidMarket.spy != null || sidMarket.vix != null)) {
+        const m = sidMarket;
+        const spyTxt = m.spy != null && m.spy200 != null ? `SPY ${m.spy.toFixed(2)} ${m.spyAbove200 ? 'above' : 'below'} 200-day (${m.spy200.toFixed(2)})` : 'SPY n/a';
+        const vixTxt = m.vix != null ? `VIX ${m.vix.toFixed(1)}` : 'VIX n/a';
+        console.log(`\n**Market:** ${spyTxt} · ${vixTxt} → ${m.calm ? 'calm — unusual-stretch caution active for longs' : m.calm === false ? 'stressed — unusual stretch shown as info only' : 'unknown'}`);
+      }
       console.log(`\n*Review now + Conditional (${primary.length}) — open these charts first:*\n`);
       console.log('**1. Structural priority**\n');
       const warningCell = t => (t.warnings || []).map(w => ({
         SHORT_ADX_RUNOVER: 'ADX 40–50 risk', SHORT_DI_RUNOVER: 'DI≥20 low-WR',
         SECTOR_ROTATION_OPPOSED: 'Sector opposed',
         LONG_UNUSUAL_STRETCH: `Unusual stretch P${Math.round(t.stretchPctl ?? 0)}`,
-      }[w] || w)).concat(diFlags(t)).join(', ') || '—';
+      }[w] || w)).concat(diFlags(t))
+        .concat(t.stretchInfo ? [`ℹ️ Stretch P${Math.round(t.stretchPctl ?? 0)} (stressed mkt)`] : []).join(', ') || '—';
       // DI flags (David, 12 Nov 2026 — items 2 & 4 of the DI/ADX review; info only, never a gate).
       // DI against = DI+ − DI− for shorts, DI− − DI+ for longs. Source: analysis/sid-whipsaw.
       function diFlags(t) {
@@ -2794,7 +2829,7 @@ if (!VERBOSE) {
           return [T.bare(t.sym), t.cells.bb.replace(' ATR', ''), t.cells.ma.replace('50 ', '').replace(' · 200 ', ' / ').replace(' · gap ', ' · '),
             `${sector} / ${etf}`, supportCell(t), t.cells.event, srcTag(t)];
         }));
-      console.log('\n*Key: ⚠️ on Status = structure OK but section 2 has a caution (Gap/ATR < 1.5, short ADX 40–50, short DI ≥ 20, sector opposed or long unusual stretch) · Unusual stretch P = how far below the BB mid vs this stock’s own last 500 bars (SID Stretch v1.0; ≥ P80 flagged, longs only) · Room = ATR to first hurdle · MA distances are descriptive context, not a SID veto · Hist% = (MACD − signal) / price × 100; conv/exp and fast/slow describe MACD Histogram behaviour, not the validated MACD-line speed measure · DI Sh = 3-bar shift, Ct = current control · RVOL ↑/↓/→ = volume building/fading/flat (HMA vs SMA of volume) · RVOL * labels are preliminary short context only and never change status · Src A = TV alert, S = scan · Sector Support = sector ETF vs SPY over the last 3 sector scans, in the trade direction (rotation only — not sector chart structure).*\n');
+      console.log('\n*Key: ⚠️ on Status = structure OK but section 2 has a caution (Gap/ATR < 1.5, short ADX 40–50, short DI ≥ 20, sector opposed or long unusual stretch) · Unusual stretch P = how far below the BB mid vs this stock’s own last 500 bars (SID Stretch v1.0; ≥ P80 flagged, longs only; a caution only when SPY > 200-day or VIX < 20, otherwise ℹ️ info) · Room = ATR to first hurdle · MA distances are descriptive context, not a SID veto · Hist% = (MACD − signal) / price × 100; conv/exp and fast/slow describe MACD Histogram behaviour, not the validated MACD-line speed measure · DI Sh = 3-bar shift, Ct = current control · RVOL ↑/↓/→ = volume building/fading/flat (HMA vs SMA of volume) · RVOL * labels are preliminary short context only and never change status · Src A = TV alert, S = scan · Sector Support = sector ETF vs SPY over the last 3 sector scans, in the trade direction (rotation only — not sector chart structure).*\n');
       primary.forEach(t => console.log(`- **${T.bare(t.sym)}** — ${T.whyLine(t)}`));
 
       // Validated cautions (unchanged logic) — shown for the reviewed rows only.

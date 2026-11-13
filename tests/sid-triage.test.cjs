@@ -279,3 +279,26 @@ test('bond/cash ETF → Exclude with its own reason; equity ETF is reviewed norm
   const e = T.triageAlert(longBase({ isEtf: true }));
   assert.equal(e.status, T.STATUS.REVIEW);
 });
+
+// 13 Nov 2026 — SID Stretch v1.0 unusual-stretch caution (longs only, market-aware)
+const ustr = { pctl: 93, side: -1, atr: -2.4 };
+test('unusual stretch long: caution when market calm or unknown', () => {
+  for (const marketCalm of [true, null, undefined]) {
+    const t = T.triageAlert(longBase({ stretch: ustr, marketCalm }));
+    assert.ok(t.warnings.includes('LONG_UNUSUAL_STRETCH'));
+    assert.equal(t.status, T.STATUS.COND);
+    assert.equal(t.stretchInfo, false);
+  }
+});
+test('unusual stretch long: info only when market stressed', () => {
+  const t = T.triageAlert(longBase({ stretch: ustr, marketCalm: false }));
+  assert.ok(!t.warnings.includes('LONG_UNUSUAL_STRETCH'));
+  assert.equal(t.stretchInfo, true);
+  assert.equal(t.status, T.STATUS.REVIEW);
+});
+test('stretch below threshold, above the mid, or on a short: no caution', () => {
+  assert.ok(!T.triageAlert(longBase({ stretch: { pctl: 70, side: -1 }, marketCalm: true })).warnings.includes('LONG_UNUSUAL_STRETCH'));
+  assert.ok(!T.triageAlert(longBase({ stretch: { pctl: 95, side: 1 }, marketCalm: true })).warnings.includes('LONG_UNUSUAL_STRETCH'));
+  assert.ok(!T.triageAlert(shortBase({ stretch: { pctl: 95, side: 1 }, marketCalm: true })).warnings.includes('LONG_UNUSUAL_STRETCH'));
+  assert.equal(T.triageAlert(longBase()).stretchInfo, false); // indicator not on chart → unchanged behaviour
+});

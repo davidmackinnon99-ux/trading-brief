@@ -275,7 +275,12 @@ function triageAlert(a) {
   // (SID Stretch v1.0, top 20% of its own 500-bar history). Longs only — no effect on shorts.
   // Evidence: analysis/sid-hurdles/STRETCH_RESULTS.md (63% vs 78% WR; flagged losers larger).
   const stretch = a.stretch && isNum(a.stretch.pctl) ? a.stretch : null;
-  if (dir === 'long' && stretch && stretch.side < 0 && stretch.pctl >= CFG.STRETCH_UNUSUAL_PCTL) warnings.push('LONG_UNUSUAL_STRETCH');
+  // Market-aware (13 Nov 2026): only a caution in calm/rising markets (SPY > 200-day or VIX < 20, or market
+  // state unknown); in stressed markets everything is stretched and the flag stops separating — info only.
+  let stretchInfo = false;
+  if (dir === 'long' && stretch && stretch.side < 0 && stretch.pctl >= CFG.STRETCH_UNUSUAL_PCTL) {
+    if (a.marketCalm === false) stretchInfo = true; else warnings.push('LONG_UNUSUAL_STRETCH');
+  }
 
   // ── Path state ──
   let path;
@@ -366,7 +371,7 @@ function triageAlert(a) {
 
   return {
     sym: a.sym, dir, status, reasons, conditions, warnings, dataGaps, notes,
-    stretchPctl: stretch ? r2(stretch.pctl) : null, isFund: !!(a.isFund || a.isBondEtf), isEtf: !!a.isEtf, source: a.source || 'Scan',
+    stretchPctl: stretch ? r2(stretch.pctl) : null, stretchInfo, isFund: !!(a.isFund || a.isBondEtf), isEtf: !!a.isEtf, source: a.source || 'Scan',
     path, roomAtr,
     hurdle: fh.hurdle ? { label: fh.hurdle.label, price: r2(fh.hurdle.price), distAtr: r2(fh.hurdle.distAtr) } : null,
     levelsAhead: fh.ahead.map((x) => ({ name: x.name, price: r2(x.price), distAtr: r2(x.distAtr) })),
