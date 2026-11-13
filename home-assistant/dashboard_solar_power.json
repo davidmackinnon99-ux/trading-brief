@@ -1,0 +1,1121 @@
+{
+  "title": "GoSungrow Flow",
+  "views": [
+    {
+      "dense_section_placement": true,
+      "icon": "mdi:solar-power",
+      "max_columns": 3,
+      "path": "overview",
+      "sections": [
+        {
+          "cards": [
+            {
+              "heading": "Live Flow",
+              "icon": "mdi:solar-power",
+              "type": "heading"
+            },
+            {
+              "automatic_entities": {
+                "grid_power": "sensor.roof_gosungrow_1498605_7_1_1_meter1_gosungrow_overview_meter_active_power",
+                "load_power": "sensor.roof_gosungrow_1498605_sungrow_gosungrow_load_information_load_power"
+              },
+              "entities": {
+                "grid_power": "sensor.roof_gosungrow_1498605_7_1_1_meter1_gosungrow_overview_meter_active_power",
+                "load_power": "sensor.roof_gosungrow_1498605_sungrow_gosungrow_load_information_load_power"
+              },
+              "labels": {
+                "battery_power_caption": "Battery power",
+                "battery_status_balanced": "Balanced flows",
+                "battery_status_charging": "Charging",
+                "battery_status_discharging": "Discharging",
+                "battery_status_idle": "Idle",
+                "battery_status_unavailable": "Direction unavailable",
+                "node_battery": "Battery",
+                "node_grid": "Grid",
+                "node_home": "Home",
+                "node_pv": "PV"
+              },
+              "layout_options": {
+                "grid_columns": "full",
+                "grid_rows": 6
+              },
+              "type": "custom:gosungrow-energy-flow-card-v2"
+            }
+          ],
+          "column_span": 2,
+          "type": "grid"
+        },
+        {
+          "cards": [
+            {
+              "heading": "Today",
+              "icon": "mdi:calendar-today",
+              "type": "heading"
+            },
+            {
+              "entity": "sensor.roof_gosungrow_1498605_1_1_1_inverter1_gosungrow_overview_daily_generation",
+              "icon": "mdi:solar-power",
+              "name": "PV Yield",
+              "type": "tile"
+            },
+            {
+              "entity": "sensor.roof_gosungrow_1498605_sungrow_gosungrow_other_information_daily_feed_in_energy_pv",
+              "icon": "mdi:upload-network-outline",
+              "name": "Feed-in",
+              "type": "tile"
+            },
+            {
+              "entity": "sensor.roof_gosungrow_1498605_sungrow_gosungrow_grid_information_energy_purchased_today",
+              "icon": "mdi:download-network-outline",
+              "name": "Grid Import",
+              "type": "tile"
+            }
+          ],
+          "type": "grid"
+        },
+        {
+          "cards": [
+            {
+              "heading": "Power Balance",
+              "icon": "mdi:chart-line",
+              "type": "heading"
+            },
+            {
+              "entities": [
+                {
+                  "entity": "sensor.roof_gosungrow_1498605_7_1_1_meter1_gosungrow_overview_meter_active_power",
+                  "name": "Grid"
+                },
+                {
+                  "entity": "sensor.pv_generation",
+                  "name": "Solar"
+                },
+                {
+                  "entity": "sensor.roof_gosungrow_1498605_sungrow_gosungrow_load_information_load_power",
+                  "name": "Load"
+                }
+              ],
+              "hours_to_show": 24,
+              "layout_options": {
+                "grid_columns": "full",
+                "grid_rows": 5
+              },
+              "refresh_interval": 60,
+              "type": "history-graph"
+            }
+          ],
+          "type": "grid"
+        },
+        {
+          "cards": [
+            {
+              "heading": "Daily Energy",
+              "icon": "mdi:chart-areaspline",
+              "type": "heading"
+            },
+            {
+              "entities": [
+                {
+                  "entity": "sensor.roof_gosungrow_1498605_sungrow_gosungrow_grid_information_energy_purchased_today",
+                  "name": "Grid Import"
+                },
+                {
+                  "entity": "sensor.roof_gosungrow_1498605_1_1_1_inverter1_gosungrow_overview_daily_generation",
+                  "name": "PV Yield"
+                },
+                {
+                  "entity": "sensor.roof_gosungrow_1498605_sungrow_gosungrow_other_information_daily_feed_in_energy_pv",
+                  "name": "Feed-in"
+                }
+              ],
+              "hours_to_show": 24,
+              "layout_options": {
+                "grid_columns": "full",
+                "grid_rows": 5
+              },
+              "refresh_interval": 300,
+              "type": "history-graph"
+            }
+          ],
+          "type": "grid"
+        }
+      ],
+      "title": "Overview",
+      "type": "sections"
+    },
+    {
+      "dense_section_placement": true,
+      "icon": "mdi:chart-bar",
+      "max_columns": 2,
+      "path": "aggregates",
+      "sections": [
+        {
+          "cards": [
+            {
+              "heading": "Energy Summary",
+              "icon": "mdi:lightning-bolt-circle",
+              "type": "heading"
+            },
+            {
+              "buckets": {
+                "day": 14,
+                "month": 12,
+                "year": 5
+              },
+              "entities": {
+                "consumption": "sensor.roof_gosungrow_1498605_1_1_1_inverter1_gosungrow_overview_daily_generation",
+                "from_grid": "sensor.roof_gosungrow_1498605_sungrow_gosungrow_grid_information_energy_purchased_today",
+                "production": "sensor.roof_gosungrow_1498605_1_1_1_inverter1_gosungrow_overview_daily_generation",
+                "to_grid": "sensor.roof_gosungrow_1498605_sungrow_gosungrow_other_information_daily_feed_in_energy_pv"
+              },
+              "labels": {
+                "name_consumption": "Consumption",
+                "name_from_battery": "From Battery",
+                "name_from_grid": "From Grid",
+                "name_production": "Production",
+                "name_to_battery": "To Battery",
+                "name_to_grid": "To Grid",
+                "no_statistics": "No statistics yet",
+                "period_day": "Day",
+                "period_month": "Month",
+                "period_year": "Year",
+                "statistics_unavailable": "Statistics unavailable",
+                "title": "Energy Summary",
+                "unavailable": "Unavailable"
+              },
+              "layout_options": {
+                "grid_columns": "full",
+                "grid_rows": 6
+              },
+              "type": "custom:gosungrow-energy-summary-card-v1"
+            }
+          ],
+          "column_span": 2,
+          "type": "grid"
+        }
+      ],
+      "title": "Aggregates",
+      "type": "sections"
+    },
+    {
+      "dense_section_placement": true,
+      "icon": "mdi:chart-line",
+      "max_columns": 2,
+      "path": "trends",
+      "sections": [
+        {
+          "cards": [
+            {
+              "heading": "Power Balance",
+              "icon": "mdi:chart-line",
+              "type": "heading"
+            },
+            {
+              "entities": [
+                {
+                  "entity": "sensor.roof_gosungrow_1498605_7_1_1_meter1_gosungrow_overview_meter_active_power",
+                  "name": "Grid"
+                },
+                {
+                  "entity": "sensor.pv_generation",
+                  "name": "Solar"
+                },
+                {
+                  "entity": "sensor.roof_gosungrow_1498605_sungrow_gosungrow_load_information_load_power",
+                  "name": "Load"
+                }
+              ],
+              "hours_to_show": 24,
+              "layout_options": {
+                "grid_columns": "full",
+                "grid_rows": 5
+              },
+              "refresh_interval": 60,
+              "type": "history-graph"
+            }
+          ],
+          "type": "grid"
+        },
+        {
+          "cards": [
+            {
+              "heading": "Grid Exchange",
+              "icon": "mdi:transmission-tower-export",
+              "type": "heading"
+            },
+            {
+              "entities": [
+                {
+                  "entity": "sensor.roof_gosungrow_1498605_7_1_1_meter1_gosungrow_overview_meter_active_power",
+                  "name": "Grid Net"
+                }
+              ],
+              "hours_to_show": 24,
+              "layout_options": {
+                "grid_columns": "full",
+                "grid_rows": 5
+              },
+              "refresh_interval": 60,
+              "type": "history-graph"
+            }
+          ],
+          "type": "grid"
+        },
+        {
+          "cards": [
+            {
+              "heading": "Daily Energy",
+              "icon": "mdi:chart-areaspline",
+              "type": "heading"
+            },
+            {
+              "entities": [
+                {
+                  "entity": "sensor.roof_gosungrow_1498605_sungrow_gosungrow_grid_information_energy_purchased_today",
+                  "name": "Grid Import"
+                },
+                {
+                  "entity": "sensor.roof_gosungrow_1498605_1_1_1_inverter1_gosungrow_overview_daily_generation",
+                  "name": "PV Yield"
+                },
+                {
+                  "entity": "sensor.roof_gosungrow_1498605_sungrow_gosungrow_other_information_daily_feed_in_energy_pv",
+                  "name": "Feed-in"
+                }
+              ],
+              "hours_to_show": 24,
+              "layout_options": {
+                "grid_columns": "full",
+                "grid_rows": 5
+              },
+              "refresh_interval": 300,
+              "type": "history-graph"
+            }
+          ],
+          "type": "grid"
+        }
+      ],
+      "title": "Trends",
+      "type": "sections"
+    },
+    {
+      "cards": [
+        {
+          "bindings": {
+            "grid_power": [
+              "/views/0/sections/0/cards/1/entities/grid_power",
+              "/views/0/sections/2/cards/1/entities/1/entity",
+              "/views/2/sections/0/cards/1/entities/1/entity",
+              "/views/2/sections/1/cards/1/entities/0/entity"
+            ],
+            "load_power": [
+              "/views/0/sections/0/cards/1/entities/load_power",
+              "/views/0/sections/2/cards/1/entities/0/entity",
+              "/views/2/sections/0/cards/1/entities/0/entity"
+            ],
+            "p13112": [
+              "/views/0/sections/1/cards/1/entity",
+              "/views/0/sections/3/cards/1/entities/0/entity",
+              "/views/1/sections/0/cards/1/entities/production",
+              "/views/2/sections/2/cards/1/entities/0/entity"
+            ],
+            "p13116": [],
+            "p13147": [
+              "/views/0/sections/1/cards/3/entity",
+              "/views/0/sections/3/cards/1/entities/2/entity",
+              "/views/1/sections/0/cards/1/entities/from_grid",
+              "/views/2/sections/2/cards/1/entities/2/entity"
+            ],
+            "p13173": [
+              "/views/0/sections/1/cards/2/entity",
+              "/views/0/sections/3/cards/1/entities/1/entity",
+              "/views/1/sections/0/cards/1/entities/to_grid",
+              "/views/2/sections/2/cards/1/entities/1/entity"
+            ],
+            "p13199": [
+              "/views/1/sections/0/cards/1/entities/consumption"
+            ]
+          },
+          "candidates": {
+            "grid_power": [
+              {
+                "confidence": "high",
+                "device": "",
+                "entity_id": "sensor.roof_gosungrow_1498605_7_1_1_meter1_gosungrow_overview_meter_active_power",
+                "point_id": "grid_power",
+                "reason": "Current automatic match",
+                "recommended": true,
+                "score": 410,
+                "source": "meter-level"
+              },
+              {
+                "confidence": "high",
+                "device": "",
+                "entity_id": "sensor.roof_gosungrow_1498605_7_1_1_meter1_gosungrow_other_information_meter_phase_a_active_power",
+                "point_id": "grid_power",
+                "reason": "usable candidate",
+                "recommended": true,
+                "score": 365,
+                "source": "meter-level"
+              },
+              {
+                "confidence": "high",
+                "device": "",
+                "entity_id": "sensor.roof_gosungrow_1498605_7_1_1_meter1_gosungrow_other_information_meter_phase_b_active_power",
+                "point_id": "grid_power",
+                "reason": "usable candidate",
+                "recommended": true,
+                "score": 365,
+                "source": "meter-level"
+              },
+              {
+                "confidence": "high",
+                "device": "",
+                "entity_id": "sensor.roof_gosungrow_1498605_7_1_1_meter1_gosungrow_other_information_meter_phase_c_active_power",
+                "point_id": "grid_power",
+                "reason": "usable candidate",
+                "recommended": true,
+                "score": 365,
+                "source": "meter-level"
+              },
+              {
+                "confidence": "high",
+                "device": "",
+                "entity_id": "sensor.roof_gosungrow_1498605_1_1_1_inverter1_gosungrow_overview_total_active_power",
+                "point_id": "grid_power",
+                "reason": "usable candidate",
+                "recommended": true,
+                "score": 299,
+                "source": "inverter-level"
+              },
+              {
+                "confidence": "high",
+                "device": "",
+                "entity_id": "sensor.roof_gosungrow_getpslist_gosungrow_getpslist_gosungrow_other_information_pcs_total_active_power",
+                "point_id": "grid_power",
+                "reason": "usable candidate",
+                "recommended": false,
+                "score": 225,
+                "source": "legacy-alias"
+              },
+              {
+                "confidence": "low",
+                "device": "",
+                "entity_id": "sensor.roof_gosungrow_1498605_22_247_1_communication_module1_gosungrow_other_information_wlan_signal_strength",
+                "point_id": "grid_power",
+                "reason": "Compatible plant and unit; verify meaning before selecting",
+                "recommended": false,
+                "score": 1,
+                "source": "legacy-alias"
+              },
+              {
+                "confidence": "low",
+                "device": "",
+                "entity_id": "sensor.roof_gosungrow_1498605_7_1_1_meter1_calculated_house_consumption",
+                "point_id": "grid_power",
+                "reason": "Compatible plant and unit; verify meaning before selecting",
+                "recommended": false,
+                "score": 1,
+                "source": "meter-level"
+              },
+              {
+                "confidence": "low",
+                "device": "",
+                "entity_id": "sensor.roof_gosungrow_1498605_7_1_1_meter1_solar_export",
+                "point_id": "grid_power",
+                "reason": "Compatible plant and unit; verify meaning before selecting",
+                "recommended": false,
+                "score": 1,
+                "source": "meter-level"
+              },
+              {
+                "confidence": "low",
+                "device": "",
+                "entity_id": "sensor.roof_gosungrow_1498605_sungrow_gosungrow_alarm_count",
+                "point_id": "grid_power",
+                "reason": "Compatible plant and unit; verify meaning before selecting",
+                "recommended": false,
+                "score": 1,
+                "source": "legacy-alias"
+              },
+              {
+                "confidence": "low",
+                "device": "",
+                "entity_id": "sensor.roof_gosungrow_1498605_sungrow_gosungrow_area_type",
+                "point_id": "grid_power",
+                "reason": "Compatible plant and unit; verify meaning before selecting",
+                "recommended": false,
+                "score": 1,
+                "source": "legacy-alias"
+              },
+              {
+                "confidence": "low",
+                "device": "",
+                "entity_id": "sensor.roof_gosungrow_1498605_sungrow_gosungrow_connect_type",
+                "point_id": "grid_power",
+                "reason": "Compatible plant and unit; verify meaning before selecting",
+                "recommended": false,
+                "score": 1,
+                "source": "legacy-alias"
+              },
+              {
+                "confidence": "low",
+                "device": "",
+                "entity_id": "sensor.roof_gosungrow_1498605_sungrow_gosungrow_curr_power",
+                "point_id": "grid_power",
+                "reason": "Compatible plant and unit; verify meaning before selecting",
+                "recommended": false,
+                "score": 1,
+                "source": "legacy-alias"
+              },
+              {
+                "confidence": "low",
+                "device": "",
+                "entity_id": "sensor.roof_gosungrow_1498605_sungrow_gosungrow_device_type_count",
+                "point_id": "grid_power",
+                "reason": "Compatible plant and unit; verify meaning before selecting",
+                "recommended": false,
+                "score": 1,
+                "source": "legacy-alias"
+              },
+              {
+                "confidence": "low",
+                "device": "",
+                "entity_id": "sensor.roof_gosungrow_1498605_sungrow_gosungrow_device_type_count_2",
+                "point_id": "grid_power",
+                "reason": "Compatible plant and unit; verify meaning before selecting",
+                "recommended": false,
+                "score": 1,
+                "source": "legacy-alias"
+              },
+              {
+                "confidence": "low",
+                "device": "",
+                "entity_id": "sensor.roof_gosungrow_1498605_sungrow_gosungrow_device_type_count_3",
+                "point_id": "grid_power",
+                "reason": "Compatible plant and unit; verify meaning before selecting",
+                "recommended": false,
+                "score": 1,
+                "source": "legacy-alias"
+              },
+              {
+                "confidence": "low",
+                "device": "",
+                "entity_id": "sensor.roof_gosungrow_1498605_sungrow_gosungrow_fault_count",
+                "point_id": "grid_power",
+                "reason": "Compatible plant and unit; verify meaning before selecting",
+                "recommended": false,
+                "score": 1,
+                "source": "legacy-alias"
+              },
+              {
+                "confidence": "low",
+                "device": "",
+                "entity_id": "sensor.roof_gosungrow_1498605_sungrow_gosungrow_fault_count_2",
+                "point_id": "grid_power",
+                "reason": "Compatible plant and unit; verify meaning before selecting",
+                "recommended": false,
+                "score": 1,
+                "source": "legacy-alias"
+              },
+              {
+                "confidence": "low",
+                "device": "",
+                "entity_id": "sensor.roof_gosungrow_1498605_sungrow_gosungrow_gcj_latitude",
+                "point_id": "grid_power",
+                "reason": "Compatible plant and unit; verify meaning before selecting",
+                "recommended": false,
+                "score": 1,
+                "source": "legacy-alias"
+              },
+              {
+                "confidence": "low",
+                "device": "",
+                "entity_id": "sensor.roof_gosungrow_1498605_sungrow_gosungrow_gcj_longitude",
+                "point_id": "grid_power",
+                "reason": "Compatible plant and unit; verify meaning before selecting",
+                "recommended": false,
+                "score": 1,
+                "source": "legacy-alias"
+              }
+            ],
+            "load_power": [
+              {
+                "confidence": "high",
+                "device": "",
+                "entity_id": "sensor.roof_gosungrow_1498605_sungrow_gosungrow_load_information_load_power",
+                "point_id": "load_power",
+                "reason": "Current automatic match",
+                "recommended": true,
+                "score": 424,
+                "source": "legacy-alias"
+              },
+              {
+                "confidence": "high",
+                "device": "",
+                "entity_id": "sensor.roof_gosungrow_1498605_7_1_1_meter1_gosungrow_other_information_meter_phase_a_active_power",
+                "point_id": "load_power",
+                "reason": "usable candidate",
+                "recommended": true,
+                "score": 308,
+                "source": "meter-level"
+              },
+              {
+                "confidence": "high",
+                "device": "",
+                "entity_id": "sensor.roof_gosungrow_1498605_7_1_1_meter1_gosungrow_other_information_meter_phase_b_active_power",
+                "point_id": "load_power",
+                "reason": "usable candidate",
+                "recommended": true,
+                "score": 308,
+                "source": "meter-level"
+              },
+              {
+                "confidence": "high",
+                "device": "",
+                "entity_id": "sensor.roof_gosungrow_1498605_7_1_1_meter1_gosungrow_other_information_meter_phase_c_active_power",
+                "point_id": "load_power",
+                "reason": "usable candidate",
+                "recommended": true,
+                "score": 308,
+                "source": "meter-level"
+              },
+              {
+                "confidence": "high",
+                "device": "",
+                "entity_id": "sensor.roof_gosungrow_1498605_1_1_1_inverter1_gosungrow_overview_total_active_power",
+                "point_id": "load_power",
+                "reason": "usable candidate",
+                "recommended": true,
+                "score": 305,
+                "source": "inverter-level"
+              },
+              {
+                "confidence": "high",
+                "device": "",
+                "entity_id": "sensor.roof_gosungrow_1498605_7_1_1_meter1_gosungrow_overview_meter_active_power",
+                "point_id": "load_power",
+                "reason": "usable candidate",
+                "recommended": false,
+                "score": 302,
+                "source": "meter-level"
+              },
+              {
+                "confidence": "high",
+                "device": "",
+                "entity_id": "sensor.roof_gosungrow_getpslist_gosungrow_getpslist_gosungrow_other_information_pcs_total_active_power",
+                "point_id": "load_power",
+                "reason": "usable candidate",
+                "recommended": false,
+                "score": 231,
+                "source": "legacy-alias"
+              },
+              {
+                "confidence": "medium",
+                "device": "",
+                "entity_id": "sensor.roof_gosungrow_1498605_sungrow_gosungrow_load_information_load_power_2",
+                "point_id": "load_power",
+                "reason": "usable candidate",
+                "recommended": false,
+                "score": 160,
+                "source": "legacy-alias"
+              },
+              {
+                "confidence": "low",
+                "device": "",
+                "entity_id": "sensor.roof_gosungrow_1498605_22_247_1_communication_module1_gosungrow_other_information_wlan_signal_strength",
+                "point_id": "load_power",
+                "reason": "Compatible plant and unit; verify meaning before selecting",
+                "recommended": false,
+                "score": 1,
+                "source": "legacy-alias"
+              },
+              {
+                "confidence": "low",
+                "device": "",
+                "entity_id": "sensor.roof_gosungrow_1498605_7_1_1_meter1_calculated_house_consumption",
+                "point_id": "load_power",
+                "reason": "Compatible plant and unit; verify meaning before selecting",
+                "recommended": false,
+                "score": 1,
+                "source": "meter-level"
+              },
+              {
+                "confidence": "low",
+                "device": "",
+                "entity_id": "sensor.roof_gosungrow_1498605_7_1_1_meter1_solar_export",
+                "point_id": "load_power",
+                "reason": "Compatible plant and unit; verify meaning before selecting",
+                "recommended": false,
+                "score": 1,
+                "source": "meter-level"
+              },
+              {
+                "confidence": "low",
+                "device": "",
+                "entity_id": "sensor.roof_gosungrow_1498605_sungrow_gosungrow_alarm_count",
+                "point_id": "load_power",
+                "reason": "Compatible plant and unit; verify meaning before selecting",
+                "recommended": false,
+                "score": 1,
+                "source": "legacy-alias"
+              },
+              {
+                "confidence": "low",
+                "device": "",
+                "entity_id": "sensor.roof_gosungrow_1498605_sungrow_gosungrow_area_type",
+                "point_id": "load_power",
+                "reason": "Compatible plant and unit; verify meaning before selecting",
+                "recommended": false,
+                "score": 1,
+                "source": "legacy-alias"
+              },
+              {
+                "confidence": "low",
+                "device": "",
+                "entity_id": "sensor.roof_gosungrow_1498605_sungrow_gosungrow_connect_type",
+                "point_id": "load_power",
+                "reason": "Compatible plant and unit; verify meaning before selecting",
+                "recommended": false,
+                "score": 1,
+                "source": "legacy-alias"
+              },
+              {
+                "confidence": "low",
+                "device": "",
+                "entity_id": "sensor.roof_gosungrow_1498605_sungrow_gosungrow_curr_power",
+                "point_id": "load_power",
+                "reason": "Compatible plant and unit; verify meaning before selecting",
+                "recommended": false,
+                "score": 1,
+                "source": "legacy-alias"
+              },
+              {
+                "confidence": "low",
+                "device": "",
+                "entity_id": "sensor.roof_gosungrow_1498605_sungrow_gosungrow_device_type_count",
+                "point_id": "load_power",
+                "reason": "Compatible plant and unit; verify meaning before selecting",
+                "recommended": false,
+                "score": 1,
+                "source": "legacy-alias"
+              },
+              {
+                "confidence": "low",
+                "device": "",
+                "entity_id": "sensor.roof_gosungrow_1498605_sungrow_gosungrow_device_type_count_2",
+                "point_id": "load_power",
+                "reason": "Compatible plant and unit; verify meaning before selecting",
+                "recommended": false,
+                "score": 1,
+                "source": "legacy-alias"
+              },
+              {
+                "confidence": "low",
+                "device": "",
+                "entity_id": "sensor.roof_gosungrow_1498605_sungrow_gosungrow_device_type_count_3",
+                "point_id": "load_power",
+                "reason": "Compatible plant and unit; verify meaning before selecting",
+                "recommended": false,
+                "score": 1,
+                "source": "legacy-alias"
+              },
+              {
+                "confidence": "low",
+                "device": "",
+                "entity_id": "sensor.roof_gosungrow_1498605_sungrow_gosungrow_fault_count",
+                "point_id": "load_power",
+                "reason": "Compatible plant and unit; verify meaning before selecting",
+                "recommended": false,
+                "score": 1,
+                "source": "legacy-alias"
+              },
+              {
+                "confidence": "low",
+                "device": "",
+                "entity_id": "sensor.roof_gosungrow_1498605_sungrow_gosungrow_fault_count_2",
+                "point_id": "load_power",
+                "reason": "Compatible plant and unit; verify meaning before selecting",
+                "recommended": false,
+                "score": 1,
+                "source": "legacy-alias"
+              }
+            ],
+            "p13112": [
+              {
+                "canonical_point": "p13112",
+                "compatibility": "compatible",
+                "confidence": "high",
+                "device": "",
+                "entity_id": "sensor.roof_gosungrow_getpslist_gosungrow_getpslist_gosungrow_other_information_plant_daily_yield",
+                "period": "day",
+                "point_id": "p13112",
+                "provenance": "native",
+                "reason": "Canonical Sungrow point with compatible daily semantics",
+                "recommended": true,
+                "role": "plant",
+                "scope": "plant",
+                "score": 1060,
+                "source": "canonical"
+              },
+              {
+                "compatibility": "unsupported",
+                "confidence": "low",
+                "device": "",
+                "entity_id": "sensor.roof_gosungrow_1498605_sungrow_gosungrow_other_information_daily_feed_in_energy_pv",
+                "point_id": "p13112",
+                "reason": "Preserved unverified daily source",
+                "recommended": true,
+                "score": 0,
+                "selectable": false,
+                "source": "legacy-alias"
+              },
+              {
+                "canonical_point": "p13112",
+                "compatibility": "compatible",
+                "confidence": "high",
+                "device": "",
+                "entity_id": "sensor.roof_gosungrow_getpslist_gosungrow_getpslist_gosungrow_other_information_plant_daily_yield_2",
+                "period": "day",
+                "point_id": "p13112",
+                "provenance": "native",
+                "reason": "Canonical Sungrow point with compatible daily semantics",
+                "recommended": true,
+                "role": "plant",
+                "scope": "plant",
+                "score": 1060,
+                "source": "canonical"
+              },
+              {
+                "canonical_point": "p13112",
+                "compatibility": "compatible",
+                "confidence": "high",
+                "device": "",
+                "entity_id": "sensor.roof_gosungrow_1498605_1_1_1_inverter1_gosungrow_overview_daily_generation",
+                "period": "day",
+                "point_id": "p13112",
+                "provenance": "native",
+                "reason": "Canonical Sungrow point with compatible daily semantics",
+                "recommended": true,
+                "role": "inverter",
+                "scope": "inverter",
+                "score": 930,
+                "source": "canonical"
+              }
+            ],
+            "p13116": [],
+            "p13147": [
+              {
+                "canonical_point": "p13147",
+                "compatibility": "compatible",
+                "confidence": "high",
+                "device": "",
+                "entity_id": "sensor.roof_gosungrow_1498605_sungrow_gosungrow_grid_information_energy_purchased_today",
+                "period": "day",
+                "point_id": "p13147",
+                "provenance": "native",
+                "reason": "Canonical Sungrow point with compatible daily semantics",
+                "recommended": true,
+                "role": "plant",
+                "scope": "plant",
+                "score": 1060,
+                "source": "canonical"
+              },
+              {
+                "canonical_point": "p13147",
+                "compatibility": "compatible",
+                "confidence": "high",
+                "device": "",
+                "entity_id": "sensor.roof_gosungrow_1498605_sungrow_gosungrow_grid_information_energy_purchased_today_2",
+                "period": "day",
+                "point_id": "p13147",
+                "provenance": "native",
+                "reason": "Canonical Sungrow point with compatible daily semantics",
+                "recommended": true,
+                "role": "plant",
+                "scope": "plant",
+                "score": 1060,
+                "source": "canonical"
+              }
+            ],
+            "p13173": [
+              {
+                "canonical_point": "p13173",
+                "compatibility": "compatible",
+                "confidence": "high",
+                "device": "",
+                "entity_id": "sensor.roof_gosungrow_1498605_sungrow_gosungrow_other_information_daily_feed_in_energy_pv",
+                "period": "day",
+                "point_id": "p13173",
+                "provenance": "native",
+                "reason": "Canonical Sungrow point with compatible daily semantics",
+                "recommended": true,
+                "role": "plant",
+                "scope": "plant",
+                "score": 1060,
+                "source": "canonical"
+              },
+              {
+                "canonical_point": "p13173",
+                "compatibility": "compatible",
+                "confidence": "high",
+                "device": "",
+                "entity_id": "sensor.roof_gosungrow_1498605_sungrow_gosungrow_other_information_daily_feed_in_energy_pv_2",
+                "period": "day",
+                "point_id": "p13173",
+                "provenance": "native",
+                "reason": "Canonical Sungrow point with compatible daily semantics",
+                "recommended": true,
+                "role": "plant",
+                "scope": "plant",
+                "score": 1060,
+                "source": "canonical"
+              }
+            ],
+            "p13199": [
+              {
+                "compatibility": "unsupported",
+                "confidence": "low",
+                "device": "",
+                "entity_id": "sensor.roof_gosungrow_1498605_sungrow_gosungrow_total_energy",
+                "point_id": "p13199",
+                "reason": "Preserved unverified daily source",
+                "recommended": true,
+                "score": 0,
+                "selectable": false,
+                "source": "legacy-alias"
+              },
+              {
+                "confidence": "manual",
+                "entity_id": "sensor.roof_gosungrow_1498605_1_1_1_inverter1_gosungrow_overview_daily_generation",
+                "point_id": "p13199",
+                "reason": "Current manual selection",
+                "recommended": true,
+                "score": 10000,
+                "source": "manual"
+              }
+            ]
+          },
+          "dashboard_url_path": "gosungrow-flow",
+          "defaults": {
+            "grid_power": "sensor.roof_gosungrow_1498605_7_1_1_meter1_gosungrow_overview_meter_active_power",
+            "load_power": "sensor.roof_gosungrow_1498605_sungrow_gosungrow_load_information_load_power",
+            "p13112": "sensor.roof_gosungrow_1498605_sungrow_gosungrow_other_information_daily_feed_in_energy_pv",
+            "p13116": "",
+            "p13147": "sensor.roof_gosungrow_1498605_sungrow_gosungrow_grid_information_energy_purchased_today",
+            "p13173": "sensor.roof_gosungrow_1498605_sungrow_gosungrow_other_information_daily_feed_in_energy_pv",
+            "p13199": "sensor.roof_gosungrow_1498605_sungrow_gosungrow_total_energy"
+          },
+          "labels": {
+            "automatic": "Automatic",
+            "cancel": "Cancel",
+            "confidence_high": "High confidence",
+            "confidence_low": "Low confidence",
+            "confidence_manual": "User selected",
+            "confidence_medium": "Medium confidence",
+            "confidence_unknown": "Confidence unavailable",
+            "configure": "Configure",
+            "groups": {
+              "battery": "Battery",
+              "energy_summary": "Energy summary",
+              "live_power": "Live power",
+              "today_energy": "Today's energy"
+            },
+            "manual": "Manual",
+            "needs_review": "Needs review",
+            "other": "Other compatible entities",
+            "readonly": "Only Home Assistant administrators can change data sources.",
+            "recommended": "Recommended",
+            "reset": "Reset to automatic",
+            "saved": "Data source saved.",
+            "search": "Search entities",
+            "source_adopted": "Automatic source updated.",
+            "source_compatible": "Compatible source",
+            "source_confirm_warning": "Use this source anyway?",
+            "source_incompatible": "This entity is no longer an available compatible source.",
+            "source_legacy_automatic": "Legacy automatic — review required",
+            "source_match_unverified": "The current automatic source could not be verified.",
+            "source_match_update": "A safer automatic source is available.",
+            "source_native_unavailable": "Native source unavailable",
+            "source_physical_warning": "Selected value ({value}) exceeds solar production ({reference}). Review this source.",
+            "source_recommendation_help": "Select the highlighted source below, then choose Use this source.",
+            "source_recommended_automatic": "Recommended automatic source",
+            "source_save_error": "Could not save the data source. Check your administrator access and connection, then try again.",
+            "source_stale": "Dashboard changed; reload and try again.",
+            "source_stale_warning": "The selected entity has not updated recently.",
+            "source_unavailable_warning": "The selected entity is unavailable or non-numeric.",
+            "source_unsupported_calculated": "Unsupported calculated source",
+            "subtitle": "Review automatic matches or choose a dashboard override.",
+            "title": "Data Sources",
+            "unavailable": "Unavailable",
+            "use_source": "Use this source"
+          },
+          "mapping_id": "source-1083fccdb6a0",
+          "matcher_version": 4,
+          "metrics": [
+            {
+              "confidence": "high",
+              "default": "sensor.roof_gosungrow_1498605_sungrow_gosungrow_load_information_load_power",
+              "group": "live_power",
+              "icon": "mdi:home-lightning-bolt-outline",
+              "key": "load_power",
+              "label": "Home consumption power",
+              "reason": "Current automatic match",
+              "validation": {
+                "rules": [
+                  {
+                    "max_age_seconds": 1800,
+                    "type": "freshness"
+                  }
+                ],
+                "schema_version": 1
+              }
+            },
+            {
+              "confidence": "high",
+              "default": "sensor.roof_gosungrow_1498605_7_1_1_meter1_gosungrow_overview_meter_active_power",
+              "group": "live_power",
+              "icon": "mdi:transmission-tower",
+              "key": "grid_power",
+              "label": "Grid power",
+              "reason": "Current automatic match",
+              "validation": {
+                "rules": [
+                  {
+                    "max_age_seconds": 1800,
+                    "type": "freshness"
+                  }
+                ],
+                "schema_version": 1
+              }
+            },
+            {
+              "confidence": "high",
+              "default": "sensor.roof_gosungrow_1498605_sungrow_gosungrow_other_information_daily_feed_in_energy_pv",
+              "group": "today_energy",
+              "icon": "mdi:white-balance-sunny",
+              "key": "p13112",
+              "label": "Solar production today",
+              "needs_review": true,
+              "reason": "Canonical Sungrow point with compatible daily semantics",
+              "recommendation": "sensor.roof_gosungrow_getpslist_gosungrow_getpslist_gosungrow_other_information_plant_daily_yield",
+              "recommendation_reason": "Canonical Sungrow point with compatible daily semantics",
+              "validation": {
+                "rules": [
+                  {
+                    "max_age_seconds": 129600,
+                    "type": "freshness"
+                  }
+                ],
+                "schema_version": 1
+              }
+            },
+            {
+              "confidence": "low",
+              "default": "",
+              "group": "today_energy",
+              "icon": "mdi:home-lightning-bolt-outline",
+              "key": "p13116",
+              "label": "Direct solar consumption",
+              "native_unavailable": true,
+              "needs_review": true,
+              "reason": "Native direct-solar source unavailable",
+              "validation": {
+                "rules": [
+                  {
+                    "max_age_seconds": 129600,
+                    "type": "freshness"
+                  },
+                  {
+                    "absolute_tolerance": 0.1,
+                    "metric": "p13112",
+                    "relative_tolerance": 0.05,
+                    "type": "not_materially_greater_than"
+                  }
+                ],
+                "schema_version": 1
+              }
+            },
+            {
+              "confidence": "high",
+              "default": "sensor.roof_gosungrow_1498605_sungrow_gosungrow_other_information_daily_feed_in_energy_pv",
+              "group": "today_energy",
+              "icon": "mdi:upload-network-outline",
+              "key": "p13173",
+              "label": "Grid export today",
+              "reason": "Canonical Sungrow point with compatible daily semantics",
+              "validation": {
+                "rules": [
+                  {
+                    "max_age_seconds": 129600,
+                    "type": "freshness"
+                  }
+                ],
+                "schema_version": 1
+              }
+            },
+            {
+              "confidence": "high",
+              "default": "sensor.roof_gosungrow_1498605_sungrow_gosungrow_grid_information_energy_purchased_today",
+              "group": "today_energy",
+              "icon": "mdi:download-network-outline",
+              "key": "p13147",
+              "label": "Grid import today",
+              "reason": "Canonical Sungrow point with compatible daily semantics",
+              "validation": {
+                "rules": [
+                  {
+                    "max_age_seconds": 129600,
+                    "type": "freshness"
+                  }
+                ],
+                "schema_version": 1
+              }
+            },
+            {
+              "confidence": "manual",
+              "default": "sensor.roof_gosungrow_1498605_sungrow_gosungrow_total_energy",
+              "group": "energy_summary",
+              "icon": "mdi:home-lightning-bolt",
+              "key": "p13199",
+              "label": "Home consumption today",
+              "needs_review": true,
+              "reason": "Current manual selection",
+              "validation": {
+                "rules": [
+                  {
+                    "max_age_seconds": 129600,
+                    "type": "freshness"
+                  }
+                ],
+                "schema_version": 1
+              }
+            }
+          ],
+          "overrides": {
+            "p13112": "sensor.roof_gosungrow_1498605_1_1_1_inverter1_gosungrow_overview_daily_generation",
+            "p13199": "sensor.roof_gosungrow_1498605_1_1_1_inverter1_gosungrow_overview_daily_generation"
+          },
+          "pinned_defaults": {
+            "grid_power": "sensor.roof_gosungrow_1498605_7_1_1_meter1_gosungrow_overview_meter_active_power",
+            "load_power": "sensor.roof_gosungrow_1498605_sungrow_gosungrow_load_information_load_power",
+            "p13112": "sensor.roof_gosungrow_1498605_sungrow_gosungrow_other_information_daily_feed_in_energy_pv",
+            "p13116": "",
+            "p13147": "sensor.roof_gosungrow_1498605_sungrow_gosungrow_grid_information_energy_purchased_today",
+            "p13173": "sensor.roof_gosungrow_1498605_sungrow_gosungrow_other_information_daily_feed_in_energy_pv",
+            "p13199": "sensor.roof_gosungrow_1498605_sungrow_gosungrow_total_energy"
+          },
+          "recommendations": {
+            "p13112": "sensor.roof_gosungrow_getpslist_gosungrow_getpslist_gosungrow_other_information_plant_daily_yield"
+          },
+          "schema_version": 1,
+          "type": "custom:gosungrow-source-mapping-card-v1"
+        }
+      ],
+      "icon": "mdi:tune-variant",
+      "path": "data-sources",
+      "title": "Data Sources",
+      "type": "panel"
+    }
+  ]
+}
