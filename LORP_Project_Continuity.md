@@ -14,6 +14,11 @@ the corrected watchlist-sections note in Section 8 below and SID_Project_Continu
 ║ beneath as history)                                                ║
 ╚═══════════════════════════════════════════════════════════════════════╝
 
+SECTOR SUPPORT n/a FIX — 13 November 2026 (analyse-brief.cjs, shared with SID):
+• The 12 Nov sector ETF scan wrote an empty file, which blanked Sector Support (n/a) for every ticker
+  on 13 Nov and would have done so until 17 Nov. History now uses the last 3 usable scans; still n/a
+  if today's own scan fails. Details in SID_Project_Continuity.md §2c.
+
 BAR SIZE COLUMN — 10 November 2026 (analyse-brief.cjs, David):
 • New "Bar" column in LORP table 1 and the Pullback Watch: signal candle high–low in ATR(14), from the
   captured OHLC bars (falls back to ATR SL ATR%). ⚠️ ≥1.5 ATR, 🚩 ≥2.0 ATR. Context, not a gate.

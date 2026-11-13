@@ -510,8 +510,12 @@ if (sectorsBriefFile && fs.existsSync(sectorsBriefFile)) {
       .sort(); // filenames embed ISO dates -> lexicographic sort is chronological
     const cutoffIdx = allSectorFiles.indexOf(todayBase);
     const upToToday = cutoffIdx >= 0 ? allSectorFiles.slice(0, cutoffIdx + 1) : allSectorFiles;
-    const lastN = upToToday.slice(-SECTOR_HISTORY_DAYS);
-    sectorHistoryData = lastN.map(f => loadJsonSafe(path.join(sectorsDir, f))).filter(Boolean).reverse(); // most-recent-first
+    // 13 Nov 2026: skip failed scans (no SPY change or no ETF values, e.g. 12 Nov 2026
+    // wrote an empty file) so one bad morning doesn't blank Sector Support for 3 days.
+    const usable = d => d && d.spy_change_pct != null && d.etfs && Object.keys(d.etfs).length > 0;
+    sectorHistoryData = upToToday.map(f => loadJsonSafe(path.join(sectorsDir, f))).filter(usable)
+      .slice(-SECTOR_HISTORY_DAYS).reverse(); // most-recent-first, last 3 usable scans
+    if (!usable(loadJsonSafe(sectorsBriefFile))) sectorHistoryData = []; // today's own scan failed → n/a, never stale-only
     if (sectorHistoryData.length < SECTOR_HISTORY_DAYS) {
       process.stderr.write(`[sector] only ${sectorHistoryData.length}/${SECTOR_HISTORY_DAYS} days of sector history available — Sector Support will show 'n/a' until ${SECTOR_HISTORY_DAYS} days have run\n`);
     }

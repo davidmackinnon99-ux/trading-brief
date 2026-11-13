@@ -614,6 +614,11 @@ David approved items 1, 2 and 4 of the DI/ADX review (item 3, the RSI "late entr
 - **4 (new):** long ℹ️ "Rough ride" when DI against ≥ 20 (whipsaw ~44% but avg +1.29%; a heads-up, not a skip).
 Shown in the Caution column of SID table 2 plus a callout line under the tables (`scripts/analyse-brief.cjs`). The 12 Nov brief was regenerated with them.
 
+## 2c. Sector Support n/a fix + first-hurdle rule explained — 13 November 2026
+
+- **Sector Support n/a (13 Nov):** the 12 Nov sector ETF scan got no change % from TradingView and wrote an empty `brief-2026-11-12-sectors.json`. The 3-scan consistency rule treated that as a scan, so every ticker showed n/a (and would have until Tue 17 Nov). `analyse-brief.cjs` now uses the last 3 *usable* scans and still shows n/a if today's own scan fails. Logic unchanged otherwise (±0.3% vs SPY each day).
+- **First hurdle (explained, no change):** not a % of price. `sid-triage.cjs` lists BB mid, SMA50, SMA200 and the opposing CAP zone that are *ahead* of price in the trade direction, takes the nearest, and adds any others within 0.5 ATR of it as a cluster (e.g. URGN "BB mid + SMA200"). Room = distance in ATR; ≥1.0 ATR = Open. A level further than 0.5 ATR beyond the first hurdle (e.g. BTU's SMA50 at ~5.8 ATR vs BB mid 2.6) is not named, though the MA distances show in table 3.
+
 ## 5. Open items (need input — not resolvable from files)
 - [ ] Reconcile the 300-trade manual journal (`analysis/sid-btw-universe/Backtesting_Sheet_300_SID.xlsx`) against `data/trades/trades_all.csv` and the automated BTW-universe backtest — three SID datasets now exist and haven't been cross-checked against each other.
 - [x] ~30% of brief candidates were funds/trusts, not equities — fixed 17 Sep 2026 by excluding sector "Miscellaneous" tickers from both `lorpAll` and `sidPass` in `analyse-brief.cjs`; see `LORP_Project_Continuity.md`'s 17 Sep entry for the full writeup (applies to both strategies).
