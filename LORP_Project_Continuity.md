@@ -26,6 +26,8 @@ CAP TOOLS v1.9 + S/R ZONE TEST FOR LORP — 14 November 2026 (David):
 • BB mid as support (14 Nov, analysis/sid-hurdles/RESULTS.md follow-up 3): at LORP entries with the mid below, the
   mid holds the first pullback no better than the mid shifted ±0.5/1 ATR (−2.1 ±5.1 pts, n=371); same for any
   uptrend bar with a rising mid ("walk the band", +0.1 ±0.8, n=14,773). Not a LORP support level on daily bars.
+• Pivot points (14 Nov, RESULTS.md follow-up 5): weekly/monthly floor pivots ahead of or below LORP entries behave like
+  a random line (+2.1/+1.5 ahead, −1.9/+1.1 behind, all ±4–5). Not a LORP hurdle or support level.
 
 CAP TOOLS v1.8 DRAFTED — 13 November 2026 (affects LORP's CAP room/Path too):
 • v1.7's "Max Zone Height % of pivot price" 0.25 = 0.25% of price (not 25%) — trimmed ~75% of zones

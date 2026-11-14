@@ -654,7 +654,11 @@ Shown in the Caution column of SID table 2 plus a callout line under the tables 
   (better on only 33–45% of trades, a few runners); shorts worse every way. **Keep RSI 50 exit; enquiry closed.**
 - **Proposed Section 1 rules from the 13–14 Nov work** (pending David's approval before any brief change): S/R / CAP zones
   and the BB mid are context, not reasons to reject; no "inside opposing CAP zone" exclusion; existing tested filters
-  (Gap/ATR, wide-gap shorts, RSI 45–55 no-go) unchanged.
+  (Gap/ATR, wide-gap shorts, RSI 45–55 no-go) unchanged. David (14 Nov): wants to think further before any change.
+- **Pivot points for Section 1 (14 Nov, RESULTS.md follow-up 5):** weekly + monthly standard floor pivots, ahead and
+  behind, by level (P / R1-S1 / R2+), SID and LORP — all no different from a random line (largest SID cells ±2 pts).
+  With 13 Nov (pivot between entry and BB mid doesn't stop price reaching it): no basis to add pivots to Section 1.
+  Section 1 currently does not use pivots (not in the SID Data Window), so no brief change implied.
 
 ## 5. Open items (need input — not resolvable from files)
 - [ ] FUTURE (David, 13 Nov 2026, next brief iteration): add a ⚠️ caution when RSI is too close to RSI50 (little room to the mean-reversion target). David's current manual rule: RSI 45–55 (50 ± 5) = absolute no-go.
