@@ -666,6 +666,9 @@ Shown in the Caution column of SID table 2 plus a callout line under the tables 
   shorts 62–66%); avg return rises with room — longs 0–0.236 below the centreline −0.26%, 0.236–0.382 0.63%,
   0.382–0.618 1.20%, 0.618–0.764 1.03%. Same idea as room to target (RSI 45–55 no-go). SFL 13 Nov: 0.47 below,
   historically touched the centreline in 85% within 10 bars from that zone. Possible future Section 2 room caution.
+- **FBB line as a stop (14 Nov, RESULTS.md follow-up 8):** exiting when price returns to the next / second / outer FBB
+  line beyond entry makes SID longs worse every way (−0.38 to −1.29%/trade; WR 72% → 29–71%); shorts no gain.
+  SID dips often dip further before bouncing. **Keep the swing H/L stop.**
 
 ## 5. Open items (need input — not resolvable from files)
 - [ ] FUTURE (David, 13 Nov 2026, next brief iteration): add a ⚠️ caution when RSI is too close to RSI50 (little room to the mean-reversion target). David's current manual rule: RSI 45–55 (50 ± 5) = absolute no-go.
