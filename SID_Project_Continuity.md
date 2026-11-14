@@ -649,6 +649,12 @@ Shown in the Caution column of SID table 2 plus a callout line under the tables 
   (46% vs 39%; mixed-trend tickers +11.5 ±6.6); shorts +3.0 ±3.2 (not clear). Held → 92% WR vs broke 76% (association).
   General uptrend "walk the band" (14,773 cases) and LORP entries: no better than a parallel line. Reading: for SID the
   mid is the target while ahead and modest support once crossed. Possible trailing/exit reference — not tested as a rule.
+- **BB mid as an exit (14 Nov, RESULTS.md follow-up 4):** on actual trades, holding past the exit until a close back
+  through the mid (or a touch) does NOT beat the RSI 50 exit: longs WR 72% → 52–61% for +0.2 to +1.0% per changed trade
+  (better on only 33–45% of trades, a few runners); shorts worse every way. **Keep RSI 50 exit; enquiry closed.**
+- **Proposed Section 1 rules from the 13–14 Nov work** (pending David's approval before any brief change): S/R / CAP zones
+  and the BB mid are context, not reasons to reject; no "inside opposing CAP zone" exclusion; existing tested filters
+  (Gap/ATR, wide-gap shorts, RSI 45–55 no-go) unchanged.
 
 ## 5. Open items (need input — not resolvable from files)
 - [ ] FUTURE (David, 13 Nov 2026, next brief iteration): add a ⚠️ caution when RSI is too close to RSI50 (little room to the mean-reversion target). David's current manual rule: RSI 45–55 (50 ± 5) = absolute no-go.
