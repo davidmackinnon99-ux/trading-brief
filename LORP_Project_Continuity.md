@@ -14,6 +14,16 @@ the corrected watchlist-sections note in Section 8 below and SID_Project_Continu
 ║ beneath as history)                                                ║
 ╚═══════════════════════════════════════════════════════════════════════╝
 
+CAP TOOLS v1.9 + S/R ZONE TEST FOR LORP — 14 November 2026 (David):
+• v1.9 (trading-indicators testing/indicators/) replaces every-wick zones with 10-bar swings merged into
+  touch-counted zones, shows 2+ touches, nearest 2 per side within 3 ATR. Data Window keys unchanged, so
+  LORP "Room"/Path to CAP will see fewer, wider zones once v1.9 is on the LORP layout. Pending David.
+• Tested on 612 LORP adapter-replication longs (analysis/lorp-donchian/lorp_donchian_trades.csv) vs a
+  random zone of same width/distance/trend (analysis/sid-hurdles/ZONE_ENGINE_RESULTS.md, follow-up):
+  resistance ahead leans stickier (+3 to +8 pts; most for recent, RVOL ≥1.5 zones in an uptrend) but
+  ~250 events, nothing clear of noise. Support below a LORP entry does NOT hold better than random.
+• David's question: are v1.9 defaults right for LORP? Unresolved — needs ~3–4× more LORP trades.
+
 CAP TOOLS v1.8 DRAFTED — 13 November 2026 (affects LORP's CAP room/Path too):
 • v1.7's "Max Zone Height % of pivot price" 0.25 = 0.25% of price (not 25%) — trimmed ~75% of zones
   to ~0.1 ATR. v1.8 (trading-indicators testing/indicators/) caps in ATR instead, default 1.0 (~3% trimmed).

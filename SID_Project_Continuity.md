@@ -640,6 +640,10 @@ Shown in the Caution column of SID table 2 plus a callout line under the tables 
 - **Brief impact:** the brief's "opposing CAP zone" (first hurdle, "inside opposing CAP zone" exclusion) will now
   see far fewer, wider zones once v1.9 is on the SID layout. Pending David: paste v1.9 onto charts; decide whether
   CAP stays in the first hurdle / exclusion given no barrier edge.
+- **Follow-up (14 Nov, `zone_context_study.py`):** recency (≤40 / 41–120 / >120 bars since last swing) and mood
+  (ticker trend, SPY vs 200-day) don't change the SID answer. One lead only: old 2+ touch zones *behind* the trade
+  (support under a long) +8.9 ±6.0 on 10-bar swings, not confirmed on 5-bar — 1 of ~60 cells. David remains
+  sceptical; SID itself uses SMAs not S/R zones. LORP results in LORP_Project_Continuity.md (14 Nov).
 
 ## 5. Open items (need input — not resolvable from files)
 - [ ] FUTURE (David, 13 Nov 2026, next brief iteration): add a ⚠️ caution when RSI is too close to RSI50 (little room to the mean-reversion target). David's current manual rule: RSI 45–55 (50 ± 5) = absolute no-go.
