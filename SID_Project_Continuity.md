@@ -623,6 +623,24 @@ Shown in the Caution column of SID table 2 plus a callout line under the tables 
 - **Per-ticker stretch (13 Nov, trading-indicators `analysis/sid-hurdles/STRETCH_RESULTS.md`):** David's elastic-band view (BB mid/SMA200 = mean that price snaps back to, stretch tolerance differs by ticker). Longs: own-history percentile of ATR distance from the mid (vs ticker's prior 500 bars) top 20% → 63% WR / +0.29% vs 78% / +1.19%; fixed ATR > 2 → 68% vs 77%. ATR-stretched but normal-for-the-stock longs win 79%; unusual-for-the-stock under 2 ATR win 62%. Effect mostly pre-2018 (recent: 73% vs 78%). Shorts: no effect. Lookback test on failures: 500 bars best (catches 34% of losing longs, 35% of worst-10%; 750–1,500 no better; 125–250 worse); recent flagged losers larger (−5.7% vs −4.3%). **Built (David approved 13 Nov):** `SID Stretch v1.0` (trading-indicators `testing/indicators/`; output verified identical to the Python study on URGN). Brief: reads Data Window keys Stretch Pctl/ATR/Side/Unusual Stretch; long below the mid at ≥ P80 → warning `LONG_UNUSUAL_STRETCH` (→ Conditional + ⚠️ on section 1, "Unusual stretch P93" in section 2 Caution, callout line); `morning-brief.sh` soft-waits for "SID Stretch". Inactive until David adds the indicator to the SID layout (XN1LuowU). Today's URGN = P93 (would become Conditional). **Market-conditions check (13 Nov, `regime_test.py`):** flag works in calm/rising markets and fades with fear — SPY above 200-day 61% vs 80% WR (2018+: 68% vs 78%); VIX < 15 50% vs 77%; SPY below 200-day or VIX > 25: little/no WR separation (2018+ flagged avg actually better). **Done (David approved 13 Nov):** brief caution is now market-aware — `fetchMarketState()` (one TV scanner call: AMEX:SPY close + SMA200, CBOE:VIX) runs with the SID events fetch; "calm" = SPY > 200-day OR VIX < 20. Calm or unknown → `LONG_UNUSUAL_STRETCH` warning (Conditional + ⚠️); stressed → `ℹ️ Stretch P.. (stressed mkt)` info only, status unchanged. A **Market:** line (SPY vs 200-day, VIX, calm/stressed) prints above section 1 — David checks SPY each morning but not VIX. 13 Nov: SPY 757 > 200-day 732, VIX 18.4 → calm. Tests: 3 added to `tests/sid-triage.test.cjs` (34/34 pass). Seasonality: David to add later via TrendSpider.
 - **RVOL ⛔ (explained, no change):** the ⛔ in the Gap/ATR < 1.5 callout marks the compound F1 case (Gap/ATR < 1.5 AND RVOL < 1.0 = 64% SL). RVOL < 1.0 on its own is not flagged.
 
+## 2d. CAP Tools v1.9 zone engine + S/R method test — 14 November 2026
+- **Why:** David — CAP made a zone from every opposite wick regardless of volume or reuse, and v1.8 bands still
+  overwhelmed the chart. Compared ChartPrime (high-volume pivot boxes), LuxAlgo (15/15 pivot lines, volume only on
+  breaks) and LonesomeTheBlue S/R Channels (pivot clusters scored by touches).
+- **Test** (trading-indicators `analysis/sid-hurdles/ZONE_ENGINE_RESULTS.md`, `zone_engine_study.py`, 2,621 SID
+  trades): new engine with 5/10-bar swings, clustering within 0.5 ATR, touch count, peak swing RVOL; variants by
+  volume (≥1.2, ≥1.5), touches (≥2, ≥3) and fresh. **No variant rejects price more than a random zone of the same
+  width at the same distance** (all within ±5 pts, CIs span 0). Distance to nearest zone doesn't sort win rate; a
+  zone between entry and BB mid doesn't stop price reaching the mid. Confirms 13 Nov: zones are context, not barriers.
+- **CAP Tools v1.9** (trading-indicators `testing/indicators/CAP_Tools_Supplement_v1.9.pine`): 10-bar swings, merged
+  clusters, show touches ≥2 only, nearest 2 per side within 3 ATR (~1.7 zones near price vs ~28), labels "3× · 1.8v",
+  untyped zones (flip on break), lighter fill (75). Volume filter input present but off. Data Window keys unchanged
+  (+ Near Supply/Demand Touches). Zig-zag/structure unchanged. SIBN 14 Nov: one support 19.58–20.31 (3×); the
+  single-wick 23.4–24.2 demand band from v1.8 is gone.
+- **Brief impact:** the brief's "opposing CAP zone" (first hurdle, "inside opposing CAP zone" exclusion) will now
+  see far fewer, wider zones once v1.9 is on the SID layout. Pending David: paste v1.9 onto charts; decide whether
+  CAP stays in the first hurdle / exclusion given no barrier edge.
+
 ## 5. Open items (need input — not resolvable from files)
 - [ ] FUTURE (David, 13 Nov 2026, next brief iteration): add a ⚠️ caution when RSI is too close to RSI50 (little room to the mean-reversion target). David's current manual rule: RSI 45–55 (50 ± 5) = absolute no-go.
 - [ ] Reconcile the 300-trade manual journal (`analysis/sid-btw-universe/Backtesting_Sheet_300_SID.xlsx`) against `data/trades/trades_all.csv` and the automated BTW-universe backtest — three SID datasets now exist and haven't been cross-checked against each other.
