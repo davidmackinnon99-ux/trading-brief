@@ -662,6 +662,10 @@ Shown in the Caution column of SID table 2 plus a callout line under the tables 
 - **Fibonacci 38.2/50/61.8% (14 Nov, RESULTS.md follow-up 6):** retracements of the drop into the entry (10-bar setup
   low, 40-bar prior high). Ahead and behind-after-crossing: all within ±4 pts of a random line. As take-profit targets:
   longs ≈ 0; shorts 50% +0.29 ±0.24%/trade (weak lead only). BB mid sits at a median 41% retracement at entry.
+- **Fibonacci Bollinger Band position (14 Nov, RESULTS.md follow-up 7):** WR flat across FBB zones (longs 72–76%,
+  shorts 62–66%); avg return rises with room — longs 0–0.236 below the centreline −0.26%, 0.236–0.382 0.63%,
+  0.382–0.618 1.20%, 0.618–0.764 1.03%. Same idea as room to target (RSI 45–55 no-go). SFL 13 Nov: 0.47 below,
+  historically touched the centreline in 85% within 10 bars from that zone. Possible future Section 2 room caution.
 
 ## 5. Open items (need input — not resolvable from files)
 - [ ] FUTURE (David, 13 Nov 2026, next brief iteration): add a ⚠️ caution when RSI is too close to RSI50 (little room to the mean-reversion target). David's current manual rule: RSI 45–55 (50 ± 5) = absolute no-go.
