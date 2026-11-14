@@ -659,6 +659,9 @@ Shown in the Caution column of SID table 2 plus a callout line under the tables 
   behind, by level (P / R1-S1 / R2+), SID and LORP — all no different from a random line (largest SID cells ±2 pts).
   With 13 Nov (pivot between entry and BB mid doesn't stop price reaching it): no basis to add pivots to Section 1.
   Section 1 currently does not use pivots (not in the SID Data Window), so no brief change implied.
+- **Fibonacci 38.2/50/61.8% (14 Nov, RESULTS.md follow-up 6):** retracements of the drop into the entry (10-bar setup
+  low, 40-bar prior high). Ahead and behind-after-crossing: all within ±4 pts of a random line. As take-profit targets:
+  longs ≈ 0; shorts 50% +0.29 ±0.24%/trade (weak lead only). BB mid sits at a median 41% retracement at entry.
 
 ## 5. Open items (need input — not resolvable from files)
 - [ ] FUTURE (David, 13 Nov 2026, next brief iteration): add a ⚠️ caution when RSI is too close to RSI50 (little room to the mean-reversion target). David's current manual rule: RSI 45–55 (50 ± 5) = absolute no-go.
