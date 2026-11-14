@@ -644,6 +644,11 @@ Shown in the Caution column of SID table 2 plus a callout line under the tables 
   (ticker trend, SPY vs 200-day) don't change the SID answer. One lead only: old 2+ touch zones *behind* the trade
   (support under a long) +8.9 ±6.0 on 10-bar swings, not confirmed on 5-bar — 1 of ~60 cells. David remains
   sceptical; SID itself uses SMAs not S/R zones. LORP results in LORP_Project_Continuity.md (14 Nov).
+- **BB mid behind the trade (14 Nov, trading-indicators `analysis/sid-hurdles/RESULTS.md` follow-up 3):** vs the mid
+  shifted ±0.5/1 ATR (same slope), after a SID long closes above the mid the mid holds the first pullback +6.1 ±3.6 pts
+  (46% vs 39%; mixed-trend tickers +11.5 ±6.6); shorts +3.0 ±3.2 (not clear). Held → 92% WR vs broke 76% (association).
+  General uptrend "walk the band" (14,773 cases) and LORP entries: no better than a parallel line. Reading: for SID the
+  mid is the target while ahead and modest support once crossed. Possible trailing/exit reference — not tested as a rule.
 
 ## 5. Open items (need input — not resolvable from files)
 - [ ] FUTURE (David, 13 Nov 2026, next brief iteration): add a ⚠️ caution when RSI is too close to RSI50 (little room to the mean-reversion target). David's current manual rule: RSI 45–55 (50 ± 5) = absolute no-go.
