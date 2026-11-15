@@ -640,6 +640,10 @@ Shown in the Caution column of SID table 2 plus a callout line under the tables 
 - **Brief impact:** the brief's "opposing CAP zone" (first hurdle, "inside opposing CAP zone" exclusion) will now
   see far fewer, wider zones once v1.9 is on the SID layout. Pending David: paste v1.9 onto charts; decide whether
   CAP stays in the first hurdle / exclusion given no barrier edge.
+- **v1.9 update (16 Nov):** SFL's 11.0–11.4 zone showed "7×" from swings back to Nov 2024 (zones live while touched
+  at least every 300 bars). Touches and peak RVOL now count only over the last 250 bars (setting "Count touches over
+  last") → SFL shows 3× (Mar, Apr, Aug 2026). Zone price is inside = yellow (was grey). Zone labels normal size + bold
+  (settings). Compiles clean. TrendSpider SR Channels uses a ~150-bar window, hence some differences.
 - **Follow-up (14 Nov, `zone_context_study.py`):** recency (≤40 / 41–120 / >120 bars since last swing) and mood
   (ticker trend, SPY vs 200-day) don't change the SID answer. One lead only: old 2+ touch zones *behind* the trade
   (support under a long) +8.9 ±6.0 on 10-bar swings, not confirmed on 5-bar — 1 of ~60 cells. David remains
