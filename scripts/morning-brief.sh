@@ -437,3 +437,8 @@ else
     echo "[$(date)] Brief failed — check log above" >> "$LOGFILE"
     osascript -e "display notification \"Brief scan failed — check $LOGFILE\" with title \"Morning Brief\" sound name \"Basso\"" 2>/dev/null || true
 fi
+
+# ── Candidate follow-up tracker (16 Nov 2026): 1/3/5/10-session outcomes for every brief candidate.
+#    Non-blocking: a failure here never affects the brief.
+echo "[$(date)] Updating candidate follow-up tracker..." >> "$LOGFILE"
+/usr/bin/python3 "$TV_DIR/scripts/candidate-tracker.py" >> "$LOGFILE" 2>&1 || echo "[$(date)] Candidate tracker failed (non-fatal)" >> "$LOGFILE"

@@ -811,3 +811,5 @@ The proposed kernel-distance-based morning-brief filter that followed from
 these findings was tested and abandoned — see the repainting finding in
 CURRENT STATE at the top of this document. David's live-recorded signal
 dates remain the reliable anchor going forward.
+
+- **16 Nov 2026 — candidate follow-up tracker:** `scripts/candidate-tracker.py` (run at the end of morning-brief.sh) follows every brief candidate — SID Long/Short rows from brief-<date>-data.csv, LORP rows from data/lorp_signal_log.csv — from the open of the first US session on/after the brief date, recording direction-adjusted close returns at 1/3/5/10 sessions and 5/10-session best/worst moves (Yahoo daily bars). Output data/candidate_tracker.csv + ~/Downloads/Briefs/candidate-review-latest.md. Taken trades marked via data/taken.csv (date,symbol). Purpose: check entry/no-entry decisions against what untaken candidates did.
