@@ -681,6 +681,11 @@ Shown in the Caution column of SID table 2 plus a callout line under the tables 
   "Symbol" matched case-insensitively; TS bare tickers qualified via rules.json map then TV's US scanner (unresolved
   left out and logged). Today's two TS files (18:01 run) had been skipped for the capital-S header.
 
+- **Nightly pull split (16 Nov, David):** the cloud "SID/LORP nightly pull (TV MCP)" now uploads TVX_SID_<date>.csv and
+  TVX_LORP_<date>.csv (no more combined tvremix_sid_lorp_ CSV; the .txt copy stays in the task session). Drive pickup
+  copies TVX_ files to SBT_Latest; merge apps route them to SID_/LORP_Merged and log overlap by source combination
+  (e.g. "TS 12, SBT + TVX 6"). App renamed "Nightly Merge". David may retire the pull once TS carries more filters.
+
 ## 5. Open items (need input — not resolvable from files)
 - [ ] FUTURE (David, 13 Nov 2026, next brief iteration): add a ⚠️ caution when RSI is too close to RSI50 (little room to the mean-reversion target). David's current manual rule: RSI 45–55 (50 ± 5) = absolute no-go.
 - [ ] Reconcile the 300-trade manual journal (`analysis/sid-btw-universe/Backtesting_Sheet_300_SID.xlsx`) against `data/trades/trades_all.csv` and the automated BTW-universe backtest — three SID datasets now exist and haven't been cross-checked against each other.
