@@ -13,3 +13,4 @@
 - 13 Nov: Solar Power dashboard history graphs reordered so Grid is blue and Solar/PV yellow (matching House Power); Solar (sensor.pv_generation) added to the Power Balance graphs.
 - 13 Nov: House Power Solar section - added 'Hourly grid import vs solar (last 7 days)' apexcharts card (hourly means of grid import, PV, house load).
 - 16 Nov: Energy Comparison 'Cost today so far' replaced by 'Cost — last 5 days' (today + 5 completed days). History kept in input_text.energy_day_{1..5}_ago as 'date|peak|shoulder|offpeak|export' kWh, rolled at 23:59 by automation.energy_roll_daily_cost_history; backfilled 11-15 Nov from statistics. Costs computed at display time from Grid Rates.
+- 16 Nov: Exports no longer rely on Chrome downloads. Run 'python3 home-assistant/ha_rx.py' (listens on 127.0.0.1:8765 for 2 min), then POST {name: json} from the HA browser tab; each key is written to home-assistant/<name>.json.
