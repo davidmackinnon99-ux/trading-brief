@@ -60,6 +60,8 @@ fi
 #   have no exchange) are qualified to EXCHANGE:TICKER from rules.json's watchlist map,
 #   then TradingView's public US scanner; anything unresolved is listed in the log and
 #   left out (a bare ticker can land on a foreign listing, e.g. AIR -> Airbus).
+#   Also recognised (21:30 16 Nov): David's own SBT names, e.g. "SID combo-scan-<date>.csv",
+#   "SID2 rsi_cross-…", "LORP New52WeekClosingHigh-…" -> source SBT. Log now appends per run.
 #   Unnamed files keep the old behaviour (mode app -> its strategy file; combined app ->
 #   SBT_Merged_<date>.txt in SBT_Processed_Today). SID app skips LORP-named files and
 #   vice versa.
@@ -112,7 +114,8 @@ for f in "$DOWNLOADS"/SBT_Merged_*.txt(N) "$DOWNLOADS"/SBT_Merge_Log_*.txt(N); d
     mkdir -p "$DOWNLOADS/SBT_Archive/$d"; mv "$f" "$DOWNLOADS/SBT_Archive/$d/" 2>/dev/null
 done
 
-exec > "$LOGFILE" 2>&1
+exec >> "$LOGFILE" 2>&1   # append: a second run the same day no longer wipes the first run's log
+echo ""
 echo "Nightly Merge ($MODE) — $(date)"
 echo "============================================"
 
@@ -128,8 +131,8 @@ for d in "${INBOX_DIRS[@]}"; do
         [[ -f "$f" ]] || continue
         bn=${(L)$(basename "$f")}
         [[ "$MODE" != ALL && "$bn" == tvremix* ]] && continue
-        [[ "$MODE" == SID  && "$bn" == (ts|sbt|tvx)_lorp_* ]] && continue
-        [[ "$MODE" == LORP && "$bn" == (ts|sbt|tvx)_sid_* ]] && continue
+        [[ "$MODE" == SID  && "$bn" =~ '^((ts|sbt|tvx)[ _-]*)?lorp[0-9]*([ _-]|$)' ]] && continue
+        [[ "$MODE" == LORP && "$bn" =~ '^((ts|sbt|tvx)[ _-]*)?sid[0-9]*([ _-]|$)' ]] && continue
         header=$(head -1 "$f" | tr -d '\r\357\273\277')
         if echo "$header" | grep -Eqi '(^|,)[[:space:]]*"?(tradingview_)?symbol"?[[:space:]]*(,|$)'; then
             candidates+=("$f")
@@ -156,7 +159,9 @@ mode, today, downloads, legacy_out = sys.argv[1:5]
 files = sys.argv[5:]
 QUAL = re.compile(r'^[A-Z]+:[A-Z0-9.\-]+$')
 BARE = re.compile(r'^[A-Z][A-Z0-9.\-]{0,9}$')
-NAMED = re.compile(r'^(TS|SBT|TVX)_(SID|LORP)(?:_(LONG|SHORT))?_', re.I)
+# Strategy from the start of the name: optional source (TS/SBT/TVX) then SID or LORP, optionally numbered
+# (SID2, LORP2) and optionally LONG/SHORT, with _ - or space between. No source prefix = an SBT export.
+NAMED = re.compile(r'^(?:(TS|SBT|TVX)[ _-]*)?(SID|LORP)\d*(?:[ _-]+(LONG|SHORT)(?![A-Z]))?(?![A-Z])', re.I)
 outs = {"SID": os.path.join(downloads, f"SID_Merged_{today}.txt"),
         "LORP": os.path.join(downloads, f"LORP_Merged_{today}.txt"),
         "LEGACY": legacy_out}
@@ -165,7 +170,7 @@ def target(fp):
     """(output key, source label) for a file, from its name; unnamed files keep the old routing."""
     m = NAMED.match(os.path.basename(fp))
     if m:
-        src = m.group(1).upper() + " " + m.group(2).upper() + (" " + m.group(3).upper() if m.group(3) else "")
+        src = (m.group(1) or "SBT").upper() + " " + m.group(2).upper() + (" " + m.group(3).upper() if m.group(3) else "")
         return m.group(2).upper(), src
     return (mode if mode in ("SID", "LORP") else "LEGACY"), "unlabelled"
 
