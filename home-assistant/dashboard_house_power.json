@@ -25,7 +25,7 @@
                   "name": "Current House Power"
                 }
               ],
-              "title": "Current House Power – 24 Hours",
+              "title": "Current House Power \u2013 24 Hours",
               "hours_to_show": 24
             },
             {
@@ -68,7 +68,7 @@
                 "rows": 1
               },
               "entity": "sensor.roof_gosungrow_1498605_sungrow_gosungrow_other_information_daily_load_consumption",
-              "name": "Total House Energy Today — Grid + Solar",
+              "name": "Total House Energy Today \u2014 Grid + Solar",
               "vertical": false,
               "features_position": "bottom"
             },
@@ -194,7 +194,7 @@
               },
               "header": {
                 "show": true,
-                "title": "Hourly grid import vs solar (last 7 days)",
+                "title": "Hourly Grid Import vs Solar (last 7 days)",
                 "show_states": false
               },
               "grid_options": {
@@ -304,15 +304,15 @@
               "entities": [
                 {
                   "entity": "input_number.grid_rate_peak",
-                  "name": "Peak (4–9 pm)"
+                  "name": "Peak (4\u20139 pm)"
                 },
                 {
                   "entity": "input_number.grid_rate_shoulder",
-                  "name": "Shoulder (9 pm–11 am)"
+                  "name": "Shoulder (9 pm\u201311 am)"
                 },
                 {
                   "entity": "input_number.grid_rate_off_peak",
-                  "name": "Off Peak (11 am–4 pm)"
+                  "name": "Off Peak (11 am\u20134 pm)"
                 },
                 {
                   "entity": "input_number.grid_rate_solar_feed_in",
@@ -340,7 +340,7 @@
                 {
                   "type": "markdown",
                   "title": "Battery & Tariff Analysis",
-                  "content": "{%- set p = states('input_number.grid_rate_peak') | float(0) -%}\n{%- set s = states('input_number.grid_rate_shoulder') | float(0) -%}\n{%- set o = states('input_number.grid_rate_off_peak') | float(0) -%}\n{%- set f = states('input_number.grid_rate_solar_feed_in') | float(0) -%}\n{%- set sup = states('input_number.grid_daily_supply_charge') | float(0) -%}\n{%- set t = states('sensor.red_energy_current_tariff') -%}\n{%- set cur = {'Peak': p, 'Shoulder': s, 'Off Peak': o}.get(t, 0) -%}\n{%- set kp = states('sensor.house_grid_import_by_tariff_peak') | float(0) -%}\n{%- set ks = states('sensor.house_grid_import_by_tariff_shoulder') | float(0) -%}\n{%- set ko = states('sensor.house_grid_import_by_tariff_off_peak') | float(0) -%}\n{%- set exp = states('sensor.roof_gosungrow_1498605_sungrow_gosungrow_grid_information_feed_in_energy_today') | float(0) -%}\n{%- set imp_cost = (kp*p + ks*s + ko*o) / 100 -%}\n{%- set exp_cost = exp * f / 100 -%}\n**Measurement period:** Day = sunrise to sunset; night = sunset to sunrise.\n\n**Current tariff:** {{ t }} at **{{ cur }} c/kWh**\n\n**Red Energy rates (from Grid Rates):** Peak 4–9 pm **{{ p }}c**, Shoulder 9 pm–11 am **{{ s }}c**, Off Peak 11 am–4 pm **{{ o }}c** per kWh. Solar feed-in **{{ f }}c/kWh**; daily supply **${{ '%.3f' | format(sup) }}/day**.\n\n**Grid cost today so far:** ${{ '%.2f' | format(imp_cost) }} usage ({{ (kp+ks+ko) | round(1) }} kWh) + ${{ '%.2f' | format(sup) }} supply = **${{ '%.2f' | format(imp_cost + sup) }}**"
+                  "content": "{%- set p = states('input_number.grid_rate_peak') | float(0) -%}\n{%- set s = states('input_number.grid_rate_shoulder') | float(0) -%}\n{%- set o = states('input_number.grid_rate_off_peak') | float(0) -%}\n{%- set f = states('input_number.grid_rate_solar_feed_in') | float(0) -%}\n{%- set sup = states('input_number.grid_daily_supply_charge') | float(0) -%}\n{%- set t = states('sensor.red_energy_current_tariff') -%}\n{%- set cur = {'Peak': p, 'Shoulder': s, 'Off Peak': o}.get(t, 0) -%}\n{%- set kp = states('sensor.house_grid_import_by_tariff_peak') | float(0) -%}\n{%- set ks = states('sensor.house_grid_import_by_tariff_shoulder') | float(0) -%}\n{%- set ko = states('sensor.house_grid_import_by_tariff_off_peak') | float(0) -%}\n{%- set exp = states('sensor.roof_gosungrow_1498605_sungrow_gosungrow_grid_information_feed_in_energy_today') | float(0) -%}\n{%- set imp_cost = (kp*p + ks*s + ko*o) / 100 -%}\n{%- set exp_cost = exp * f / 100 -%}\n**Measurement period:** Day = sunrise to sunset; night = sunset to sunrise.\n\n**Current tariff:** {{ t }} at **{{ cur }} c/kWh**\n\n**Red Energy rates (from Grid Rates):** Peak 4\u20139 pm **{{ p }}c**, Shoulder 9 pm\u201311 am **{{ s }}c**, Off Peak 11 am\u20134 pm **{{ o }}c** per kWh. Solar feed-in **{{ f }}c/kWh**; daily supply **${{ '%.3f' | format(sup) }}/day**.\n\n**Grid cost today so far:** ${{ '%.2f' | format(imp_cost) }} usage ({{ (kp+ks+ko) | round(1) }} kWh) + ${{ '%.2f' | format(sup) }} supply = **${{ '%.2f' | format(imp_cost + sup) }}**"
                 },
                 {
                   "type": "grid",
@@ -438,7 +438,7 @@
               "cards": [
                 {
                   "type": "markdown",
-                  "content": "## Electricity Company Comparison\nCompare completed Home Assistant days with Red Energy when Red publishes them the following day.\n**Red “kWh used” = HA Grid Import. Red “Solar Cr” = HA Solar Export.**\n"
+                  "content": "## Electricity Company Comparison\nCompare completed Home Assistant days with Red Energy when Red publishes them the following day.\n**Red \u201ckWh used\u201d = HA Grid Import. Red \u201cSolar Cr\u201d = HA Solar Export.**\n"
                 },
                 {
                   "type": "grid",
@@ -461,12 +461,12 @@
                 },
                 {
                   "type": "markdown",
-                  "title": "Cost today so far",
-                  "content": "{%- set p = states('input_number.grid_rate_peak') | float(0) -%}\n{%- set s = states('input_number.grid_rate_shoulder') | float(0) -%}\n{%- set o = states('input_number.grid_rate_off_peak') | float(0) -%}\n{%- set f = states('input_number.grid_rate_solar_feed_in') | float(0) -%}\n{%- set sup = states('input_number.grid_daily_supply_charge') | float(0) -%}\n{%- set t = states('sensor.red_energy_current_tariff') -%}\n{%- set cur = {'Peak': p, 'Shoulder': s, 'Off Peak': o}.get(t, 0) -%}\n{%- set kp = states('sensor.house_grid_import_by_tariff_peak') | float(0) -%}\n{%- set ks = states('sensor.house_grid_import_by_tariff_shoulder') | float(0) -%}\n{%- set ko = states('sensor.house_grid_import_by_tariff_off_peak') | float(0) -%}\n{%- set exp = states('sensor.roof_gosungrow_1498605_sungrow_gosungrow_grid_information_feed_in_energy_today') | float(0) -%}\n{%- set imp_cost = (kp*p + ks*s + ko*o) / 100 -%}\n{%- set exp_cost = exp * f / 100 -%}\n| | kWh | $ |\n|---|---:|---:|\n| Grid import — Peak ({{ p }}c) | {{ kp | round(2) }} | {{ '%.2f' | format(kp*p/100) }} |\n| Grid import — Shoulder ({{ s }}c) | {{ ks | round(2) }} | {{ '%.2f' | format(ks*s/100) }} |\n| Grid import — Off Peak ({{ o }}c) | {{ ko | round(2) }} | {{ '%.2f' | format(ko*o/100) }} |\n| Solar export ({{ f }}c) | {{ exp | round(2) }} | {{ '%.2f' | format(exp_cost) }} |\n| Daily supply | | {{ '%.2f' | format(sup) }} |\n| **Net cost today** | | **{{ '%.2f' | format(imp_cost + exp_cost + sup) }}** |\n\n*Compare with Red's daily figures when published. Solar export is shown as a negative cost if the feed-in rate is entered as negative.*"
+                  "title": "Cost \u2014 last 5 days",
+                  "content": "{%- set p = states('input_number.grid_rate_peak') | float(0) -%}\n{%- set s = states('input_number.grid_rate_shoulder') | float(0) -%}\n{%- set o = states('input_number.grid_rate_off_peak') | float(0) -%}\n{%- set f = states('input_number.grid_rate_solar_feed_in') | float(0) -%}\n{%- set sup = states('input_number.grid_daily_supply_charge') | float(0) -%}\n{%- set today = {'d': now().strftime('%Y-%m-%d'), 'p': states('sensor.house_grid_import_by_tariff_peak')|float(0), 's': states('sensor.house_grid_import_by_tariff_shoulder')|float(0), 'o': states('sensor.house_grid_import_by_tariff_off_peak')|float(0), 'x': states('sensor.roof_gosungrow_1498605_sungrow_gosungrow_grid_information_feed_in_energy_today')|float(0)} -%}\n{%- set ns = namespace(rows=[today]) -%}\n{%- for n in range(1,6) -%}\n{%- set v = states('input_text.energy_day_' ~ n ~ '_ago') -%}\n{%- set q = v.split('|') -%}{%- if q | length == 5 -%}{%- set ns.rows = ns.rows + [{'d': q[0], 'p': q[1]|float(0), 's': q[2]|float(0), 'o': q[3]|float(0), 'x': q[4]|float(0)}] -%}{%- endif -%}\n{%- endfor -%}\n| Day | Import kWh | Import $ | Export kWh | Export $ | Supply $ | **Net $** |\n|---|---:|---:|---:|---:|---:|---:|\n{% for r in ns.rows -%}\n{%- set kwh = r.p + r.s + r.o -%}\n{%- set ic = (r.p*p + r.s*s + r.o*o)/100 -%}\n{%- set xc = r.x*f/100 -%}\n| {{ as_datetime(r.d).strftime('%a %d %b') }}{{ ' (so far)' if loop.first else '' }} | {{ '%.2f' | format(kwh) }} | {{ '%.2f' | format(ic) }} | {{ '%.2f' | format(r.x) }} | {{ '%.2f' | format(xc) }} | {{ '%.2f' | format(sup) }} | **{{ '%.2f' | format(ic + xc + sup) }}** |\n{% endfor %}\n*Costs use the current Grid Rates. Compare each completed day with Red's app once it updates (usually 1\u20132 days later).*"
                 },
                 {
                   "type": "statistics-graph",
-                  "title": "30 Days — Grid Import and Solar Export",
+                  "title": "30 Days \u2014 Grid Import and Solar Export",
                   "chart_type": "bar",
                   "period": "day",
                   "days_to_show": 30,
@@ -498,7 +498,7 @@
             },
             {
               "type": "markdown",
-              "content": "{%- set p = states('input_number.grid_rate_peak') | float(0) -%}\n{%- set s = states('input_number.grid_rate_shoulder') | float(0) -%}\n{%- set o = states('input_number.grid_rate_off_peak') | float(0) -%}\n{%- set f = states('input_number.grid_rate_solar_feed_in') | float(0) -%}\n{%- set sup = states('input_number.grid_daily_supply_charge') | float(0) -%}\n{%- set t = states('sensor.red_energy_current_tariff') -%}\n{%- set cur = {'Peak': p, 'Shoulder': s, 'Off Peak': o}.get(t, 0) -%}\n{%- set kp = states('sensor.house_grid_import_by_tariff_peak') | float(0) -%}\n{%- set ks = states('sensor.house_grid_import_by_tariff_shoulder') | float(0) -%}\n{%- set ko = states('sensor.house_grid_import_by_tariff_off_peak') | float(0) -%}\n{%- set exp = states('sensor.roof_gosungrow_1498605_sungrow_gosungrow_grid_information_feed_in_energy_today') | float(0) -%}\n{%- set imp_cost = (kp*p + ks*s + ko*o) / 100 -%}\n{%- set exp_cost = exp * f / 100 -%}\n**Method:** When one AC starts while every other AC is off, HA records the whole-house load, waits **7 minutes**, and measures the increase. Later valid samples are smoothed to reduce normal household-load noise.\n\n| Air conditioner | Estimate | Cost per hour* | Since 13 Nov* |\n|---|---:|---:|---:|\n| Kitchen AC | {% set v = states('input_number.kitchen_ac_estimated_power') | float(0) %}{% set e = states('sensor.kitchen_ac_energy') | float(0) %}{% if v > 0 %}**{{ v | round(1) }} kW** | ${{ '%.2f' | format(v * cur / 100) }} | {{ e | round(1) }} kWh / ${{ '%.2f' | format(e * cur / 100) }}{% else %}Waiting for an isolated start | – | {{ e | round(1) }} kWh{% endif %} |\n| Lounge Room AC | {% set v = states('input_number.lounge_room_ac_estimated_power') | float(0) %}{% set e = states('sensor.lounge_room_ac_energy') | float(0) %}{% if v > 0 %}**{{ v | round(1) }} kW** | ${{ '%.2f' | format(v * cur / 100) }} | {{ e | round(1) }} kWh / ${{ '%.2f' | format(e * cur / 100) }}{% else %}Waiting for an isolated start | – | {{ e | round(1) }} kWh{% endif %} |\n| Main Bedroom AC | {% set v = states('input_number.main_bedroom_ac_estimated_power') | float(0) %}{% set e = states('sensor.main_bedroom_ac_energy') | float(0) %}{% if v > 0 %}**{{ v | round(1) }} kW** | ${{ '%.2f' | format(v * cur / 100) }} | {{ e | round(1) }} kWh / ${{ '%.2f' | format(e * cur / 100) }}{% else %}Waiting for an isolated start | – | {{ e | round(1) }} kWh{% endif %} |\n| Study AC | {% set v = states('input_number.study_ac_estimated_power') | float(0) %}{% set e = states('sensor.study_ac_energy') | float(0) %}{% if v > 0 %}**{{ v | round(1) }} kW** | ${{ '%.2f' | format(v * cur / 100) }} | {{ e | round(1) }} kWh / ${{ '%.2f' | format(e * cur / 100) }}{% else %}Waiting for an isolated start | – | {{ e | round(1) }} kWh{% endif %} |\n| Bed2 AC | {% set v = states('input_number.bed2_ac_estimated_power') | float(0) %}{% set e = states('sensor.bed2_ac_energy') | float(0) %}{% if v > 0 %}**{{ v | round(1) }} kW** | ${{ '%.2f' | format(v * cur / 100) }} | {{ e | round(1) }} kWh / ${{ '%.2f' | format(e * cur / 100) }}{% else %}Waiting for an isolated start | – | {{ e | round(1) }} kWh{% endif %} |\n\n*Costs use the current tariff rate ({{ t }}, {{ cur }} c/kWh) from Grid Rates. These are directional estimates, not meter-grade readings. Starts are ignored when another AC is already running.*"
+              "content": "{%- set p = states('input_number.grid_rate_peak') | float(0) -%}\n{%- set s = states('input_number.grid_rate_shoulder') | float(0) -%}\n{%- set o = states('input_number.grid_rate_off_peak') | float(0) -%}\n{%- set f = states('input_number.grid_rate_solar_feed_in') | float(0) -%}\n{%- set sup = states('input_number.grid_daily_supply_charge') | float(0) -%}\n{%- set t = states('sensor.red_energy_current_tariff') -%}\n{%- set cur = {'Peak': p, 'Shoulder': s, 'Off Peak': o}.get(t, 0) -%}\n{%- set kp = states('sensor.house_grid_import_by_tariff_peak') | float(0) -%}\n{%- set ks = states('sensor.house_grid_import_by_tariff_shoulder') | float(0) -%}\n{%- set ko = states('sensor.house_grid_import_by_tariff_off_peak') | float(0) -%}\n{%- set exp = states('sensor.roof_gosungrow_1498605_sungrow_gosungrow_grid_information_feed_in_energy_today') | float(0) -%}\n{%- set imp_cost = (kp*p + ks*s + ko*o) / 100 -%}\n{%- set exp_cost = exp * f / 100 -%}\n**Method:** When one AC starts while every other AC is off, HA records the whole-house load, waits **7 minutes**, and measures the increase. Later valid samples are smoothed to reduce normal household-load noise.\n\n| Air conditioner | Estimate | Cost per hour* | Since 13 Nov* |\n|---|---:|---:|---:|\n| Kitchen AC | {% set v = states('input_number.kitchen_ac_estimated_power') | float(0) %}{% set e = states('sensor.kitchen_ac_energy') | float(0) %}{% if v > 0 %}**{{ v | round(1) }} kW** | ${{ '%.2f' | format(v * cur / 100) }} | {{ e | round(1) }} kWh / ${{ '%.2f' | format(e * cur / 100) }}{% else %}Waiting for an isolated start | \u2013 | {{ e | round(1) }} kWh{% endif %} |\n| Lounge Room AC | {% set v = states('input_number.lounge_room_ac_estimated_power') | float(0) %}{% set e = states('sensor.lounge_room_ac_energy') | float(0) %}{% if v > 0 %}**{{ v | round(1) }} kW** | ${{ '%.2f' | format(v * cur / 100) }} | {{ e | round(1) }} kWh / ${{ '%.2f' | format(e * cur / 100) }}{% else %}Waiting for an isolated start | \u2013 | {{ e | round(1) }} kWh{% endif %} |\n| Main Bedroom AC | {% set v = states('input_number.main_bedroom_ac_estimated_power') | float(0) %}{% set e = states('sensor.main_bedroom_ac_energy') | float(0) %}{% if v > 0 %}**{{ v | round(1) }} kW** | ${{ '%.2f' | format(v * cur / 100) }} | {{ e | round(1) }} kWh / ${{ '%.2f' | format(e * cur / 100) }}{% else %}Waiting for an isolated start | \u2013 | {{ e | round(1) }} kWh{% endif %} |\n| Study AC | {% set v = states('input_number.study_ac_estimated_power') | float(0) %}{% set e = states('sensor.study_ac_energy') | float(0) %}{% if v > 0 %}**{{ v | round(1) }} kW** | ${{ '%.2f' | format(v * cur / 100) }} | {{ e | round(1) }} kWh / ${{ '%.2f' | format(e * cur / 100) }}{% else %}Waiting for an isolated start | \u2013 | {{ e | round(1) }} kWh{% endif %} |\n| Bed2 AC | {% set v = states('input_number.bed2_ac_estimated_power') | float(0) %}{% set e = states('sensor.bed2_ac_energy') | float(0) %}{% if v > 0 %}**{{ v | round(1) }} kW** | ${{ '%.2f' | format(v * cur / 100) }} | {{ e | round(1) }} kWh / ${{ '%.2f' | format(e * cur / 100) }}{% else %}Waiting for an isolated start | \u2013 | {{ e | round(1) }} kWh{% endif %} |\n\n*Costs use the current tariff rate ({{ t }}, {{ cur }} c/kWh) from Grid Rates. These are directional estimates, not meter-grade readings. Starts are ignored when another AC is already running.*"
             }
           ]
         },

@@ -933,7 +933,7 @@
             "source_compatible": "Compatible source",
             "source_confirm_warning": "Use this source anyway?",
             "source_incompatible": "This entity is no longer an available compatible source.",
-            "source_legacy_automatic": "Legacy automatic — review required",
+            "source_legacy_automatic": "Legacy automatic \u2014 review required",
             "source_match_unverified": "The current automatic source could not be verified.",
             "source_match_update": "A safer automatic source is available.",
             "source_native_unavailable": "Native source unavailable",

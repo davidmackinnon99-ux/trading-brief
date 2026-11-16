@@ -1,0 +1,60 @@
+{
+  "id": "1794792833290",
+  "alias": "Energy \u2014 roll daily cost history",
+  "description": "At 23:59 shifts the 5-day energy history down one day and stores today's grid import by tariff and solar export (used by the House Power \"Cost \u2014 last 5 days\" table).",
+  "triggers": [
+    {
+      "trigger": "time",
+      "at": "23:59:00"
+    }
+  ],
+  "conditions": [],
+  "actions": [
+    {
+      "action": "input_text.set_value",
+      "target": {
+        "entity_id": "input_text.energy_day_5_ago"
+      },
+      "data": {
+        "value": "{{ states('input_text.energy_day_4_ago') }}"
+      }
+    },
+    {
+      "action": "input_text.set_value",
+      "target": {
+        "entity_id": "input_text.energy_day_4_ago"
+      },
+      "data": {
+        "value": "{{ states('input_text.energy_day_3_ago') }}"
+      }
+    },
+    {
+      "action": "input_text.set_value",
+      "target": {
+        "entity_id": "input_text.energy_day_3_ago"
+      },
+      "data": {
+        "value": "{{ states('input_text.energy_day_2_ago') }}"
+      }
+    },
+    {
+      "action": "input_text.set_value",
+      "target": {
+        "entity_id": "input_text.energy_day_2_ago"
+      },
+      "data": {
+        "value": "{{ states('input_text.energy_day_1_ago') }}"
+      }
+    },
+    {
+      "action": "input_text.set_value",
+      "target": {
+        "entity_id": "input_text.energy_day_1_ago"
+      },
+      "data": {
+        "value": "{{ now().strftime('%Y-%m-%d') }}|{{ states('sensor.house_grid_import_by_tariff_peak')|float(0)|round(2) }}|{{ states('sensor.house_grid_import_by_tariff_shoulder')|float(0)|round(2) }}|{{ states('sensor.house_grid_import_by_tariff_off_peak')|float(0)|round(2) }}|{{ states('sensor.roof_gosungrow_1498605_sungrow_gosungrow_grid_information_feed_in_energy_today')|float(0)|round(2) }}"
+      }
+    }
+  ],
+  "mode": "single"
+}
