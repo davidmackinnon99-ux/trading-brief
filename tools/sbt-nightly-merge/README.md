@@ -18,10 +18,10 @@ Outputs:
 - SID files  -> ~/Downloads/SID_Merged_<date>.txt
 - LORP files -> ~/Downloads/LORP_Merged_<date>.txt
 - unlabelled files: mode apps -> their strategy file; combined app -> SBT_Processed_Today/SBT_Merged_<date>.txt
-Repeat runs on the same day add to the day's files. Older days' SID_/LORP_Merged files move to SBT_Archive/<date>/.
+SID_/LORP_Merged are also copied into SBT_Processed_Today. Repeat runs on the same day add to the day's files. Older days' SID_/LORP_Merged files move to SBT_Archive/<date>/.
 
 Symbol column matched case-insensitively (Symbol / symbol / tradingview_symbol, quoted or not).
 Bare tickers are qualified to EXCHANGE:TICKER from rules.json watchlist_qualified, then TradingView's
 public US scanner (primary listing preferred); unresolved tickers are left out and listed in the log.
-Logs append per run (a second run no longer wipes the first). Logs (per-file source and counts, SID overlap by source combination, e.g. TS 20, SBT 15, SBT + TVX 4) in ~/Downloads/SBT_Processed_Today.
+Logs are Merge_Log_<mode>_<date>.log (not .txt, so they can't be imported as a watchlist by mistake) and append per run (a second run no longer wipes the first). Logs (per-file source and counts, SID overlap by source combination, e.g. TS 20, SBT 15, SBT + TVX 4) in ~/Downloads/SBT_Processed_Today.
 To update the apps, copy run.sh into each bundle at Contents/MacOS/run.sh.

@@ -86,7 +86,8 @@ TODAY=$(date +%Y-%m-%d)
 ARCHIVE_DIR="$DOWNLOADS/SBT_Archive/$TODAY"
 PROCESSED_DIR="$DOWNLOADS/SBT_Processed_Today"
 OUTFILE="$PROCESSED_DIR/SBT_Merged_${TAG}$TODAY.txt"
-LOGFILE="$PROCESSED_DIR/SBT_Merge_Log_${TAG}$TODAY.txt"
+# .log (not .txt) so it can never be picked by mistake in a watchlist import (16 Nov 2026)
+LOGFILE="$PROCESSED_DIR/Merge_Log_${TAG}$TODAY.log"
 
 # ── 16 Nov 2026: everything for today now lives in SBT_Processed_Today
 #    (merged txt + log + copies of the CSVs). The folder is reset only
@@ -108,7 +109,7 @@ for f in "$DOWNLOADS"/(SID|LORP)_Merged_*.txt(N); do
     [[ "$d" == "$TODAY" ]] && continue
     mkdir -p "$DOWNLOADS/SBT_Archive/$d"; mv "$f" "$DOWNLOADS/SBT_Archive/$d/" 2>/dev/null
 done
-for f in "$DOWNLOADS"/SBT_Merged_*.txt(N) "$DOWNLOADS"/SBT_Merge_Log_*.txt(N); do
+for f in "$DOWNLOADS"/SBT_Merged_*.txt(N) "$DOWNLOADS"/SBT_Merge_Log_*.txt(N) "$DOWNLOADS"/Merge_Log_*.log(N); do
     d=$(basename "$f" | grep -oE '[0-9]{4}-[0-9]{2}-[0-9]{2}')
     [[ "$d" == "$TODAY" ]] && { mv "$f" "$PROCESSED_DIR/" 2>/dev/null; continue; }
     mkdir -p "$DOWNLOADS/SBT_Archive/$d"; mv "$f" "$DOWNLOADS/SBT_Archive/$d/" 2>/dev/null
@@ -257,6 +258,12 @@ if unresolved:
 with open(os.path.join(os.path.dirname(legacy_out), ".last_summary"), "w") as f:
     f.write(", ".join(f"{k} {v[3]}" for k, v in result.items()) + (f", {len(unresolved)} unresolved" if unresolved else ""))
 PYEOF
+
+# ── Copy today's SID/LORP lists into SBT_Processed_Today too, next to the CSVs, so the
+#    ticker list (not the log) is what's found there. Downloads keeps the master copy.
+for f in "$DOWNLOADS"/SID_Merged_$TODAY.txt(N) "$DOWNLOADS"/LORP_Merged_$TODAY.txt(N); do
+    cp "$f" "$PROCESSED_DIR/" 2>/dev/null
+done
 
 # ── Refresh SBT_Processed_Today/ (always today's files only, easy to
 #    find without digging through dated archive subfolders) ──
