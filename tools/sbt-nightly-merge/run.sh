@@ -48,6 +48,21 @@ fi
 # per-routine files, e.g. to send to Claude, without digging through
 # dated archive subfolders.)
 #
+# UPDATED 16 Nov 2026 (evening, David): named source files.
+#   TS_SID_LONG_<date>.csv / TS_SID_SHORT_<date>.csv  (TrendSpider scanner exports)
+#   SBT_SID_<date>.csv / SBT_LORP_<date>.csv          (SwingTradeBot exports)
+#   -> SID files merge into  ~/Downloads/SID_Merged_<date>.txt
+#   -> LORP files merge into ~/Downloads/LORP_Merged_<date>.txt
+#   The source is taken from the file name and reported per file in the log, with an
+#   SID overlap count (TS only / SBT only / both). The symbol column is matched
+#   case-insensitively ("Symbol", "symbol", "tradingview_symbol"). Bare tickers (TS exports
+#   have no exchange) are qualified to EXCHANGE:TICKER from rules.json's watchlist map,
+#   then TradingView's public US scanner; anything unresolved is listed in the log and
+#   left out (a bare ticker can land on a foreign listing, e.g. AIR -> Airbus).
+#   Unnamed files keep the old behaviour (mode app -> its strategy file; combined app ->
+#   SBT_Merged_<date>.txt in SBT_Processed_Today). SID app skips LORP-named files and
+#   vice versa.
+#
 # Output:  ~/Downloads/SBT_Merged_<date>.txt
 # Log:     ~/Downloads/SBT_Merge_Log_<date>.txt  (since there's no
 #          dialog to confirm success — check this file instead)
@@ -85,6 +100,11 @@ if [[ "$(cat "$stamp" 2>/dev/null)" != "$TODAY" ]]; then
     done
     echo "$TODAY" > "$stamp"
 fi
+for f in "$DOWNLOADS"/(SID|LORP)_Merged_*.txt(N); do
+    d=$(basename "$f" | grep -oE '[0-9]{4}-[0-9]{2}-[0-9]{2}')
+    [[ "$d" == "$TODAY" ]] && continue
+    mkdir -p "$DOWNLOADS/SBT_Archive/$d"; mv "$f" "$DOWNLOADS/SBT_Archive/$d/" 2>/dev/null
+done
 for f in "$DOWNLOADS"/SBT_Merged_*.txt(N) "$DOWNLOADS"/SBT_Merge_Log_*.txt(N); do
     d=$(basename "$f" | grep -oE '[0-9]{4}-[0-9]{2}-[0-9]{2}')
     [[ "$d" == "$TODAY" ]] && { mv "$f" "$PROCESSED_DIR/" 2>/dev/null; continue; }
@@ -105,9 +125,12 @@ for d in "${INBOX_DIRS[@]}"; do
     [[ -d "$d" ]] || continue
     for f in "$d"/*.csv(N); do
         [[ -f "$f" ]] || continue
-        [[ "$MODE" != ALL && "$(basename "$f")" == tvremix* ]] && continue
-        header=$(head -1 "$f")
-        if echo "$header" | grep -qi "tradingview_symbol\|^symbol,\|,symbol,\|,symbol$"; then
+        bn=${(L)$(basename "$f")}
+        [[ "$MODE" != ALL && "$bn" == tvremix* ]] && continue
+        [[ "$MODE" == SID  && "$bn" == (ts|sbt)_lorp_* ]] && continue
+        [[ "$MODE" == LORP && "$bn" == (ts|sbt)_sid_* ]] && continue
+        header=$(head -1 "$f" | tr -d '\r\357\273\277')
+        if echo "$header" | grep -Eqi '(^|,)[[:space:]]*"?(tradingview_)?symbol"?[[:space:]]*(,|$)'; then
             candidates+=("$f")
         fi
     done
@@ -125,67 +148,106 @@ echo ""
 
 # ── Filter + merge (Python — proven logic, handles quoted CSVs
 #    correctly, matches the manual merge run 28 Aug 2026) ──
-python3 - "$OUTFILE" "${candidates[@]}" << 'PYEOF'
-import csv, re, sys, os
+python3 - "$MODE" "$TODAY" "$DOWNLOADS" "$OUTFILE" "${candidates[@]}" << 'PYEOF'
+import csv, re, sys, os, json, urllib.request
 
-outfile = sys.argv[1]
-files = sys.argv[2:]
-pattern = re.compile(r'^[A-Z]+:[A-Z0-9.]+$')
-tickers = []
-summary = []
+mode, today, downloads, legacy_out = sys.argv[1:5]
+files = sys.argv[5:]
+QUAL = re.compile(r'^[A-Z]+:[A-Z0-9.\-]+$')
+BARE = re.compile(r'^[A-Z][A-Z0-9.\-]{0,9}$')
+NAMED = re.compile(r'^(TS|SBT)_(SID|LORP)(?:_(LONG|SHORT))?_', re.I)
+outs = {"SID": os.path.join(downloads, f"SID_Merged_{today}.txt"),
+        "LORP": os.path.join(downloads, f"LORP_Merged_{today}.txt"),
+        "LEGACY": legacy_out}
 
-# Carry forward anything already in today's merged output -- if this app is
-# run more than once in a day (e.g. an SBT batch earlier, a tvremix batch
-# later), a second run used to overwrite the first run's result instead of
-# adding to it. Seeding `tickers` with the existing output file's own
-# contents before processing this run's inbox makes repeat runs on the same
-# day cumulative rather than destructive. (Fixed 16 Sep 2026 after a
-# same-day SBT-then-tvremix double-run clobbered the SBT half of the
-# result.)
-carried = 0
-if os.path.exists(outfile):
-    with open(outfile) as f:
-        for line in f:
-            line = line.strip()
-            if pattern.match(line):
-                tickers.append(line)
-                carried += 1
+def target(fp):
+    """(output key, source label) for a file, from its name; unnamed files keep the old routing."""
+    m = NAMED.match(os.path.basename(fp))
+    if m:
+        src = m.group(1).upper() + " " + m.group(2).upper() + (" " + m.group(3).upper() if m.group(3) else "")
+        return m.group(2).upper(), src
+    return (mode if mode in ("SID", "LORP") else "LEGACY"), "unlabelled"
 
+# --- read every file ---------------------------------------------------------------
+per_file, raw = [], {}            # raw[out_key] = list of (symbol, source)
 for fp in files:
+    key, src = target(fp)
     try:
         with open(fp, newline='', encoding='utf-8-sig') as f:
             reader = csv.DictReader(f)
-            cols = reader.fieldnames or []
-            col = 'tradingview_symbol' if 'tradingview_symbol' in cols else ('symbol' if 'symbol' in cols else None)
+            cols = {(c or '').strip().strip('"').lower(): c for c in (reader.fieldnames or [])}
+            col = cols.get('tradingview_symbol') or cols.get('symbol')
             if not col:
-                summary.append((fp, 'SKIPPED - no symbol column', 0))
-                continue
-            count = 0
+                per_file.append((fp, src, key, 'SKIPPED - no symbol column', 0)); continue
+            n = 0
             for row in reader:
-                val = (row.get(col) or '').strip().strip('"')
-                if pattern.match(val):
-                    tickers.append(val)
-                    count += 1
-            summary.append((fp, col, count))
+                v = (row.get(col) or '').strip().strip('"').upper().replace('/', '.')
+                if QUAL.match(v) or BARE.match(v):
+                    raw.setdefault(key, []).append((v, src)); n += 1
+            per_file.append((fp, src, key, col, n))
     except Exception as e:
-        summary.append((fp, f'ERROR: {e}', 0))
+        per_file.append((fp, src, key, f'ERROR: {e}', 0))
 
-total_raw = sum(c for _, _, c in summary) + carried
-unique = sorted(set(tickers))
-dup_count = total_raw - len(unique)
+# --- qualify bare tickers: rules.json map, then TradingView's public US scanner ----
+bare = sorted({s for lst in raw.values() for s, _ in lst if not QUAL.match(s)})
+qmap = {}
+try:
+    rules = json.load(open(os.path.expanduser('~/tradingview-mcp-jackson/rules.json')))
+    for k, v in (rules.get('watchlist_qualified') or {}).items():
+        if k.upper() in bare and QUAL.match(str(v).upper()): qmap[k.upper()] = str(v).upper()
+except Exception as e:
+    print(f"  (rules.json map not read: {e})")
+need = [s for s in bare if s not in qmap]
+pref = ["NYSE", "NASDAQ", "AMEX", "NYSE ARCA", "CBOE", "OTC"]
+for i in range(0, len(need), 400):
+    chunk = need[i:i + 400]
+    body = json.dumps({"filter": [{"left": "name", "operation": "in_range", "right": chunk}],
+                       "columns": ["name", "exchange", "is_primary"], "range": [0, 2000]}).encode()
+    try:
+        req = urllib.request.Request("https://scanner.tradingview.com/america/scan", data=body,
+                                     headers={"Content-Type": "application/json"})
+        data = json.load(urllib.request.urlopen(req, timeout=30)).get("data", [])
+        best = {}
+        for r in data:
+            name, exch, prim = r["d"][0].upper(), r["d"][1], bool(r["d"][2])
+            rank = (0 if prim else 1, pref.index(exch) if exch in pref else 9)
+            if name not in best or rank < best[name][0]: best[name] = (rank, r["s"].upper())
+        for name, (_, s) in best.items(): qmap.setdefault(name, s)
+    except Exception as e:
+        print(f"  (TradingView scanner lookup failed: {e})")
+unresolved = sorted(s for s in bare if s not in qmap)
 
-with open(outfile, 'w') as f:
-    f.write('\n'.join(unique) + ('\n' if unique else ''))
+# --- write each output (cumulative within the day) ----------------------------------
+result = {}
+for key, lst in raw.items():
+    out = outs[key]
+    carried = []
+    if os.path.exists(out):
+        carried = [l.strip() for l in open(out) if QUAL.match(l.strip())]
+    syms = {}
+    for s, src in lst:
+        q = s if QUAL.match(s) else qmap.get(s)
+        if q: syms.setdefault(q, set()).add(src.split()[0])
+    unique = sorted(set(carried) | set(syms))
+    with open(out, 'w') as f: f.write('\n'.join(unique) + ('\n' if unique else ''))
+    result[key] = (out, len(lst), len(carried), len(unique), syms)
 
-if carried:
-    print(f"  (carried over {carried} ticker(s) already in today's merged output from an earlier run)")
-for fp, col, count in summary:
-    print(f"  {fp}: {count} tickers (col={col})")
+# --- log ---------------------------------------------------------------------------
+for fp, src, key, col, n in per_file:
+    print(f"  [{src}] -> {key}: {os.path.basename(fp)}: {n} tickers (col={col})")
 print("")
-print(f"Total raw: {total_raw}")
-print(f"Unique: {len(unique)}")
-print(f"Duplicates removed: {dup_count}")
-print(f"Output: {outfile}")
+for key, (out, nraw, ncar, nuni, syms) in result.items():
+    print(f"{key}: {nraw} raw" + (f" + {ncar} already in today's file" if ncar else "") + f" -> {nuni} unique -> {out}")
+    if key == "SID":
+        ts = {s for s, v in syms.items() if "TS" in v}; sb = {s for s, v in syms.items() if "SBT" in v}
+        if ts or sb:
+            print(f"   SID sources: TS only {len(ts - sb)}, SBT only {len(sb - ts)}, both {len(ts & sb)}")
+if bare:
+    print(f"\nBare tickers qualified: {len(bare) - len(unresolved)} of {len(bare)}")
+if unresolved:
+    print(f"NOT RESOLVED (left out): {', '.join(unresolved)}")
+with open(os.path.join(os.path.dirname(legacy_out), ".last_summary"), "w") as f:
+    f.write(", ".join(f"{k} {v[3]}" for k, v in result.items()) + (f", {len(unresolved)} unresolved" if unresolved else ""))
 PYEOF
 
 # ── Refresh SBT_Processed_Today/ (always today's files only, easy to
@@ -210,5 +272,5 @@ echo "DONE — $(date)"
 
 # Non-blocking banner (best-effort — the log file above is the source
 # of truth if this doesn't render over remote desktop).
-unique_count=$(wc -l < "$OUTFILE" 2>/dev/null | tr -d ' ')
-osascript -e "display notification \"${unique_count:-0} unique tickers merged.\" with title \"SBT Merge $MODE — Done\"" 2>/dev/null
+summary=$(cat "$PROCESSED_DIR/.last_summary" 2>/dev/null)
+osascript -e "display notification \"${summary:-done}\" with title \"SBT Merge $MODE — Done\"" 2>/dev/null

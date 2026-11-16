@@ -674,6 +674,13 @@ Shown in the Caution column of SID table 2 plus a callout line under the tables 
   line beyond entry makes SID longs worse every way (−0.38 to −1.29%/trade; WR 72% → 29–71%); shorts no gain.
   SID dips often dip further before bouncing. **Keep the swing H/L stop.**
 
+## 2e. SBT merge apps take named TrendSpider + SBT files — 16 November 2026
+- David now exports SID Long/Short scanner results from TrendSpider. Merge apps (tools/sbt-nightly-merge/run.sh, all
+  three bundles) accept TS_SID_LONG_/TS_SID_SHORT_/SBT_SID_/SBT_LORP_<date>.csv, source from the file name, write
+  ~/Downloads/SID_Merged_<date>.txt and LORP_Merged_<date>.txt, log SID overlap (TS only / SBT only / both).
+  "Symbol" matched case-insensitively; TS bare tickers qualified via rules.json map then TV's US scanner (unresolved
+  left out and logged). Today's two TS files (18:01 run) had been skipped for the capital-S header.
+
 ## 5. Open items (need input — not resolvable from files)
 - [ ] FUTURE (David, 13 Nov 2026, next brief iteration): add a ⚠️ caution when RSI is too close to RSI50 (little room to the mean-reversion target). David's current manual rule: RSI 45–55 (50 ± 5) = absolute no-go.
 - [ ] Reconcile the 300-trade manual journal (`analysis/sid-btw-universe/Backtesting_Sheet_300_SID.xlsx`) against `data/trades/trades_all.csv` and the automated BTW-universe backtest — three SID datasets now exist and haven't been cross-checked against each other.
