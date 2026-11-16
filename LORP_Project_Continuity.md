@@ -29,6 +29,12 @@ CAP TOOLS v1.9 + S/R ZONE TEST FOR LORP — 14 November 2026 (David):
 • Pivot points (14 Nov, RESULTS.md follow-up 5): weekly/monthly floor pivots ahead of or below LORP entries behave like
   a random line (+2.1/+1.5 ahead, −1.9/+1.1 behind, all ±4–5). Not a LORP hurdle or support level.
 
+TVX NIGHTLY PULL CHANGED — 17 November 2026 (David):
+• LORP Reversion screen dropped — LORP list is now LORP Trend only (RSI 55–80, mkt cap ≥ $10B, MACD > signal,
+  close > EMA21, sorted by % change, top 25, earnings ≥ 14 trading days away).
+• All TVX screens now: 10-day avg volume ≥ 500,000 (was 300,000) and price $10–$300 (was ≥ $10).
+• SID side corrected at the same time (long RSI ≤ 45 / short RSI ≥ 55 at the cross) — see SID continuity §2c.
+
 CAP TOOLS v1.8 DRAFTED — 13 November 2026 (affects LORP's CAP room/Path too):
 • v1.7's "Max Zone Height % of pivot price" 0.25 = 0.25% of price (not 25%) — trimmed ~75% of zones
   to ~0.1 ATR. v1.8 (trading-indicators testing/indicators/) caps in ATR instead, default 1.0 (~3% trimmed).
