@@ -1,0 +1,125 @@
+{
+  "views": [
+    {
+      "title": "Curtains",
+      "path": "curtains",
+      "icon": "mdi:curtains",
+      "type": "sections",
+      "max_columns": 2,
+      "sections": [
+        {
+          "type": "grid",
+          "cards": [
+            {
+              "type": "heading",
+              "heading": "Manual override",
+              "icon": "mdi:hand-back-right"
+            },
+            {
+              "type": "entities",
+              "state_color": true,
+              "entities": [
+                {
+                  "entity": "input_boolean.curtain_manual_override",
+                  "name": "Manual Override (until midnight)"
+                }
+              ]
+            },
+            {
+              "type": "markdown",
+              "content": "**OFF \u2014 automatic control active**\nTemperature, sun-position and 5:30 pm actions can run.\n\n**ON \u2014 manual override**\nBoth curtain automations are blocked. Manual curtain controls remain available."
+            }
+          ]
+        },
+        {
+          "type": "grid",
+          "cards": [
+            {
+              "type": "heading",
+              "heading": "Curtain controls",
+              "icon": "mdi:curtains"
+            },
+            {
+              "type": "tile",
+              "entity": "sensor.aqara_roller_shade_driver_e1_battery_2",
+              "name": "Study Curtain Battery",
+              "icon": "mdi:battery"
+            },
+            {
+              "type": "tile",
+              "entity": "sensor.aqara_roller_shade_driver_e1_battery",
+              "name": "Flop Room Curtain Battery",
+              "icon": "mdi:battery"
+            },
+            {
+              "type": "tile",
+              "entity": "cover.aqara_roller_shade_driver_e1_2",
+              "name": "Study Curtain",
+              "icon": "mdi:roller-shade",
+              "features_position": "bottom",
+              "vertical": false,
+              "features": [
+                {
+                  "type": "cover-open-close"
+                },
+                {
+                  "type": "cover-position"
+                }
+              ]
+            },
+            {
+              "type": "tile",
+              "entity": "cover.aqara_roller_shade_driver_e1",
+              "name": "Flop Room Curtain",
+              "icon": "mdi:roller-shade",
+              "features_position": "bottom",
+              "vertical": false,
+              "features": [
+                {
+                  "type": "cover-open-close"
+                },
+                {
+                  "type": "cover-position"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "grid",
+          "cards": [
+            {
+              "type": "heading",
+              "heading": "Automation status",
+              "icon": "mdi:robot"
+            },
+            {
+              "type": "tile",
+              "entity": "automation.study_curtain_hot_dry_afternoon",
+              "name": "Study Curtain Automation",
+              "icon": "mdi:robot",
+              "tap_action": {
+                "action": "more-info"
+              },
+              "icon_tap_action": {
+                "action": "more-info"
+              }
+            },
+            {
+              "type": "tile",
+              "entity": "automation.flop_room_curtain_hot_dry_sun_position",
+              "name": "Flop Room Curtain Automation",
+              "icon": "mdi:robot",
+              "tap_action": {
+                "action": "more-info"
+              },
+              "icon_tap_action": {
+                "action": "more-info"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

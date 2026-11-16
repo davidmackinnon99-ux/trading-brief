@@ -1,0 +1,27 @@
+{
+  "id": "1794814226960",
+  "alias": "Curtains \u2014 reset manual override at midnight",
+  "description": "Turns the Curtain Manual Override off at midnight so it only lasts for the day it was switched on.",
+  "triggers": [
+    {
+      "trigger": "time",
+      "at": "00:00:00"
+    }
+  ],
+  "conditions": [
+    {
+      "condition": "state",
+      "entity_id": "input_boolean.curtain_manual_override",
+      "state": "on"
+    }
+  ],
+  "actions": [
+    {
+      "action": "input_boolean.turn_off",
+      "target": {
+        "entity_id": "input_boolean.curtain_manual_override"
+      }
+    }
+  ],
+  "mode": "single"
+}
