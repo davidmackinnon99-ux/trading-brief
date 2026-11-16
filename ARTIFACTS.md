@@ -63,7 +63,7 @@ script plus its data is.
 | Watchlist push | `scripts/push-watchlist.cjs` | Pushes brief output back to TradingView watchlist sections (resolves bare ticker -> exchange-qualified symbol from the live list) |
 | LORP open-trades report | `scripts/lorp_open_trades_report.py` | Reads local `open_trades.csv` (LORP rows), fetches bars, reports |
 | Autocommit | `autocommit-brief.sh` + `com.davidmackinnon.brief-backup.plist` | Daily commit/backup — extend to cover data/ + analysis/ |
-| SBT Nightly Merge | `scripts/sbt_nightly_merge_run.sh` | Merges SBT scan CSVs + tvremix pull CSVs from `~/Downloads/SBT_Latest` (bare `~/Downloads` fallback) into one deduped ticker list at `~/Downloads/SBT_Merged_<date>.txt`; this file mirrors the deployed macOS app at `/Applications/SBT Nightly Merge.app/Contents/MacOS/run.sh` (not run from this repo — copy back here after any app-side edit) | Deployed app (Platypus-wrapped shell+Python); fixed 16 Sep 2026 so a same-day re-run accumulates onto the existing merged output instead of overwriting it (a same-day SBT-then-tvremix double-run had clobbered the SBT half of the result) |
+| Nightly Merge (was SBT Nightly Merge) + SBT Merge SID / SBT Merge LORP | `tools/sbt-nightly-merge/run.sh` (one script, copied into all three app bundles; `scripts/sbt_nightly_merge_run.sh` is the pre-Nov copy, superseded) | Merges named TS_SID_LONG/TS_SID_SHORT/SBT_SID/SBT_LORP CSVs into `~/Downloads/SID_Merged_<date>.txt` / `LORP_Merged_<date>.txt`; unlabelled/tvremix files into `SBT_Processed_Today/SBT_Merged_<date>.txt` (combined app). See tools/sbt-nightly-merge/README.md | Renamed to "Nightly Merge" 16 Nov 2026 |
 
 ---
 

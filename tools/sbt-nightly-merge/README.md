@@ -1,7 +1,7 @@
 # SBT merge apps
 
 One script (run.sh), three app bundles in /Applications:
-- SBT Nightly Merge.app: everything (incl. tvremix)
+- Nightly Merge.app (was SBT Nightly Merge.app until 16 Nov 2026): everything (incl. tvremix)
 - SBT Merge SID.app: SID-named + unlabelled files (skips LORP-named and tvremix)
 - SBT Merge LORP.app: LORP-named + unlabelled files (skips SID-named and tvremix)
 

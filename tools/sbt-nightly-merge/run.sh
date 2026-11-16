@@ -11,7 +11,7 @@ if [[ "$(sysctl -n sysctl.proc_translated 2>/dev/null)" == "1" ]]; then
     exec arch -arm64 /bin/zsh "$0" "$@"
 fi
 # ============================================================
-# SBT Nightly Merge
+# Nightly Merge (named "SBT Nightly Merge" until 16 Nov 2026)
 # Rebuilt 28 Aug 2026 (David is away for a week, needs this to run
 # reliably every night over Chrome Remote Desktop).
 #
@@ -112,7 +112,7 @@ for f in "$DOWNLOADS"/SBT_Merged_*.txt(N) "$DOWNLOADS"/SBT_Merge_Log_*.txt(N); d
 done
 
 exec > "$LOGFILE" 2>&1
-echo "SBT Nightly Merge ($MODE) — $(date)"
+echo "Nightly Merge ($MODE) — $(date)"
 echo "============================================"
 
 # ── Find candidate CSVs (content-based, not filename-based) ──
@@ -138,7 +138,7 @@ done
 
 if [[ ${#candidates[@]} -eq 0 ]]; then
     echo "No SBT scan CSVs found in Downloads/SBT_Latest or Downloads. Nothing to do."
-    osascript -e 'display notification "No SBT CSVs found." with title "SBT Nightly Merge"' 2>/dev/null
+    osascript -e 'display notification "No CSVs found." with title "Nightly Merge"' 2>/dev/null
     exit 0
 fi
 
@@ -273,4 +273,4 @@ echo "DONE — $(date)"
 # Non-blocking banner (best-effort — the log file above is the source
 # of truth if this doesn't render over remote desktop).
 summary=$(cat "$PROCESSED_DIR/.last_summary" 2>/dev/null)
-osascript -e "display notification \"${summary:-done}\" with title \"SBT Merge $MODE — Done\"" 2>/dev/null
+osascript -e "display notification \"${summary:-done}\" with title \"Nightly Merge $MODE — Done\"" 2>/dev/null
