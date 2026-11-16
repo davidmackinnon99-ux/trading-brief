@@ -10,7 +10,7 @@ Returns are direction-adjusted (shorts gain when price falls).
 Outputs
   data/candidate_tracker.csv            one row per candidate, refreshed each run
   ~/Downloads/Briefs/candidate-review-latest.md   readable summary
-Optional: data/taken.csv (date,symbol) marks the ones actually traded.
+data/taken.csv (opened,symbol,side, from STB My Trades) marks the ones actually traded.
 Prices: Yahoo Finance daily bars (cached per run).
 """
 import csv, glob, json, os, re, sys, time, urllib.request, datetime as dt
@@ -81,14 +81,22 @@ def outcome(c):
     return r
 
 def main():
-    taken = set()
+    # data/taken.csv: opened,symbol,side (from STB My Trades). A candidate counts as taken when the
+    # same symbol and direction was opened from 2 days before (STB dates the entry a day earlier than the AEST brief) to 5 days after the brief date.
+    taken = []
     if os.path.exists(TAKEN):
         for r in csv.DictReader(open(TAKEN)):
-            taken.add((r['date'].strip(), r['symbol'].strip().upper()))
+            taken.append((r['opened'].strip(), r['symbol'].strip().upper(), r.get('side', '').strip().title()))
+    def is_taken(c):
+        d0 = dt.date.fromisoformat(c['date'])
+        for o, s, side in taken:
+            if s != c['symbol'].upper() or (side and side != c['direction']): continue
+            if -2 <= (dt.date.fromisoformat(o) - d0).days <= 5: return True
+        return False
     rows = []
     for c in candidates():
         c.update(outcome(c))
-        c['taken'] = 'Y' if (c['date'], c['symbol'].upper()) in taken else ''
+        c['taken'] = 'Y' if is_taken(c) else ''
         rows.append(c)
     rows.sort(key=lambda r: (r['date'], r['strategy'], r['symbol']))
     cols = ['date', 'strategy', 'direction', 'symbol', 'detail', 'brief_price', 'taken', 'entry_date', 'entry', 'sessions'] + \
@@ -127,7 +135,7 @@ def main():
         L.append(f"| {r['date']} | {r['strategy']} {r['direction'] if r['strategy']=='SID' else ''} | {r['symbol']} | {r['taken']} | "
                  f"{f_(r.get('ret_d1'))} | {f_(r.get('ret_d3'))} | {f_(r.get('ret_d5'))} | {f_(r.get('mfe_d5'))} | {f_(r.get('mae_d5'))} | {f_(r.get('ret_d10'))} |")
     L += ['', f'Full table: `data/candidate_tracker.csv` ({len(rows)} candidates). '
-          'To compare taken vs not taken, list your trades in `data/taken.csv` (date,symbol — brief date).']
+          'Taken trades come from `data/taken.csv` (STB My Trades: opened,symbol,side), refreshed when Claude pulls your STB trade list.']
     open(REVIEW, 'w').write('\n'.join(L) + '\n')
     print(f'[ok] {len(rows)} candidates -> {OUT}; review -> {REVIEW}')
 
