@@ -8,6 +8,7 @@
 #   sector_rotation_YYYY-MM-DD.md|json        -> ~/Downloads/Briefs/
 #   sector_rotation_YYYY-MM-DD_tvmcp.md|json  -> ~/Downloads/Briefs/tvmcp_test/
 #   tvremix_sid_lorp_YYYY-MM-DD.csv           -> ~/Downloads/SBT_Latest/
+#   TVX_SID_ / TVX_LORP_YYYY-MM-DD.csv        -> ~/Downloads/SBT_Latest/ (from 16 Nov 2026)
 # Anything else in the folder is ignored. Files are only ever copied as data
 # (never executed), never overwrite an existing file, and each name is copied
 # once (ledger), so the SBT merge app archiving SBT_Latest does not cause a
@@ -40,7 +41,9 @@ for SRC in "$INBOX"/*; do
     sector_rotation_[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9].md|\
     sector_rotation_[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9].json)
       DEST="$BRIEFS" ;;
-    tvremix_sid_lorp_[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9].csv)
+    tvremix_sid_lorp_[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9].csv|\
+    TVX_SID_[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9].csv|\
+    TVX_LORP_[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9].csv)
       DEST="$SBT" ;;
     pickup_test_*.txt)
       echo "$(ts) test file seen: $NAME" >> "$LOG"; echo "$NAME" >> "$LEDGER"; continue ;;

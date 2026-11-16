@@ -51,6 +51,7 @@ fi
 # UPDATED 16 Nov 2026 (evening, David): named source files.
 #   TS_SID_LONG_<date>.csv / TS_SID_SHORT_<date>.csv  (TrendSpider scanner exports)
 #   SBT_SID_<date>.csv / SBT_LORP_<date>.csv          (SwingTradeBot exports)
+#   TVX_SID_<date>.csv / TVX_LORP_<date>.csv          (cloud nightly pull, ex-tvremix)
 #   -> SID files merge into  ~/Downloads/SID_Merged_<date>.txt
 #   -> LORP files merge into ~/Downloads/LORP_Merged_<date>.txt
 #   The source is taken from the file name and reported per file in the log, with an
@@ -127,8 +128,8 @@ for d in "${INBOX_DIRS[@]}"; do
         [[ -f "$f" ]] || continue
         bn=${(L)$(basename "$f")}
         [[ "$MODE" != ALL && "$bn" == tvremix* ]] && continue
-        [[ "$MODE" == SID  && "$bn" == (ts|sbt)_lorp_* ]] && continue
-        [[ "$MODE" == LORP && "$bn" == (ts|sbt)_sid_* ]] && continue
+        [[ "$MODE" == SID  && "$bn" == (ts|sbt|tvx)_lorp_* ]] && continue
+        [[ "$MODE" == LORP && "$bn" == (ts|sbt|tvx)_sid_* ]] && continue
         header=$(head -1 "$f" | tr -d '\r\357\273\277')
         if echo "$header" | grep -Eqi '(^|,)[[:space:]]*"?(tradingview_)?symbol"?[[:space:]]*(,|$)'; then
             candidates+=("$f")
@@ -155,7 +156,7 @@ mode, today, downloads, legacy_out = sys.argv[1:5]
 files = sys.argv[5:]
 QUAL = re.compile(r'^[A-Z]+:[A-Z0-9.\-]+$')
 BARE = re.compile(r'^[A-Z][A-Z0-9.\-]{0,9}$')
-NAMED = re.compile(r'^(TS|SBT)_(SID|LORP)(?:_(LONG|SHORT))?_', re.I)
+NAMED = re.compile(r'^(TS|SBT|TVX)_(SID|LORP)(?:_(LONG|SHORT))?_', re.I)
 outs = {"SID": os.path.join(downloads, f"SID_Merged_{today}.txt"),
         "LORP": os.path.join(downloads, f"LORP_Merged_{today}.txt"),
         "LEGACY": legacy_out}
@@ -239,9 +240,11 @@ print("")
 for key, (out, nraw, ncar, nuni, syms) in result.items():
     print(f"{key}: {nraw} raw" + (f" + {ncar} already in today's file" if ncar else "") + f" -> {nuni} unique -> {out}")
     if key == "SID":
-        ts = {s for s, v in syms.items() if "TS" in v}; sb = {s for s, v in syms.items() if "SBT" in v}
-        if ts or sb:
-            print(f"   SID sources: TS only {len(ts - sb)}, SBT only {len(sb - ts)}, both {len(ts & sb)}")
+        srcs = sorted({x for v in syms.values() for x in v} - {"unlabelled"})
+        if srcs:
+            from collections import Counter
+            combo = Counter(" + ".join(sorted(v - {"unlabelled"})) or "unlabelled" for v in syms.values())
+            print("   SID sources: " + ", ".join(f"{k} {n}" for k, n in sorted(combo.items(), key=lambda kv: -kv[1])))
 if bare:
     print(f"\nBare tickers qualified: {len(bare) - len(unresolved)} of {len(bare)}")
 if unresolved:
