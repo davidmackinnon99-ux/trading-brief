@@ -54,12 +54,21 @@ fi
 # ============================================================
 
 DOWNLOADS="$HOME/Downloads"
+# ── 16 Nov 2026: mode comes from the app's name. "SBT Merge LORP.app" / "SBT Merge SID.app"
+#    write SBT_Merged_LORP_<date>.txt / SBT_Merged_SID_<date>.txt and skip tvremix files
+#    (those mix SID and LORP, so they stay with the original combined app).
+case "$0" in
+  *LORP*) MODE=LORP ;;
+  *SID*)  MODE=SID ;;
+  *)      MODE=ALL ;;
+esac
+TAG=""; [[ "$MODE" != ALL ]] && TAG="${MODE}_"
 INBOX_DIRS=("$DOWNLOADS/SBT_Latest" "$DOWNLOADS")
 TODAY=$(date +%Y-%m-%d)
 ARCHIVE_DIR="$DOWNLOADS/SBT_Archive/$TODAY"
 PROCESSED_DIR="$DOWNLOADS/SBT_Processed_Today"
-OUTFILE="$PROCESSED_DIR/SBT_Merged_$TODAY.txt"
-LOGFILE="$PROCESSED_DIR/SBT_Merge_Log_$TODAY.txt"
+OUTFILE="$PROCESSED_DIR/SBT_Merged_${TAG}$TODAY.txt"
+LOGFILE="$PROCESSED_DIR/SBT_Merge_Log_${TAG}$TODAY.txt"
 
 # ── 16 Nov 2026: everything for today now lives in SBT_Processed_Today
 #    (merged txt + log + copies of the CSVs). The folder is reset only
@@ -83,7 +92,7 @@ for f in "$DOWNLOADS"/SBT_Merged_*.txt(N) "$DOWNLOADS"/SBT_Merge_Log_*.txt(N); d
 done
 
 exec > "$LOGFILE" 2>&1
-echo "SBT Nightly Merge — $(date)"
+echo "SBT Nightly Merge ($MODE) — $(date)"
 echo "============================================"
 
 # ── Find candidate CSVs (content-based, not filename-based) ──
@@ -96,6 +105,7 @@ for d in "${INBOX_DIRS[@]}"; do
     [[ -d "$d" ]] || continue
     for f in "$d"/*.csv(N); do
         [[ -f "$f" ]] || continue
+        [[ "$MODE" != ALL && "$(basename "$f")" == tvremix* ]] && continue
         header=$(head -1 "$f")
         if echo "$header" | grep -qi "tradingview_symbol\|^symbol,\|,symbol,\|,symbol$"; then
             candidates+=("$f")
@@ -201,4 +211,4 @@ echo "DONE — $(date)"
 # Non-blocking banner (best-effort — the log file above is the source
 # of truth if this doesn't render over remote desktop).
 unique_count=$(wc -l < "$OUTFILE" 2>/dev/null | tr -d ' ')
-osascript -e "display notification \"${unique_count:-0} unique tickers merged.\" with title \"SBT Nightly Merge — Done\"" 2>/dev/null
+osascript -e "display notification \"${unique_count:-0} unique tickers merged.\" with title \"SBT Merge $MODE — Done\"" 2>/dev/null
