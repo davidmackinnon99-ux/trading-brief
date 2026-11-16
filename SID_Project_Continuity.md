@@ -700,3 +700,5 @@ Shown in the Caution column of SID table 2 plus a callout line under the tables 
   canonical): https://docs.google.com/document/d/1Ymq2gQa2abj6GgtyYgIk71tteZiWs6b_7TD2KnNcUdM/edit
 
 - **CORRECTION (9 Jul):** the "shorts favour below-signal MACD0" finding is the BROAD short population; genuine SID OB fades (RSI>=70) are ~99% ABOVE signal, so MACD0 side is NOT a SID-short discriminator. The MACD *turn* is the trigger; gate shorts on DI spread + ADX. SID short score changed to /3 (MACD0 dropped).
+
+- **16 Nov 2026 — layouts:** David added the S/R Channels indicator (LonesomeTheBlue) to the SID layouts alongside CAP Tools, to compare against the same indicator in TrendSpider; treated as complementary context for now (SID itself still treats SMAs as the key levels). Also considering tagging STB prior-day signals on entries and logging untaken brief candidates for 10-day follow-up.
