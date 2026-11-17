@@ -231,7 +231,7 @@ async function main() {
     const SCREENER_SECTIONS = [
       'LORP SCREENER',
       'SID SCREENER',
-      'SBT SCANS',
+      // 'SBT SCANS' removed 17 Nov 2026 (David) — section deleted; SBT tickers merge into the SID/LORP screeners.
     ];
     // PROTECTED sections — never cleared or written. Belt-and-suspenders guard so a
     // future edit can't accidentally wipe the user's hand-maintained sections.

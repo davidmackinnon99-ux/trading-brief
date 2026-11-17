@@ -121,7 +121,8 @@ try:
     sec = json.load(open(sys.argv[1])).get("watchlist_sections", {})
 except Exception:
     sys.exit(0)
-empty = [n for n in ("SID SCREENER", "LORP SCREENER", "SBT SCANS") if len(sec.get(n, [])) == 0]
+# 17 Nov 2026 (David): SBT SCANS section deleted — SBT tickers now arrive via the Nightly Merge into SID/LORP SCREENER.
+empty = [n for n in ("SID SCREENER", "LORP SCREENER") if len(sec.get(n, [])) == 0]
 if empty:
     print("Empty watchlist sections: " + ", ".join(empty))
 PYW
