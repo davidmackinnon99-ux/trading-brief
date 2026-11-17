@@ -1,0 +1,104 @@
+{
+  "id": "1790067879397",
+  "alias": "Study Curtain",
+  "description": "Study curtain. Between 12:30 pm and 5:30 pm (checked every 5 min): closes fully if the Study AC reads above 28.5 \u00b0C and the curtain is not already closed, then notifies. At 5:30 pm: if the curtain is below 90% open, sets it to 90% open and notifies; otherwise does nothing. Paused while Curtain Manual Override is on.",
+  "triggers": [
+    {
+      "trigger": "time_pattern",
+      "minutes": "/5",
+      "id": "daytime_check"
+    },
+    {
+      "trigger": "time",
+      "at": "17:30:00",
+      "id": "evening"
+    },
+    {
+      "trigger": "webhook",
+      "webhook_id": "51516b3c-98b4-4d93-9582-1ed23c439768",
+      "allowed_methods": [
+        "POST",
+        "PUT"
+      ],
+      "local_only": false,
+      "id": "controller"
+    }
+  ],
+  "conditions": [
+    {
+      "condition": "state",
+      "entity_id": "input_boolean.curtain_manual_override",
+      "state": "off"
+    }
+  ],
+  "actions": [
+    {
+      "choose": [
+        {
+          "conditions": [
+            {
+              "condition": "trigger",
+              "id": "evening"
+            },
+            {
+              "condition": "template",
+              "value_template": "{{ states('cover.aqara_roller_shade_driver_e1_2') not in ['unavailable', 'unknown'] and state_attr('cover.aqara_roller_shade_driver_e1_2', 'current_position') | int(90) < 90 }}"
+            }
+          ],
+          "sequence": [
+            {
+              "action": "cover.set_cover_position",
+              "target": {
+                "entity_id": "cover.aqara_roller_shade_driver_e1_2"
+              },
+              "data": {
+                "position": 90
+              }
+            },
+            {
+              "action": "notify.mobile_app_davids_iphone_17",
+              "data": {
+                "title": "Study Curtain",
+                "message": "Study Curtain set to 90% open at 5:30 pm."
+              }
+            }
+          ]
+        },
+        {
+          "conditions": [
+            {
+              "condition": "time",
+              "before": "17:30:00",
+              "after": "12:30:00"
+            },
+            {
+              "condition": "template",
+              "value_template": "{{ state_attr('climate.study_study', 'current_temperature') | float(-999) > 28.5 }}"
+            },
+            {
+              "condition": "template",
+              "value_template": "{{ states('cover.aqara_roller_shade_driver_e1_2') not in ['unavailable', 'unknown'] and state_attr('cover.aqara_roller_shade_driver_e1_2', 'current_position') | int(0) > 0 }}"
+            }
+          ],
+          "sequence": [
+            {
+              "action": "cover.close_cover",
+              "target": {
+                "entity_id": "cover.aqara_roller_shade_driver_e1_2"
+              }
+            },
+            {
+              "action": "notify.mobile_app_davids_iphone_17",
+              "data": {
+                "title": "Study Curtain",
+                "message": "Study Curtain closed because the Study AC temperature exceeded 28.5 C."
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "mode": "queued",
+  "max": 3
+}
