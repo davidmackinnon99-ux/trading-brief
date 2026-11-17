@@ -16,7 +16,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 const CFG = {
-  VERSION: 'sid-triage-1.5 (13 Oct 2026)',
+  VERSION: 'sid-triage-1.6 (17 Nov 2026)',
   ROOM_OPEN_ATR: 1.0,        // room to first hurdle >= this → path "Open"/"Cleared"; below → "Hurdle near"
   ROOM_MIN_ATR: 0.25,        // room below this → limited initial room (priority context, not a gate)
   CLUSTER_ATR: 0.5,          // levels within this of the first hurdle form a cluster
@@ -96,7 +96,8 @@ function levelsAhead(dir, close, atr, lv) {
     if (!ahead) return;
     out.push({ name, price, distAtr: isNum(atr) && atr > 0 ? Math.abs(price - close) / atr : null });
   };
-  add('BB mid', lv.bbMid);
+  // The BB midpoint is SID's mean-reversion target, not an obstacle. Keep it
+  // in the separate BB target fields and never let it reduce initial room.
   add('SMA50', lv.sma50);
   add('SMA200', lv.sma200);
   if (dir === 'long' && lv.supply) add('CAP supply', lv.supply.lo);
@@ -141,9 +142,7 @@ function maPath(dir, close, atr, sma50, sma200, h) {
       out.gapTrend = Math.abs(d) < CFG.MA_GAP_STABLE_ATR ? 'stable' : d < 0 ? 'closing' : 'expanding';
     }
   }
-  // Operational baseline must be evidence-led (repeated reactions in price history). The
-  // scan carries no bar history, so we only say "cluster" when BB mid and SMA50 sit within
-  // CLUSTER_ATR of each other (a factual co-location); otherwise "unclear".
+  // Operational baseline must be evidence-led (repeated reactions in price history).
   return out;
 }
 
@@ -261,7 +260,7 @@ function triageAlert(a) {
 
   const fh = firstHurdle(dir, close, atr, { bbMid: a.bbMid, sma50: a.sma50, sma200: a.sma200, supply, demand });
   const ma = maPath(dir, close, atr, a.sma50, a.sma200, a.hist || {});
-  if (fh.hurdle && fh.hurdle.components.some((c) => c.name === 'BB mid') && fh.hurdle.components.some((c) => c.name === 'SMA50')) ma.baseline = 'cluster';
+  if (isNum(a.bbMid) && isNum(a.sma50) && isNum(atr) && atr > 0 && Math.abs(a.bbMid - a.sma50) / atr <= CFG.CLUSTER_ATR) ma.baseline = 'cluster';
   const di = diState(a.diPlus, a.diMinus, a.hist?.diGap, a.adx, a.hist?.adxPrev, a.diGapShift3);
   const mc = macdState(dir, { ...(a.macd || {}), price: close });
   const part = participation(dir, a.rvol, a.vd);
@@ -285,7 +284,7 @@ function triageAlert(a) {
   // ── Path state ──
   let path;
   const roomAtr = fh.hurdle ? fh.hurdle.distAtr : null;
-  if (!isNum(close) || !isNum(atr) || atr <= 0 || (!capAvailable && !isNum(a.bbMid))) path = 'No structural data';
+  if (!isNum(close) || !isNum(atr) || atr <= 0 || (!capAvailable && !isNum(a.sma50) && !isNum(a.sma200))) path = 'No structural data';
   else if (opp.state === 'inside') path = 'Inside opposition';
   else if (!fh.hurdle) path = opp.state === 'cleared' ? 'Cleared' : 'Open';
   else if (roomAtr < CFG.ROOM_OPEN_ATR) path = 'Hurdle near';
@@ -315,7 +314,7 @@ function triageAlert(a) {
   if (!isNum(close)) missingCore.push('price');
   if (!isNum(atr)) missingCore.push('ATR');
   if (mc.aligned == null) missingCore.push('MACD');
-  if (!capAvailable && !isNum(a.bbMid)) missingCore.push('CAP + BB mid');
+  if (!capAvailable && !isNum(a.sma50) && !isNum(a.sma200)) missingCore.push('CAP + MA hurdle data');
 
   if (a.leveragedEtf) {
     status = STATUS.EXCL; reasons.push('LEVERAGED_ETF');
@@ -417,7 +416,7 @@ const REASON_TEXT = {
 };
 
 function whyLine(t) {
-  const h = t.hurdle ? `${t.hurdle.label} ${fmtP(t.hurdle.price)} (${fmtA(t.hurdle.distAtr)} ATR)` : 'no hurdle in scan data before the BB mid';
+  const h = t.hurdle ? `${t.hurdle.label} ${fmtP(t.hurdle.price)} (${fmtA(t.hurdle.distAtr)} ATR)` : 'no structural hurdle in scan data';
   const capTxt = t.cap.available
     ? (t.cap.opposing.state === 'cleared' ? `price has cleared the nearest CAP ${t.dir === 'long' ? 'supply' : 'demand'} zone`
       : t.cap.opposing.state === 'ahead' ? `nearest CAP ${t.dir === 'long' ? 'supply' : 'demand'} ${fmtA(t.cap.opposing.roomAtr)} ATR ahead`

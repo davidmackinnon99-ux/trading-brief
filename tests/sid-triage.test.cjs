@@ -28,12 +28,13 @@ function shortBase(over = {}) {
   };
 }
 
-test('long below supply: room measured to BB mid first, CAP supply ahead', () => {
+test('long below supply: room measured to CAP supply; BB mid remains the target', () => {
   const t = T.triageAlert(longBase());
   assert.equal(t.cap.opposing.state, 'ahead');
   assert.equal(t.cap.opposing.roomAtr, 2);           // (104-100)/2
-  assert.equal(t.hurdle.label, 'BB mid + CAP supply'); // 1.5 & 2.0 ATR → cluster within 0.5
-  assert.equal(t.hurdle.distAtr, 1.5);
+  assert.equal(t.hurdle.label, 'CAP supply');
+  assert.equal(t.hurdle.distAtr, 2);
+  assert.equal(t.bb.distAtr, 1.5);
   assert.equal(t.path, 'Open');
   assert.equal(t.status, T.STATUS.REVIEW);
 });
@@ -58,7 +59,9 @@ test('short above demand: room = (close − demandTop)/ATR', () => {
   const t = T.triageAlert(shortBase());
   assert.equal(t.cap.opposing.state, 'ahead');
   assert.equal(t.cap.opposing.roomAtr, 2);           // (100-96)/2
-  assert.equal(t.hurdle.label, 'BB mid + CAP demand');
+  assert.equal(t.hurdle.label, 'CAP demand');
+  assert.equal(t.hurdle.distAtr, 2);
+  assert.equal(t.bb.distAtr, -1.5);
   assert.equal(t.status, T.STATUS.REVIEW);
 });
 
@@ -83,8 +86,8 @@ test('missing CAP never creates a pass (max Conditional)', () => {
   assert.ok(t.reasons.includes('CAP_NA'));
 });
 
-test('missing CAP and BB mid → Data incomplete', () => {
-  const t = T.triageAlert(longBase({ cap: {}, bbMid: null }));
+test('missing CAP and moving-average hurdle data → Data incomplete', () => {
+  const t = T.triageAlert(longBase({ cap: {}, sma50: null, sma200: null }));
   assert.equal(t.status, T.STATUS.DATA);
   assert.equal(t.path, 'No structural data');
 });
@@ -143,16 +146,16 @@ test('earnings within 14 days / after-hours move / missed entry → Exclude toda
 });
 
 test('near hurdle is priority context, not an automatic exclusion', () => {
-  const limited = T.triageAlert(longBase({ bbMid: 100.3 }));                       // 0.15 ATR
+  const limited = T.triageAlert(longBase({ cap: { supBot: 100.3, supTop: 101, demTop: 97, demBot: 96 } })); // CAP supply 0.15 ATR
   assert.equal(limited.status, T.STATUS.COND);
   assert.ok(limited.conditions.includes('LIMITED_INITIAL_ROOM'));
-  const near = T.triageAlert(longBase({ bbMid: 101.2 }));                          // 0.6 ATR
+  const near = T.triageAlert(longBase({ cap: { supBot: 101.2, supTop: 102, demTop: 97, demBot: 96 } }));    // CAP supply 0.6 ATR
   assert.equal(near.path, 'Hurdle near');
   assert.equal(near.status, T.STATUS.COND);
 });
 
 test('structural condition and MACD lower-conviction warning remain visible', () => {
-  const t = T.triageAlert(longBase({ bbMid: 101.2, macd: { macd: -1, raw: -0.2, sep: 0.3, sepPrev: 0.5, rawPrev: -0.3, closingSpeed: 0.2, rawHist: [-0.4, -0.35, -0.3] } }));
+  const t = T.triageAlert(longBase({ cap: { supBot: 101.2, supTop: 102, demTop: 97, demBot: 96 }, macd: { macd: -1, raw: -0.2, sep: 0.3, sepPrev: 0.5, rawPrev: -0.3, closingSpeed: 0.2, rawHist: [-0.4, -0.35, -0.3] } }));
   assert.equal(t.status, T.STATUS.COND);
   assert.ok(!t.reasons.includes('MULTIPLE_OPEN_CONDITIONS'));
   assert.ok(t.reasons.includes('HURDLE_NEAR'));

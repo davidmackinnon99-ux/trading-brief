@@ -43,8 +43,8 @@ If a required value is not already available from the SID scan, the brief must d
 
 Every distance, obstacle and momentum reading must be interpreted in the intended trade direction.
 
-- For a **long**, overhead supply, the BB midpoint, pivots and moving averages may obstruct the path; demand below may provide support.
-- For a **short**, underlying demand, the BB midpoint, pivots and moving averages may obstruct the path; supply above may provide resistance.
+- For a **long**, overhead supply, pivots and moving averages may obstruct the path; demand below may provide support. The BB midpoint is the target, not a hurdle.
+- For a **short**, underlying demand, pivots and moving averages may obstruct the path; supply above may provide resistance. The BB midpoint is the target, not a hurdle.
 
 A candidate being above a supply zone is materially different from being inside it or immediately below it. The brief must report that distinction rather than treating the mere existence of a nearby zone as a rejection.
 
@@ -56,7 +56,7 @@ Example: if price repeatedly reacts around the 50-period average while the SMA 2
 
 ### 3.4 Confluence changes the importance of a level
 
-A single nearby level is information. A cluster of the BB midpoint, pivot, moving average, CAP zone boundary or confirmed pattern target is a more substantial hurdle or destination. The brief must expose the components of a cluster rather than hide them behind a single unexplained score.
+A single nearby level is information. A cluster of a pivot, moving average, CAP zone boundary or confirmed pattern target is a more substantial hurdle. The BB midpoint is displayed separately as the SID target. The brief must expose the components of a cluster rather than hide them behind a single unexplained score.
 
 ## 4. Required source data
 
@@ -162,7 +162,7 @@ A missed entry, imminent earnings or an excessive overnight move may make a cand
 For each candidate, derive a concise path assessment:
 
 - **Open** — useful room to the first meaningful hurdle.
-- **Hurdle near** — a relevant midpoint, pivot, MA, pattern target or CAP boundary is close, but price is not inside a blocking zone.
+- **Hurdle near** — a relevant pivot, MA, pattern target or CAP boundary is close, but price is not inside a blocking zone. The BB midpoint does not create this state.
 - **Inside opposition** — long inside supply or short inside demand.
 - **Cleared** — the nearest quoted opposing CAP zone is already behind price.
 - **No structural data** — required structural fields are unavailable.
@@ -223,6 +223,12 @@ For a long, report price-to-SMA50, price-to-SMA200 and current DI control as sep
 
 ### 5.4 MACD state
 
+The mandatory entry rule is the established one: the **MACD line turns in the
+same direction as RSI** inside the fresh-touch window. A MACD/signal-line
+crossover is not required. The optional crossover mode was a short-lived
+volatility experiment and is OFF in the normal SID method. Signal-line side,
+Histogram colour and zero-line position are context only.
+
 Use the direct Data Window exports from **MACD Separation & Convergence v1.5**:
 
 - `MACD Fast Slow State` — `1 = FAST`, `0 = SLOW`
@@ -278,7 +284,8 @@ Candidates with no credible path go to the compact review appendix with the reas
 
 For surviving candidates, assess:
 
-1. MACD alignment, separation and chop.
+1. Confirm the MACD line turned with RSI; then record signal-line side,
+   separation and chop as context only.
 2. DI Control and DI Shift separately, with ADX direction.
 3. RVOL and volume alignment.
 4. Weekly MACD alignment where reliably available.
