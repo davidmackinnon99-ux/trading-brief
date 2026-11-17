@@ -352,20 +352,29 @@ function sectorRelPctFor(data, etf) {
   if (etfPct == null || spyPct == null) return null;
   return etfPct - spyPct;
 }
+// 17 Nov 2026 — DAVID'S INTENDED RULE (the code had measured sector-vs-SPY relative strength
+// since 22 Sep, which was never the intent): the trade is SUPPORTED when SPY and the ticker's
+// sector ETF are BOTH moving in the trade direction over the 3 days to the entry (the latest
+// sector scan: 4 daily bars = 3 days of change). Short: SPY down and sector down → Supported.
+// Long: both up → Supported. Both moving against the trade → Unsupported. SPY and sector
+// disagreeing, or either flat (within ±SECTOR_REL_THRESHOLD %) → Neutral.
+// Uses the latest usable scan only (no multi-scan agreement — the 3-day window is the smoothing).
+function moveDir(pct) { return pct == null ? null : pct > SECTOR_REL_THRESHOLD ? 1 : pct < -SECTOR_REL_THRESHOLD ? -1 : 0; }
+function spyAlignedTag(etf, direction) {
+  if (!etf || !direction || !sectorHistoryData.length) return null;
+  const d = sectorHistoryData[0]; // latest usable scan (today's; empty if today's scan failed)
+  const spy = moveDir(d.spy_change_pct), sec = moveDir(d.etfs ? d.etfs[etf] : null);
+  if (spy == null || sec == null) return null;
+  const want = direction === 'long' ? 1 : direction === 'short' ? -1 : 0;
+  if (!want) return null;
+  if (spy === want && sec === want) return 'Supported';
+  if (spy === -want && sec === -want) return 'Unsupported';
+  return 'Neutral';
+}
 function sectorSupportTag(bareSymbol, direction) {
-  if (!direction) return null;
   const info = sectorMap[bareSymbol];
   if (!info || !info.etf) return null;
-  if (sectorHistoryData.length < SECTOR_HISTORY_DAYS) return null; // not enough history yet -> 'n/a'
-  const rels = sectorHistoryData.map(d => sectorRelPctFor(d, info.etf));
-  if (rels.some(r => r == null)) return null;
-  const supportedEachDay = rel => direction === 'long' ? rel >  SECTOR_REL_THRESHOLD
-                                 : direction === 'short' ? rel < -SECTOR_REL_THRESHOLD : false;
-  const unsupportedEachDay = rel => direction === 'long' ? rel < -SECTOR_REL_THRESHOLD
-                                   : direction === 'short' ? rel >  SECTOR_REL_THRESHOLD : false;
-  if (rels.every(supportedEachDay))   return 'Supported';
-  if (rels.every(unsupportedEachDay)) return 'Unsupported';
-  return 'Neutral';
+  return spyAlignedTag(info.etf, direction);
 }
 function sectorTagDisplay(bareSymbol, direction) {
   const tag = sectorSupportTag(bareSymbol, direction);
@@ -516,8 +525,8 @@ if (sectorsBriefFile && fs.existsSync(sectorsBriefFile)) {
     sectorHistoryData = upToToday.map(f => loadJsonSafe(path.join(sectorsDir, f))).filter(usable)
       .slice(-SECTOR_HISTORY_DAYS).reverse(); // most-recent-first, last 3 usable scans
     if (!usable(loadJsonSafe(sectorsBriefFile))) sectorHistoryData = []; // today's own scan failed → n/a, never stale-only
-    if (sectorHistoryData.length < SECTOR_HISTORY_DAYS) {
-      process.stderr.write(`[sector] only ${sectorHistoryData.length}/${SECTOR_HISTORY_DAYS} days of sector history available — Sector Support will show 'n/a' until ${SECTOR_HISTORY_DAYS} days have run\n`);
+    if (!sectorHistoryData.length) {
+      process.stderr.write(`[sector] today's sector scan unusable — Sector Support will show 'n/a'\n`);
     }
   } catch (e) {
     process.stderr.write(`[sector] failed to build ${SECTOR_HISTORY_DAYS}-day history (${e.message}) — Sector Support will show 'n/a'\n`);
@@ -1126,12 +1135,7 @@ function sidAlertOnly(scanFired, alertLog) {
 const BOND_CASH_ETF_RE = /\b(bond|treasury|treasuries|muni|municipal|aggregate|fixed income|t-?bill|money market|ultra[- ]short|short[- ]term|floating rate|govt|government|credit|corporate|mortgage|tips|duration|high yield|maturity|cash)\b/i;
 const SECTOR_ETFS = new Set(['XLK', 'XLF', 'XLY', 'XLU', 'XLV', 'XLC', 'XLB', 'XLRE', 'XLI', 'XLP', 'XLE']);
 function rotationForEtf(etf, direction) {
-  if (!etf || sectorHistoryData.length < SECTOR_HISTORY_DAYS) return null;
-  const rels = sectorHistoryData.map(d => sectorRelPctFor(d, etf));
-  if (rels.some(r => r == null)) return null;
-  const sup = rel => direction === 'long' ? rel > SECTOR_REL_THRESHOLD : rel < -SECTOR_REL_THRESHOLD;
-  const uns = rel => direction === 'long' ? rel < -SECTOR_REL_THRESHOLD : rel > SECTOR_REL_THRESHOLD;
-  return rels.every(sup) ? 'Supported' : rels.every(uns) ? 'Unsupported' : 'Neutral';
+  return spyAlignedTag(etf, direction); // 17 Nov 2026: same SPY-direction rule as stocks (the ETF is its own sector)
 }
 
 let sidMarket = null; // set by buildSidTriage (SPY vs 200-day, VIX) — used by the stretch caution + market line
@@ -2829,7 +2833,7 @@ if (!VERBOSE) {
           return [T.bare(t.sym), t.cells.bb.replace(' ATR', ''), t.cells.ma.replace('50 ', '').replace(' · 200 ', ' / ').replace(' · gap ', ' · '),
             `${sector} / ${etf}`, supportCell(t), t.cells.event, srcTag(t)];
         }));
-      console.log('\n*Key: ⚠️ on Status = structure OK but section 2 has a caution (Gap/ATR < 1.5, short ADX 40–50, short DI ≥ 20, sector opposed or long unusual stretch) · Unusual stretch P = how far below the BB mid vs this stock’s own last 500 bars (SID Stretch v1.0; ≥ P80 flagged, longs only; a caution only when SPY > 200-day or VIX < 20, otherwise ℹ️ info) · Room = ATR to first hurdle · MA distances are descriptive context, not a SID veto · Hist% = (MACD − signal) / price × 100; conv/exp and fast/slow describe MACD Histogram behaviour, not the validated MACD-line speed measure · DI Sh = 3-bar shift, Ct = current control · RVOL ↑/↓/→ = volume building/fading/flat (HMA vs SMA of volume) · RVOL * labels are preliminary short context only and never change status · Src A = TV alert, S = scan · Sector Support = sector ETF vs SPY over the last 3 sector scans, in the trade direction (rotation only — not sector chart structure).*\n');
+      console.log('\n*Key: ⚠️ on Status = structure OK but section 2 has a caution (Gap/ATR < 1.5, short ADX 40–50, short DI ≥ 20, sector opposed or long unusual stretch) · Unusual stretch P = how far below the BB mid vs this stock’s own last 500 bars (SID Stretch v1.0; ≥ P80 flagged, longs only; a caution only when SPY > 200-day or VIX < 20, otherwise ℹ️ info) · Room = ATR to first hurdle · MA distances are descriptive context, not a SID veto · Hist% = (MACD − signal) / price × 100; conv/exp and fast/slow describe MACD Histogram behaviour, not the validated MACD-line speed measure · DI Sh = 3-bar shift, Ct = current control · RVOL ↑/↓/→ = volume building/fading/flat (HMA vs SMA of volume) · RVOL * labels are preliminary short context only and never change status · Src A = TV alert, S = scan · Sector Support = SPY and the sector ETF both moving in the trade direction over the last 3 days (🟢 both with the trade · 🔴 both against · ⚪ they disagree or one is flat, ±0.3%).*\n');
       primary.forEach(t => console.log(`- **${T.bare(t.sym)}** — ${T.whyLine(t)}`));
 
       // Validated cautions (unchanged logic) — shown for the reviewed rows only.
@@ -3032,10 +3036,10 @@ if (!VERBOSE) {
   console.log('         Sig = FRESH fires only — markers already in the prior brief are filtered as carried-over · ·Nc = N held-over markers suppressed\n');
   console.log('**SID:**  Long: RSI crossed below 30 (OS touch) · RSI rising  ');
   console.log('          Short: RSI crossed above 70 (OB touch) · RSI falling  ');
-  console.log('          Mechanical confirmation: RSI and MACD reverse together inside the fresh-touch window · Weekly RSI direction is mandatory  ');
+  console.log('          Mechanical confirmation: RSI and the MACD line turn together inside the fresh-touch window · MACD/signal crossover is NOT required · Weekly RSI direction is mandatory  ');
   console.log('          Long context: faster upward MACD-line turn is supportive, but its validated speed measure is not yet exported here · no ADX/DI/MACD-distance/SMA/volume veto  ');
   console.log('          Short context: ADX 40–50 = material run-over risk · DI spread ≥20 = low-hit-rate warning · no Hist% +0.25 veto  ');
-  console.log('          Path: BB midpoint/CAP/MA first hurdle and ATR room · Gap/ATR is displayed execution context, not a validated selection gate  ');
+  console.log('          Path: BB midpoint = target · CAP/MA = possible hurdles and ATR room · Gap/ATR is displayed execution context, not a validated selection gate  ');
   console.log('          Pattern context: confirmed Double Bottom with measured target still open was supportive in the 75-symbol SID v10.5.21 study; Double Top was not · if a target was reached, distinguish reversed back through from still beyond · context only, not a gate · chart review required until target state is exported  ');
   console.log('**MACD State:** Hist% = (MACD − signal) / price × 100 · converging/expanding and fast/slow describe MACD Histogram behaviour · MACD means the MACD line  ');
   console.log('          RVOL/volume, ATR%, AVWAP, sector rotation and MA position are context only and do not create or veto an entry\n');

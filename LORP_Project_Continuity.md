@@ -29,6 +29,11 @@ CAP TOOLS v1.9 + S/R ZONE TEST FOR LORP — 14 November 2026 (David):
 • Pivot points (14 Nov, RESULTS.md follow-up 5): weekly/monthly floor pivots ahead of or below LORP entries behave like
   a random line (+2.1/+1.5 ahead, −1.9/+1.1 behind, all ±4–5). Not a LORP hurdle or support level.
 
+SECTOR SUPPORT RULE CORRECTED — 17 November 2026 (analyse-brief.cjs, shared with SID):
+• Supported = SPY and the sector ETF both moving in the trade direction over the 3 days to entry (LORP longs:
+  both up). Both against = Unsupported; disagree or flat (±0.3%) = Neutral. Replaces the sector-vs-SPY
+  relative-strength 3-scan rule, which was never David's intent. Details: SID continuity §2c.
+
 TVX NIGHTLY PULL CHANGED — 17 November 2026 (David):
 • LORP Reversion screen dropped — LORP list is now LORP Trend only (RSI 55–80, mkt cap ≥ $10B, MACD > signal,
   close > EMA21, sorted by % change, top 25, earnings ≥ 14 trading days away).
