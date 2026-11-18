@@ -90,3 +90,4 @@ brief_date,symbol,price,native_label,entry_type,structure,pattern,sd_ago,extende
 2026-11-12,ZETA,37.74,,No LC data,TREND · HIST20,none,0,0,0.33,,23.20,1.60,SBT
 2026-11-13,ATI,190.16,,No LC data,TREND,,,0,2.79,,22.09,1.10,SBT
 2026-11-14,KOD,111.19,,No LC data,TREND · HIST20,,,0,0.24,,34.32,1.13,SBT
+2026-11-18,VIK,94.28,,No LC data,TREND,,,0,0.52,,31.68,2.36,LORP
