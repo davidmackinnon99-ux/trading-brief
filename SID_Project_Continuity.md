@@ -696,6 +696,9 @@ Shown in the Caution column of SID table 2 plus a callout line under the tables 
   Verified on SFL 18 Nov: SMA20 below 2.8 ATR P88, revert 40% in 10 (n=57); SMA50 below 4.8 ATR P85, revert 31% in 20
   (n=54, median 16 bars), 14.6 crosses/yr; SMA200 below 2.5 ATR P21, revert 36% in 40 (n=233), 4 crosses/yr.
   Descriptive context only — not tested as a SID filter. Pending David: replace v1.0 on the SID layout.
+- **SID Stretch v1.2 (19 Nov, David):** label now shows the historical SID long result for the reading so the percentile has a
+  comparison on the chart: P80+ below mid "63% WR (73% since 2018) · others 78%"; below P80 "78% WR (normal)"; above mid
+  "Shorts: no stretch effect found". Otherwise as v1.1. Pending David: replace v1.1 on the SID layout.
 
 ## 5. Open items (need input — not resolvable from files)
 - [ ] FUTURE (David, 13 Nov 2026, next brief iteration): add a ⚠️ caution when RSI is too close to RSI50 (little room to the mean-reversion target). David's current manual rule: RSI 45–55 (50 ± 5) = absolute no-go.
