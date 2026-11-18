@@ -689,6 +689,14 @@ Shown in the Caution column of SID table 2 plus a callout line under the tables 
   copies TVX_ files to SBT_Latest; merge apps route them to SID_/LORP_Merged and log overlap by source combination
   (e.g. "TS 12, SBT + TVX 6"). App renamed "Nightly Merge". David may retire the pull once TS carries more filters.
 
+- **SID Stretch v1.1 (19 Nov, David):** many tickers revolve around SMA50/SMA200, not the BB mid. Adds a last-bar table, one
+  row each for SMA20/50/200: distance (ATR), percentile vs own last 500 bars (same side), revert rate (share of past bars at
+  >= 0.8x today's distance that touched the average within 10/20/40 bars, with n and median bars), crosses per year, % time
+  above. SMA20 plot/alert/Data Window keys unchanged (brief unaffected); new keys SMA50/SMA200 Dist ATR, Pctl, Revert %.
+  Verified on SFL 18 Nov: SMA20 below 2.8 ATR P88, revert 40% in 10 (n=57); SMA50 below 4.8 ATR P85, revert 31% in 20
+  (n=54, median 16 bars), 14.6 crosses/yr; SMA200 below 2.5 ATR P21, revert 36% in 40 (n=233), 4 crosses/yr.
+  Descriptive context only — not tested as a SID filter. Pending David: replace v1.0 on the SID layout.
+
 ## 5. Open items (need input — not resolvable from files)
 - [ ] FUTURE (David, 13 Nov 2026, next brief iteration): add a ⚠️ caution when RSI is too close to RSI50 (little room to the mean-reversion target). David's current manual rule: RSI 45–55 (50 ± 5) = absolute no-go.
 - [ ] Reconcile the 300-trade manual journal (`analysis/sid-btw-universe/Backtesting_Sheet_300_SID.xlsx`) against `data/trades/trades_all.csv` and the automated BTW-universe backtest — three SID datasets now exist and haven't been cross-checked against each other.
