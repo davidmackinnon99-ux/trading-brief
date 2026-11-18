@@ -699,6 +699,10 @@ Shown in the Caution column of SID table 2 plus a callout line under the tables 
 - **SID Stretch v1.2 (19 Nov, David):** label now shows the historical SID long result for the reading so the percentile has a
   comparison on the chart: P80+ below mid "63% WR (73% since 2018) · others 78%"; below P80 "78% WR (normal)"; above mid
   "Shorts: no stretch effect found". Otherwise as v1.1. Pending David: replace v1.1 on the SID layout.
+- **SID Stretch v1.3 (19 Nov, David):** visual redesign only (look inspired by "Stretch and Push Oscillator"; none of its
+  signals): signed percentile oscillator (below mid 0..-100, above 0..+100) with gradient fill, shaded zones beyond ±80,
+  faint distance columns (3 ATR = 100), label text moved into the top of the table. Data Window keys unchanged.
+  Pending David: replace v1.2 on the SID layout.
 
 ## 5. Open items (need input — not resolvable from files)
 - [ ] FUTURE (David, 13 Nov 2026, next brief iteration): add a ⚠️ caution when RSI is too close to RSI50 (little room to the mean-reversion target). David's current manual rule: RSI 45–55 (50 ± 5) = absolute no-go.
