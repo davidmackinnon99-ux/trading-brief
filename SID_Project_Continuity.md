@@ -705,6 +705,13 @@ Shown in the Caution column of SID table 2 plus a callout line under the tables 
   On chart 19 Nov (SFL screenshots) — works; table hid the latest bars.
 - **SID Stretch v1.4 (19 Nov):** table position input (default top-left) and size (Full / Status only / Off). Pending David: replace v1.3.
 
+- **SID Strategy v10.5.23 (19 Nov, David):** newest entry sometimes missing on the strategy (not a TV load issue). All
+  strategy logic ran inside barstate.isconfirmed; opened after the US close the last daily bar isn't confirmed until the next
+  open, so the signal bar was never evaluated. Now runs on confirmed OR last-bar-with-session-closed (same rule as the
+  indicator markers since v8.5.22). Entry rules unchanged; pairs with SID Trading Signals Pro v8.5.23 (no indicator change;
+  repo copy synced to David's green exit-marker colours). Compiles. LORP repo scripts don't use this gate, so the LORP
+  symptom has another cause. SID Pattern Finder v2.9 also gates on isconfirmed (2 uses) — possible same effect, unchecked.
+
 ## 5. Open items (need input — not resolvable from files)
 - [ ] FUTURE (David, 13 Nov 2026, next brief iteration): add a ⚠️ caution when RSI is too close to RSI50 (little room to the mean-reversion target). David's current manual rule: RSI 45–55 (50 ± 5) = absolute no-go.
 - [ ] Reconcile the 300-trade manual journal (`analysis/sid-btw-universe/Backtesting_Sheet_300_SID.xlsx`) against `data/trades/trades_all.csv` and the automated BTW-universe backtest — three SID datasets now exist and haven't been cross-checked against each other.
