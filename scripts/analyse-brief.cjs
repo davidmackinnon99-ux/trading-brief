@@ -2801,16 +2801,18 @@ if (!VERBOSE) {
         if (t.dir === 'long' && against >= 20) return ['ℹ️ Rough ride'];
         return [];
       }
-      mdTable(['Ticker', 'Side', 'Status', 'Price', 'Path', 'First hurdle', 'Room', 'CAP'],
+      // 19 Nov 2026 (David): RSI column after Side (SID indicator's RSI 0-100 on the signal bar).
+      mdTable(['Ticker', 'Side', 'RSI', 'Status', 'Price', 'Path', 'First hurdle', 'Room', 'CAP'],
         primary.map(t => {
           const r = rowOf.get(t.sym);
           // 13 Nov 2026 (David): section 1 stays structural, but flag ⚠️ when section 2 carries a
           // caution (short ADX 40–50, short DI ≥ 20, sector opposed, Gap/ATR < 1.5) so it's visible on the first pass.
           const s2Warn = (t.warnings || []).length > 0 || (r.gatrRatio != null && r.gatrRatio < 1.5);
-          return [T.bare(t.sym), t.dir === 'long' ? 'Long' : 'Short', t.status + (s2Warn ? ' ⚠️' : ''), fmt(r.triageRaw.close ?? r.price), t.path,
+          const rsi = r.triageRaw && r.triageRaw.rsi != null ? Number(r.triageRaw.rsi).toFixed(1) : '-';
+          return [T.bare(t.sym), t.dir === 'long' ? 'Long' : 'Short', rsi, t.status + (s2Warn ? ' ⚠️' : ''), fmt(r.triageRaw.close ?? r.price), t.path,
             t.hurdle ? `${t.hurdle.label} ${t.hurdle.price.toFixed(2)}` : '-',
             t.hurdle && t.hurdle.distAtr != null ? t.hurdle.distAtr.toFixed(1) : '-', t.cells.cap];
-        }), new Set([3, 6]));
+        }), new Set([2, 4, 7]));
       console.log('\n**2. Momentum & validated cautions**\n');
       mdTable(['Ticker', 'MACD', 'DI', 'ADX', 'RVOL', 'Gap/ATR', 'Caution'],
         primary.map(t => {
