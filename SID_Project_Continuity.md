@@ -729,6 +729,14 @@ Shown in the Caution column of SID table 2 plus a callout line under the tables 
   RSI level (defaults to 50), so they need re-entering every run; SID RSI timing is covered by TVX and TrendSpider.
   Export names ("SID - <scan>-<date>.csv") already route to the SID merge as source SBT — no merge change needed.
 
+## 2d. Room test 2 — zone between entry and BB-mid target — 20 November 2026
+- Prompted by David's chart examples (longs under overhead CAP zones that failed). Rule fixed first: an opposing
+  CAP v1.9 "2x" zone (10-bar, touches >= 2, no lookahead) overlapping the path from entry to BB mid.
+  2,515 historical + 41 live SID trades (trading-indicators `analysis/sid-room-path/RESULTS.md`).
+- SHORTS: win rate 60% vs 66% with a zone in the path (CI -11 to -1 pts); worst mid-path (51%). Returns n.s.
+- LONGS: no effect. Live sample too small to judge.
+- Proposed: context warning on SID shorts only, not a gate. Awaiting ChatGPT's modified room review to compare.
+
 ## 5. Open items (need input — not resolvable from files)
 - [ ] FUTURE (David, 13 Nov 2026, next brief iteration): add a ⚠️ caution when RSI is too close to RSI50 (little room to the mean-reversion target). David's current manual rule: RSI 45–55 (50 ± 5) = absolute no-go.
 - [ ] Reconcile the 300-trade manual journal (`analysis/sid-btw-universe/Backtesting_Sheet_300_SID.xlsx`) against `data/trades/trades_all.csv` and the automated BTW-universe backtest — three SID datasets now exist and haven't been cross-checked against each other.
