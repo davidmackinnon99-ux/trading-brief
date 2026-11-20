@@ -723,7 +723,11 @@ Shown in the Caution column of SID table 2 plus a callout line under the tables 
   reliably different. Not adopted — not a warning, not context.
 - Same session: room-to-first-hurdle review (ChatGPT) assessed — agree to demote room from first-pass gate to context;
   modified review (hurdle between entry and BB-mid target, expectancy outcome, reconstructed trades only) pending.
-  STB routines reviewed (RSI Cross levels 25/75 → 30/70, remove duplicate and DMI-bullish long combo) — David reviewing.
+  STB SID routine finalised 20 Nov: Oversold Stoch + MACD Bull Cross (2d), Overbought Stoch + MACD Bear Cross (2d),
+  MACD Bear Cross + DMI Bear Cross + Overbought (2d), Strong Oversold Reversal Signs (2d), Weak Overbought Reversal Signs (2d).
+  Duplicate and DMI-bullish long combo removed. RSI Cross steps kept only as optional manual runs: STB does not save the
+  RSI level (defaults to 50), so they need re-entering every run; SID RSI timing is covered by TVX and TrendSpider.
+  Export names ("SID - <scan>-<date>.csv") already route to the SID merge as source SBT — no merge change needed.
 
 ## 5. Open items (need input — not resolvable from files)
 - [ ] FUTURE (David, 13 Nov 2026, next brief iteration): add a ⚠️ caution when RSI is too close to RSI50 (little room to the mean-reversion target). David's current manual rule: RSI 45–55 (50 ± 5) = absolute no-go.
