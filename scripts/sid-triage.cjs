@@ -16,7 +16,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 const CFG = {
-  VERSION: 'sid-triage-1.6 (17 Nov 2026)',
+  VERSION: 'sid-triage-1.7 (21 Nov 2026)',
   ROOM_OPEN_ATR: 1.0,        // room to first hurdle >= this → path "Open"/"Cleared"; below → "Hurdle near"
   ROOM_MIN_ATR: 0.25,        // room below this → limited initial room (priority context, not a gate)
   CLUSTER_ATR: 0.5,          // levels within this of the first hurdle form a cluster
@@ -30,7 +30,9 @@ const CFG = {
   ENTRY_MISSED_LOOKBACK: 3,  // same-direction SID alert within this many trading days earlier ...
   ENTRY_MISSED_ATR: 1.0,     // ... and price already moved this far in the trade direction since → missed
   SHORT_RVOL_LOW: 0.75,      // preliminary short context only; never changes status
-  STRETCH_UNUSUAL_PCTL: 80,  // SID Stretch percentile >= this (longs below the mid) → warning
+  STRETCH_UNUSUAL_PCTL: 80,
+  RSI_NOGO_LO: 45,           // David's personal execution rule (21 Nov 2026): RSI 45–55 at the alert → Exclude today
+  RSI_NOGO_HI: 55,  // SID Stretch percentile >= this (longs below the mid) → warning
 };
 
 const STATUS = {
@@ -331,6 +333,9 @@ function triageAlert(a) {
   } else if (a.isFund) {
     status = STATUS.EXCL; reasons.push('FUND_OR_TRUST');
     notes.push('fund/trust (TradingView sector "Miscellaneous") — existing SID rule');
+  } else if (isNum(a.rsi) && a.rsi >= CFG.RSI_NOGO_LO && a.rsi <= CFG.RSI_NOGO_HI) {
+    status = STATUS.EXCL; reasons.push('RSI_NO_GO');
+    notes.push(`RSI ${a.rsi.toFixed(1)} inside the ${CFG.RSI_NOGO_LO}–${CFG.RSI_NOGO_HI} no-go zone (David's execution rule)`);
   } else if (missingCore.length) {
     status = STATUS.DATA; reasons.push('DATA_INCOMPLETE');
     notes.push(`${missingCore.join(', ')} unavailable`);
@@ -399,6 +404,7 @@ function triageAlert(a) {
 
 // ── Plain-language explanations ─────────────────────────────────────────────
 const REASON_TEXT = {
+  RSI_NO_GO: 'RSI inside the 45–55 no-go zone — personal execution rule',
   LIMITED_INITIAL_ROOM: 'limited initial room — needs a reaction check at the first hurdle',
   HURDLE_NEAR: 'first hurdle is close — needs to clear it',
   DI_SHIFT_OPPOSED: 'DI shift is still moving against the trade',

@@ -736,6 +736,10 @@ Shown in the Caution column of SID table 2 plus a callout line under the tables 
 - SHORTS: win rate 60% vs 66% with a zone in the path (CI -11 to -1 pts); worst mid-path (51%). Returns n.s.
 - LONGS: no effect. Live sample too small to judge.
 - Proposed: context warning on SID shorts only, not a gate. Awaiting ChatGPT's modified room review to compare.
+- 21 Nov: daily add-on `analysis/sid-room-path/zone_in_path_today.py <date>` (trading-indicators) writes
+  ~/Downloads/Briefs/sid-short-zone-<date>.md for the brief's SID shorts. Not yet wired into morning-brief.sh.
+- 21 Nov: RSI 45–55 no-go rule (David's execution rule) now enforced in sid-triage 1.7 — alerts with RSI 45–55
+  are set to "Exclude today" (reason RSI_NO_GO). First caught DRI 52.5 and TMDX 52.0.
 
 ## 5. Open items (need input — not resolvable from files)
 - [ ] FUTURE (David, 13 Nov 2026, next brief iteration): add a ⚠️ caution when RSI is too close to RSI50 (little room to the mean-reversion target). David's current manual rule: RSI 45–55 (50 ± 5) = absolute no-go.
