@@ -1,7 +1,7 @@
 # SID Strategy — Project Continuity
 
 **Living doc — git is the version history (no more numbered copies).**
-**Last updated:** 6 November 2026
+**Last updated:** 20 November 2026
 **Supersedes:** SID_Project_Continuity_9 (29 Mar 2026) + the iCloud `v10` draft — both archive only.
 **Strategy:** SID Strategy v10.5.21 (backtest) · **Indicator:** SID Trading Signals Pro v8.5.22 (entry+confluence) — code in `~/Trading Indicators` repo, `current/` folder; what is on each chart is in that repo's `CHART_INVENTORY.md`
 
@@ -715,6 +715,15 @@ Shown in the Caution column of SID table 2 plus a callout line under the tables 
   **v10.5.23 did NOT fix it (David, 19 Nov).** Real cause: with calc_on_every_tick=false TV doesn't calculate a strategy on
   the open realtime bar at all until its close event (next session's first tick for daily). **v10.5.24:** calc_on_every_tick=true
   + keeps the closed-bar gate (no intrabar entries). Backtest unaffected. Pending David's test on a ticker with a fresh entry.
+
+## 2c. Bollinger Band walk vs whipsaw — 20 November 2026
+- Prompted by STB's new "Band Walk" flags. Rule fixed before testing: low/high tagging the outer BB(20,2) on >= 3 of the 5
+  bars to the SID entry. 2,544 trades (trading-indicators `analysis/sid-bb-walk/RESULTS.md`).
+- Walking entries whipsaw LESS (longs 25% vs 34%, shorts 41% vs 50%) but win rate is unchanged and returns are not
+  reliably different. Not adopted — not a warning, not context.
+- Same session: room-to-first-hurdle review (ChatGPT) assessed — agree to demote room from first-pass gate to context;
+  modified review (hurdle between entry and BB-mid target, expectancy outcome, reconstructed trades only) pending.
+  STB routines reviewed (RSI Cross levels 25/75 → 30/70, remove duplicate and DMI-bullish long combo) — David reviewing.
 
 ## 5. Open items (need input — not resolvable from files)
 - [ ] FUTURE (David, 13 Nov 2026, next brief iteration): add a ⚠️ caution when RSI is too close to RSI50 (little room to the mean-reversion target). David's current manual rule: RSI 45–55 (50 ± 5) = absolute no-go.
