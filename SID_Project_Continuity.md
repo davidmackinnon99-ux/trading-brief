@@ -741,6 +741,16 @@ Shown in the Caution column of SID table 2 plus a callout line under the tables 
 - 21 Nov: RSI 45–55 no-go rule (David's execution rule) now enforced in sid-triage 1.7 — alerts with RSI 45–55
   are set to "Exclude today" (reason RSI_NO_GO). First caught DRI 52.5 and TMDX 52.0.
 
+## 2e. Regime study (VIX / SPY drawdown) — 21 November 2026
+- 2,621 SID trades by regime at signal (trading-indicators `analysis/sid-regime/RESULTS.md`).
+- Longs: win rate unchanged in stress (VIX>=30 or SPY >=10% off 1y high), but average loss doubles
+  (-9.4% vs -4.1%; PF 1.30 vs 1.96). Implication: cut size in stress, not entries.
+- Shorts: return sign verified correct — shorts are negative-expectancy overall (avg loss 2.3x avg win, PF 0.74);
+  profitable only in stress (PF 1.40, n=183).
+- Caveat: recorded returns do not apply the live hard stop + stutter. Next test: re-score with live exit rules.
+- ChatGPT factor review (21 Nov) assessed: room/sector short warnings OK as warnings; Q2 seasonality likely noise;
+  test stock-vs-sector 3-session move before any industry-ETF map.
+
 ## 5. Open items (need input — not resolvable from files)
 - [ ] FUTURE (David, 13 Nov 2026, next brief iteration): add a ⚠️ caution when RSI is too close to RSI50 (little room to the mean-reversion target). David's current manual rule: RSI 45–55 (50 ± 5) = absolute no-go.
 - [ ] Reconcile the 300-trade manual journal (`analysis/sid-btw-universe/Backtesting_Sheet_300_SID.xlsx`) against `data/trades/trades_all.csv` and the automated BTW-universe backtest — three SID datasets now exist and haven't been cross-checked against each other.
