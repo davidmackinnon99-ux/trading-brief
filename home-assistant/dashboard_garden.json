@@ -1,0 +1,144 @@
+{
+  "views": [
+    {
+      "type": "sections",
+      "sections": [
+        {
+          "type": "grid",
+          "cards": [
+            {
+              "type": "tile",
+              "grid_options": {
+                "columns": "full",
+                "rows": 2
+              },
+              "entity": "valve.krx8_zone_1",
+              "name": "Garden Sprinklers",
+              "color": "green",
+              "show_entity_picture": true,
+              "vertical": false,
+              "features": [
+                {
+                  "type": "valve-open-close"
+                }
+              ],
+              "features_position": "bottom"
+            },
+            {
+              "type": "tile",
+              "entity": "binary_sensor.krx8_rain",
+              "name": "KRX8 Rain sensor",
+              "icon": "mdi:weather-rainy"
+            },
+            {
+              "type": "tile",
+              "entity": "input_datetime.last_garden_watering"
+            },
+            {
+              "type": "markdown",
+              "title": "Garden Moisture Status",
+              "content": "{% set avg = states('sensor.garden_moisture_average') | float(0) %} ## {{ avg | round(1) }}%"
+            },
+            {
+              "type": "entities",
+              "title": "Garden Temperatures & Batteries",
+              "entities": [
+                {
+                  "entity": "sensor.third_reality_1_temperature",
+                  "name": "Pool Area \u2014 Temperature"
+                },
+                {
+                  "entity": "sensor.third_reality_1_battery",
+                  "name": "Pool Area \u2014 Battery"
+                },
+                {
+                  "entity": "sensor.third_reality_2_temperature",
+                  "name": "Back Fence \u2014 Temperature"
+                },
+                {
+                  "entity": "sensor.third_reality_2_battery",
+                  "name": "Back Fence \u2014 Battery"
+                },
+                {
+                  "entity": "sensor.third_reality_3_temperature",
+                  "name": "Front Right \u2014 Temperature"
+                },
+                {
+                  "entity": "sensor.third_reality_3_battery",
+                  "name": "Front Right \u2014 Battery"
+                },
+                {
+                  "entity": "sensor.third_reality_4_temperature",
+                  "name": "Front Left \u2014 Temperature"
+                },
+                {
+                  "entity": "sensor.third_reality_4_battery",
+                  "name": "Front Left \u2014 Battery"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "grid",
+          "cards": [
+            {
+              "type": "heading",
+              "heading": "Sunroom",
+              "heading_style": "title",
+              "icon": "mdi:sun-thermometer"
+            },
+            {
+              "type": "tile",
+              "grid_options": {
+                "columns": "full",
+                "rows": 2
+              },
+              "entity": "input_boolean.sunroom_manual_watering",
+              "name": "Sunroom Watering Switch",
+              "icon": "mdi:sprinkler-variant",
+              "color": "green",
+              "vertical": false,
+              "features": [
+                {
+                  "type": "toggle"
+                }
+              ],
+              "features_position": "bottom"
+            },
+            {
+              "type": "tile",
+              "entity": "input_datetime.last_sunroom_watering",
+              "name": "Last Sunroom Watering",
+              "vertical": false,
+              "features_position": "bottom"
+            },
+            {
+              "type": "entities",
+              "title": "Sunroom Plants Moisture",
+              "show_header_toggle": false,
+              "entities": [
+                {
+                  "entity": "sensor.betty_soil_moisture",
+                  "name": "Betty moisture - watering trigger"
+                },
+                {
+                  "entity": "sensor.heidi_soil_moisture",
+                  "name": "Heidi moisture"
+                },
+                {
+                  "entity": "sensor.goldie_soil_moisture",
+                  "name": "Goldie moisture"
+                },
+                {
+                  "entity": "sensor.oscar_soil_moisture",
+                  "name": "Oscar moisture"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
