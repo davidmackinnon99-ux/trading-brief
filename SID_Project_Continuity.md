@@ -761,6 +761,23 @@ Shown in the Caution column of SID table 2 plus a callout line under the tables 
   so the rule is not always correct). RSI 50 exit and re-entry warning are eligible from the bar after entry.
 - TrendSpider parity script updated to v8.5.25 the same day (signals SidLongReentryWarning / SidShortReentryWarning replace Sid*StutterExit).
 
+## 2g. Corrected outcome engine supersedes recorded-outcome studies — 21 November 2026
+- ChatGPT's corrected sequential replay (3,399 trades, 42 symbols; weekly gate, rounded swing stop from the bar
+  after entry, RSI50 from the bar after entry, 20-bar fallback, no stutter/re-entry exit; stop engine audited
+  3,399/3,399 against its written rules) replaces trades_all.csv recorded outcomes for factor work.
+- SUPERSEDED by it: §2d room test 2 (short "zone in path" warning — no effect under enforced stops; the old
+  separation came from trades that recovered after the stop); §2e regime numbers (direction holds: stress widens
+  long losses, shorts only marginally profitable in stress); short sector-opposition warning; short ADX 40–50
+  warning; "Gap/ATR >= 2.0 ideal" (2.0+ longs ~PF 0.99, wider tails; 1.5–2.0 best long band).
+- Standing context (not gates): Gap/ATR < 1.5 and short buyer-DI gap >= 20 = more stops/lower completion, not
+  reliably worse expectancy; low RVOL longs smaller losses; confirmed bullish pattern before a long favourable
+  (rare); confirmed bearish pattern before a short = late-entry warning; ticker history descriptive only (>= 10
+  prior same-direction trades). Corrected short book ~breakeven to negative overall (PF ~0.9–1.0).
+- Live cohort: 75 SID trades Sep 2025–Nov 2026 profitable through Oct; Nov = 3 stress longs (SUPN, CYTK, FSLY),
+  individually sized to ~1R or less. Correlated stress-long exposure is the open risk-control question.
+- Defect: indicator Gap/ATR export = 0 on ~10% of valid entries (tied to the obsolete armed state).
+- The daily short zone-in-path add-on (`analysis/sid-room-path/zone_in_path_today.py`) is retired by this result.
+
 ## 5. Open items (need input — not resolvable from files)
 - [ ] FUTURE (David, 13 Nov 2026, next brief iteration): add a ⚠️ caution when RSI is too close to RSI50 (little room to the mean-reversion target). David's current manual rule: RSI 45–55 (50 ± 5) = absolute no-go.
 - [ ] Reconcile the 300-trade manual journal (`analysis/sid-btw-universe/Backtesting_Sheet_300_SID.xlsx`) against `data/trades/trades_all.csv` and the automated BTW-universe backtest — three SID datasets now exist and haven't been cross-checked against each other.
