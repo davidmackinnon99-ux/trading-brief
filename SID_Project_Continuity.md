@@ -795,6 +795,7 @@ Shown in the Caution column of SID table 2 plus a callout line under the tables 
 - Context files rebuilt by `tools/build_sid_brief_context.py` (trading-indicators).
 
 ## 5. Open items (need input — not resolvable from files)
+- [ ] DEFERRED (David, 21 Nov 2026): STB (swingtradebot.com) sector/industry grades (A–F, rank 0–100, public pages, no login) as an info column + daily log to test against SID/LORP outcomes. Not now — STB's sector/industry naming differs from TradingView's (needs a per-ticker STB lookup/cache); David also suspects the grade is longer-term than SID/LORP horizons.
 - [ ] FUTURE (David, 13 Nov 2026, next brief iteration): add a ⚠️ caution when RSI is too close to RSI50 (little room to the mean-reversion target). David's current manual rule: RSI 45–55 (50 ± 5) = absolute no-go.
 - [ ] Reconcile the 300-trade manual journal (`analysis/sid-btw-universe/Backtesting_Sheet_300_SID.xlsx`) against `data/trades/trades_all.csv` and the automated BTW-universe backtest — three SID datasets now exist and haven't been cross-checked against each other.
 - [x] ~30% of brief candidates were funds/trusts, not equities — fixed 17 Sep 2026 by excluding sector "Miscellaneous" tickers from both `lorpAll` and `sidPass` in `analyse-brief.cjs`; see `LORP_Project_Continuity.md`'s 17 Sep entry for the full writeup (applies to both strategies).
