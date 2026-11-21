@@ -180,7 +180,9 @@ histogram keeps converging post-entry.
   PF). Avoid Energy, Technology, Materials, Communication.
 - **Direction:** longs primary (~55% post-2020, PF ~2); shorts weaker (~47%) — bear regime,
   viable sectors, ADX>25, smaller size.
-- **Exit:** strongest signal = RSI re-entry into OS/OB (10% vs 70% WR).
+- **Exit:** RSI re-entry into OS/OB marks a troubled trade (10% vs 70% WR — observational), but a 21 Nov 2026
+  counterfactual A/B showed an AUTOMATIC exit there does not improve results (longs slightly worse, shorts neutral).
+  Not one of Sid's rules. From v8.5.25 / v10.5.25 it is a WARNING ONLY; David decides the exit manually.
 
 ---
 
@@ -750,6 +752,12 @@ Shown in the Caution column of SID table 2 plus a callout line under the tables 
 - Caveat: recorded returns do not apply the live hard stop + stutter. Next test: re-score with live exit rules.
 - ChatGPT factor review (21 Nov) assessed: room/sector short warnings OK as warnings; Q2 seasonality likely noise;
   test stock-vs-sector 3-session move before any industry-ETF map.
+
+## 2f. Stutter / re-entry exits removed — 21 November 2026 (v8.5.25 + v10.5.25)
+- Strategy: exit modes 2 (two RSI movements) and 3 (RSI back in zone) deleted; exits = Hard SL, 20-bar Time
+  Stop, RSI 50. Indicator: obsolete two-movement stutter removed. Both show an OB/OS RE-ENTRY warning
+  (genuine cross back into the zone, from entry bar + 4) with optional alert — manual decision, no exit.
+- Not yet changed: the TrendSpider parity script still has the old stutter logic.
 
 ## 5. Open items (need input — not resolvable from files)
 - [ ] FUTURE (David, 13 Nov 2026, next brief iteration): add a ⚠️ caution when RSI is too close to RSI50 (little room to the mean-reversion target). David's current manual rule: RSI 45–55 (50 ± 5) = absolute no-go.
