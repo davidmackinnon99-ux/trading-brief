@@ -1,0 +1,6 @@
+{
+  "state": "{{ (states('sensor.outside_heat_pump_plug_power')|float(0) + states('sensor.smart_switch_26020957301179513804c4e7ae27f759_power')|float(0) + states('sensor.smart_switch_25060331373497513801c4e7ae1784e7_power')|float(0) + states('sensor.smart_switch_25082125780459513801c4e7ae2055b8_power')|float(0) + states('sensor.smart_switch_25060319498379513801c4e7ae179ed1_power')|float(0) + states('sensor.smart_switch_25082169977280513801c4e7ae2055c2_power')|float(0) + states('sensor.lg_tv_plug_power')|float(0) + states('sensor.apple_tv_plug_power')|float(0) + states('sensor.lounge_left_power')|float(0) + states('sensor.lounge_right_power')|float(0) + states('sensor.sunroom_front_power')|float(0) + states('sensor.sunroom_main_power')|float(0) + states('sensor.bed_david_power')|float(0) + states('sensor.bed_judy_power')|float(0) + states('sensor.porch_light_power')|float(0)) / 1000 }}",
+  "device_class": "power",
+  "state_class": "measurement",
+  "unit_of_measurement": "kW"
+}

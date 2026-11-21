@@ -1,0 +1,92 @@
+{
+  "id": "1791286783544",
+  "alias": "House Energy - Capture Completed Day and Night",
+  "description": "Stores each completed sunrise-to-sunset and sunset-to-sunrise energy total for rolling averages and battery analysis. Also records the monitored-appliance share of each night (Monitored Night Energy) so the unmonitored base load can be seen.",
+  "triggers": [
+    {
+      "trigger": "sun",
+      "event": "sunset",
+      "offset": "00:00:05",
+      "id": "day_complete"
+    },
+    {
+      "trigger": "sun",
+      "event": "sunrise",
+      "offset": "00:00:05",
+      "id": "night_complete"
+    }
+  ],
+  "conditions": [],
+  "actions": [
+    {
+      "choose": [
+        {
+          "conditions": [
+            {
+              "condition": "trigger",
+              "id": "day_complete"
+            }
+          ],
+          "sequence": [
+            {
+              "action": "input_number.set_value",
+              "target": {
+                "entity_id": "input_number.last_completed_day_energy"
+              },
+              "data": {
+                "value": "{{ states('sensor.house_day_energy') | float(0) | round(2) }}"
+              }
+            },
+            {
+              "action": "input_number.set_value",
+              "target": {
+                "entity_id": "input_number.house_night_energy_at_sunset"
+              },
+              "data": {
+                "value": "{{ states('sensor.house_night_energy_total') | float(0) | round(3) }}"
+              }
+            },
+            {
+              "action": "input_number.set_value",
+              "target": {
+                "entity_id": "input_number.monitored_night_energy_at_sunset"
+              },
+              "data": {
+                "value": "{{ states('sensor.monitored_night_energy_total') | float(0) | round(3) }}"
+              }
+            }
+          ]
+        },
+        {
+          "conditions": [
+            {
+              "condition": "trigger",
+              "id": "night_complete"
+            }
+          ],
+          "sequence": [
+            {
+              "action": "input_number.set_value",
+              "target": {
+                "entity_id": "input_number.last_completed_night_energy"
+              },
+              "data": {
+                "value": "{{ [states('sensor.house_night_energy_total') | float(0) - states('input_number.house_night_energy_at_sunset') | float(0), 0] | max | round(2) }}"
+              }
+            },
+            {
+              "action": "input_number.set_value",
+              "target": {
+                "entity_id": "input_number.last_completed_monitored_night_energy"
+              },
+              "data": {
+                "value": "{{ [states('sensor.monitored_night_energy_total') | float(0) - states('input_number.monitored_night_energy_at_sunset') | float(0), 0] | max | round(2) }}"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "mode": "single"
+}
