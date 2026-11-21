@@ -69,9 +69,115 @@
               "icon": "mdi:download-network-outline",
               "name": "Grid Import",
               "type": "tile"
+            },
+            {
+              "type": "custom:apexcharts-card",
+              "cache": false,
+              "update_interval": "5min",
+              "graph_span": "24h",
+              "span": {
+                "start": "day"
+              },
+              "header": {
+                "show": true,
+                "title": "Today by hour \u2014 PV yield, feed-in and grid import",
+                "show_states": false
+              },
+              "grid_options": {
+                "columns": "full",
+                "rows": "auto"
+              },
+              "apex_config": {
+                "chart": {
+                  "height": 280
+                },
+                "legend": {
+                  "show": true
+                },
+                "plotOptions": {
+                  "bar": {
+                    "columnWidth": "85%"
+                  }
+                },
+                "xaxis": {
+                  "labels": {
+                    "datetimeUTC": false,
+                    "format": "h tt"
+                  }
+                },
+                "tooltip": {
+                  "shared": true,
+                  "intersect": false,
+                  "x": {
+                    "format": "h:mm tt"
+                  }
+                }
+              },
+              "yaxis": [
+                {
+                  "min": 0,
+                  "decimals": 1,
+                  "apex_config": {
+                    "title": {
+                      "text": "kWh per hour"
+                    }
+                  }
+                }
+              ],
+              "series": [
+                {
+                  "entity": "sensor.pv_generation",
+                  "name": "PV yield",
+                  "color": "#f2c46d",
+                  "type": "column",
+                  "float_precision": 2,
+                  "unit": "kWh",
+                  "show": {
+                    "legend_value": false
+                  },
+                  "statistics": {
+                    "type": "mean",
+                    "period": "hour",
+                    "align": "start"
+                  }
+                },
+                {
+                  "entity": "sensor.roof_gosungrow_1498605_7_1_1_meter1_solar_export",
+                  "name": "Feed-in",
+                  "color": "#ef8a7a",
+                  "type": "column",
+                  "float_precision": 2,
+                  "unit": "kWh",
+                  "show": {
+                    "legend_value": false
+                  },
+                  "statistics": {
+                    "type": "mean",
+                    "period": "hour",
+                    "align": "start"
+                  }
+                },
+                {
+                  "entity": "sensor.house_grid_import_power",
+                  "name": "Grid import",
+                  "color": "#6f86d6",
+                  "type": "column",
+                  "float_precision": 2,
+                  "unit": "kWh",
+                  "show": {
+                    "legend_value": false
+                  },
+                  "statistics": {
+                    "type": "mean",
+                    "period": "hour",
+                    "align": "start"
+                  }
+                }
+              ]
             }
           ],
-          "type": "grid"
+          "type": "grid",
+          "column_span": 2
         },
         {
           "cards": [
