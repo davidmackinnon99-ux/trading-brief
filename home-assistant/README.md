@@ -16,3 +16,4 @@
 - 16 Nov: Exports no longer rely on Chrome downloads. Run 'python3 home-assistant/ha_rx.py' (listens on 127.0.0.1:8765 for 2 min), then POST {name: json} from the HA browser tab; each key is written to home-assistant/<name>.json.
 - 16 Nov: Curtain Manual Override now resets itself at midnight (automation.curtains_reset_manual_override_at_midnight); dashboard label shows 'Manual Override (until midnight)'.
 - 17 Nov: Study curtain threshold now 28.5 C (David's edit); notification text updated to match. Study motor stopping at ~7% when opening (closing works) - suspected low battery under lifting load (3.0 V, 43%); recharge advised.
+- 21 Nov: Added Meross plugs LG TV Plug (sensor.lg_tv_plug_power, 192.168.4.46) and Apple TV Plug (sensor.apple_tv_plug_power, 192.168.4.65; device key corrected to the account key). Both on House Power 'Inside' section. Note: HACS is NOT installed (Get HACS add-on in error); Apple TVs not yet paired in HA.

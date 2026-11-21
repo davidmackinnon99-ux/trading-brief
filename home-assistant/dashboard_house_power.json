@@ -129,6 +129,20 @@
               "title": "Refrigerator",
               "hours_to_show": 12,
               "show_names": true
+            },
+            {
+              "type": "history-graph",
+              "title": "LG TV",
+              "entities": [
+                "sensor.lg_tv_plug_power"
+              ]
+            },
+            {
+              "type": "history-graph",
+              "title": "Apple TV",
+              "entities": [
+                "sensor.apple_tv_plug_power"
+              ]
             }
           ]
         },
