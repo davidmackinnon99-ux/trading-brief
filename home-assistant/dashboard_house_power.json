@@ -143,6 +143,20 @@
               "entities": [
                 "sensor.apple_tv_plug_power"
               ]
+            },
+            {
+              "type": "history-graph",
+              "title": "LIFX lights (estimated)",
+              "hours_to_show": 24,
+              "entities": [
+                "sensor.lounge_left_power",
+                "sensor.lounge_right_power",
+                "sensor.sunroom_front_power",
+                "sensor.sunroom_main_power",
+                "sensor.bed_david_power",
+                "sensor.bed_judy_power",
+                "sensor.porch_light_power"
+              ]
             }
           ]
         },
