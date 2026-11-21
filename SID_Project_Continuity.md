@@ -756,7 +756,9 @@ Shown in the Caution column of SID table 2 plus a callout line under the tables 
 ## 2f. Stutter / re-entry exits removed — 21 November 2026 (v8.5.25 + v10.5.25)
 - Strategy: exit modes 2 (two RSI movements) and 3 (RSI back in zone) deleted; exits = Hard SL, 20-bar Time
   Stop, RSI 50. Indicator: obsolete two-movement stutter removed. Both show an OB/OS RE-ENTRY warning
-  (genuine cross back into the zone, from entry bar + 4) with optional alert — manual decision, no exit.
+  (genuine cross back into the zone) with optional alert — manual decision, no exit.
+- Three-bar protection after entry REMOVED in all three (David: RSI 50 exits are seen very soon after entry,
+  so the rule is not always correct). RSI 50 exit and re-entry warning are eligible from the bar after entry.
 - TrendSpider parity script updated to v8.5.25 the same day (signals SidLongReentryWarning / SidShortReentryWarning replace Sid*StutterExit).
 
 ## 5. Open items (need input — not resolvable from files)
