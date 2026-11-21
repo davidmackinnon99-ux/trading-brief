@@ -783,6 +783,17 @@ Shown in the Caution column of SID table 2 plus a callout line under the tables 
   Engine-vs-live validation not possible yet (archive overlap). Governing guidance now
   `SID_FINAL_RECOMMENDATIONS_2026-11-21.md` (trading-indicators), superseding the 5 Oct entry recommendations.
 
+## 2h. Brief + indicator implementation of the final recommendations — 21 November 2026
+- Indicator v8.5.26 (pending install): Gap/ATR export fixed (no armed-state dependency); exports Gap/ATR Long/Short.
+- sid-triage 1.8 / analyse-brief: legacy Gap/ATR 0 treated as missing; short ADX 40–50 warning removed; sector
+  direction and room (near hurdle / limited initial room) are display context only and no longer lower status;
+  Gap/ATR shown as bands (★ long 1.5–2.0; ⚠️ < 1.5 = more stops; 2.0+ wide tails outside calm); separate short
+  flags (buyer DI >= 20, Gap/ATR < 1.5, non-stress) — never a score; short candle Body column (▲ = top quartile,
+  0.865 ATR); History column from the corrected engine (wins/n, WR, PF; Unrated < 10; n/a = not in archive);
+  SID regime line (stress = VIX >= 30 or SPY >= 10% below 52-week high) and, in stress, an open-long risk monitor
+  read from trading-indicators data/open_trades.csv (needs direction, entry, stop, shares columns).
+- Context files rebuilt by `tools/build_sid_brief_context.py` (trading-indicators).
+
 ## 5. Open items (need input — not resolvable from files)
 - [ ] FUTURE (David, 13 Nov 2026, next brief iteration): add a ⚠️ caution when RSI is too close to RSI50 (little room to the mean-reversion target). David's current manual rule: RSI 45–55 (50 ± 5) = absolute no-go.
 - [ ] Reconcile the 300-trade manual journal (`analysis/sid-btw-universe/Backtesting_Sheet_300_SID.xlsx`) against `data/trades/trades_all.csv` and the automated BTW-universe backtest — three SID datasets now exist and haven't been cross-checked against each other.

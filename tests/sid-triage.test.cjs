@@ -145,28 +145,27 @@ test('earnings within 14 days / after-hours move / missed entry → Exclude toda
   assert.match(T.appendixLine(m), /Exclude today/);
 });
 
-test('near hurdle is priority context, not an automatic exclusion', () => {
+test('near hurdle is display context only and does not lower status (21 Nov 2026)', () => {
   const limited = T.triageAlert(longBase({ cap: { supBot: 100.3, supTop: 101, demTop: 97, demBot: 96 } })); // CAP supply 0.15 ATR
-  assert.equal(limited.status, T.STATUS.COND);
-  assert.ok(limited.conditions.includes('LIMITED_INITIAL_ROOM'));
+  assert.equal(limited.status, T.STATUS.REVIEW);
+  assert.ok(!limited.conditions.includes('LIMITED_INITIAL_ROOM'));
   const near = T.triageAlert(longBase({ cap: { supBot: 101.2, supTop: 102, demTop: 97, demBot: 96 } }));    // CAP supply 0.6 ATR
   assert.equal(near.path, 'Hurdle near');
-  assert.equal(near.status, T.STATUS.COND);
+  assert.equal(near.status, T.STATUS.REVIEW);
 });
 
 test('structural condition and MACD lower-conviction warning remain visible', () => {
   const t = T.triageAlert(longBase({ cap: { supBot: 101.2, supTop: 102, demTop: 97, demBot: 96 }, macd: { macd: -1, raw: -0.2, sep: 0.3, sepPrev: 0.5, rawPrev: -0.3, closingSpeed: 0.2, rawHist: [-0.4, -0.35, -0.3] } }));
-  assert.equal(t.status, T.STATUS.COND);
-  assert.ok(!t.reasons.includes('MULTIPLE_OPEN_CONDITIONS'));
-  assert.ok(t.reasons.includes('HURDLE_NEAR'));
+  assert.equal(t.path, 'Hurdle near');
+  assert.ok(!t.reasons.includes('HURDLE_NEAR'));
   assert.ok(!t.reasons.includes('MACD_OPPOSED'));
 });
 
-test('expanded-sample short DI/ADX cautions lower priority', () => {
+test('short buyer-DI >= 20 is a caution; ADX 40-50 no longer is (21 Nov 2026 corrected engine)', () => {
   const t = T.triageAlert(shortBase({ gatr: 0.65, adx: 45, diPlus: 42, diMinus: 18 }));
   assert.equal(t.status, T.STATUS.COND);
-  assert.deepEqual(t.warnings, ['SHORT_ADX_RUNOVER', 'SHORT_DI_RUNOVER']);
-  assert.match(T.whyLine(t), /material run-over risk/);
+  assert.deepEqual(t.warnings, ['SHORT_DI_RUNOVER']);
+  assert.match(T.whyLine(t), /more stops/);
 });
 
 test('short DI 10–20 and Histogram at least +0.25% remain descriptive rather than warnings', () => {
@@ -203,21 +202,20 @@ test('long MA position and seller DI remain context, not an unvalidated warning'
   assert.equal(t.di.control, 'DI Control – Sellers');
 });
 
-test('opposed sector rotation lowers SID priority without excluding the signal', () => {
+test('opposed sector rotation is display context only (21 Nov 2026)', () => {
   const t = T.triageAlert(longBase({ sectorRotation: 'Unsupported', sectorEtf: 'XLI', sectorName: 'Industrials' }));
-  assert.equal(t.status, T.STATUS.COND);
-  assert.ok(t.warnings.includes('SECTOR_ROTATION_OPPOSED'));
+  assert.equal(t.status, T.STATUS.REVIEW);
+  assert.ok(!t.warnings.includes('SECTOR_ROTATION_OPPOSED'));
   assert.equal(t.cells.sector, 'Rot. opposed');
-  assert.match(T.whyLine(t), /sector rotation is opposed/i);
 });
 
 test('supportive sector rotation is context and does not erase other warnings', () => {
   const clean = T.triageAlert(longBase({ sectorRotation: 'Supported', sectorEtf: 'XLV' }));
   assert.equal(clean.status, T.STATUS.REVIEW);
   assert.deepEqual(clean.warnings, []);
-  const risky = T.triageAlert(shortBase({ sectorRotation: 'Supported', adx: 45 }));
+  const risky = T.triageAlert(shortBase({ sectorRotation: 'Supported', diPlus: 42, diMinus: 18 }));
   assert.equal(risky.status, T.STATUS.COND);
-  assert.ok(risky.warnings.includes('SHORT_ADX_RUNOVER'));
+  assert.ok(risky.warnings.includes('SHORT_DI_RUNOVER'));
 });
 
 test('sector rotation breaks otherwise equal ranking: supportive, neutral, n/a, opposed', () => {

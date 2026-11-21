@@ -16,7 +16,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 const CFG = {
-  VERSION: 'sid-triage-1.7 (21 Nov 2026)',
+  VERSION: 'sid-triage-1.8 (21 Nov 2026)',
   ROOM_OPEN_ATR: 1.0,        // room to first hurdle >= this → path "Open"/"Cleared"; below → "Hurdle near"
   ROOM_MIN_ATR: 0.25,        // room below this → limited initial room (priority context, not a gate)
   CLUSTER_ATR: 0.5,          // levels within this of the first hurdle form a cluster
@@ -266,12 +266,13 @@ function triageAlert(a) {
   const di = diState(a.diPlus, a.diMinus, a.hist?.diGap, a.adx, a.hist?.adxPrev, a.diGapShift3);
   const mc = macdState(dir, { ...(a.macd || {}), price: close });
   const part = participation(dir, a.rvol, a.vd);
-  if (dir === 'short' && isNum(a.adx) && a.adx >= 40 && a.adx < 50) warnings.push('SHORT_ADX_RUNOVER');
+  // 21 Nov 2026: short ADX 40–50 removed as an adverse warning (corrected engine: PF 1.03 vs 0.89 — not adverse).
   if (dir === 'short' && isNum(di.gap) && di.gap >= 20) warnings.push('SHORT_DI_RUNOVER');
   // Sector rotation is trade-direction context, not a new SID entry rule. An
   // opposed sector lowers review priority; supportive rotation improves rank
   // only among otherwise comparable candidates and never cancels a risk flag.
-  if (a.sectorRotation === 'Unsupported') warnings.push('SECTOR_ROTATION_OPPOSED');
+  // 21 Nov 2026: sector direction is display context only (corrected engine: no reliable expectancy effect either
+  // side). It stays in the Support column; it no longer raises a warning or changes status.
   // 13 Nov 2026 (David): long stretched below the BB mid further than this stock usually goes
   // (SID Stretch v1.0, top 20% of its own 500-bar history). Longs only — no effect on shorts.
   // Evidence: analysis/sid-hurdles/STRETCH_RESULTS.md (63% vs 78% WR; flagged losers larger).
@@ -346,7 +347,8 @@ function triageAlert(a) {
     status = STATUS.EXCL; reasons.push(...events);
   } else {
     // second-pass open conditions
-    if (path === 'Hurdle near') conditions.push(isNum(roomAtr) && roomAtr < CFG.ROOM_MIN_ATR ? 'LIMITED_INITIAL_ROOM' : 'HURDLE_NEAR');
+    // 21 Nov 2026: room is display context only (corrected engine: no effect either side). The Path / Room / CAP
+    // columns still show it, but a near hurdle no longer lowers the review status.
     const wantShift = dir === 'long' ? 'DI Shift – Sellers' : 'DI Shift – Buyers';
     if (di.shift === wantShift) conditions.push('DI_SHIFT_OPPOSED');
     if (bb.inDirection === false) conditions.push('BB_MID_BEHIND');
@@ -416,7 +418,7 @@ const REASON_TEXT = {
   OVERNIGHT_MOVE_LARGE: 'large after-hours move',
   ENTRY_MISSED: 'original entry was an earlier alert and price has already moved',
   SHORT_ADX_RUNOVER: 'short ADX 40–50 — material run-over risk in the expanded sample, not an automatic veto',
-  SHORT_DI_RUNOVER: 'short DI spread at least 20 — low hit-rate warning, not an expectancy gate',
+  SHORT_DI_RUNOVER: 'short buyer-DI gap at least 20 — more stops / lower completion (44% vs 53% WR), not an expectancy gate',
   SECTOR_ROTATION_OPPOSED: 'sector rotation is opposed to the trade direction — lower priority, not an automatic veto',
   LONG_UNUSUAL_STRETCH: 'stretched below the BB mid further than this stock usually goes (top 20% of its own history) — weaker longs and larger failures, not a veto',
 };
