@@ -757,7 +757,7 @@ Shown in the Caution column of SID table 2 plus a callout line under the tables 
 - Strategy: exit modes 2 (two RSI movements) and 3 (RSI back in zone) deleted; exits = Hard SL, 20-bar Time
   Stop, RSI 50. Indicator: obsolete two-movement stutter removed. Both show an OB/OS RE-ENTRY warning
   (genuine cross back into the zone, from entry bar + 4) with optional alert — manual decision, no exit.
-- Not yet changed: the TrendSpider parity script still has the old stutter logic.
+- TrendSpider parity script updated to v8.5.25 the same day (signals SidLongReentryWarning / SidShortReentryWarning replace Sid*StutterExit).
 
 ## 5. Open items (need input — not resolvable from files)
 - [ ] FUTURE (David, 13 Nov 2026, next brief iteration): add a ⚠️ caution when RSI is too close to RSI50 (little room to the mean-reversion target). David's current manual rule: RSI 45–55 (50 ± 5) = absolute no-go.
