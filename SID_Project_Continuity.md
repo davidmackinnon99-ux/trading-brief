@@ -777,6 +777,11 @@ Shown in the Caution column of SID table 2 plus a callout line under the tables 
   individually sized to ~1R or less. Correlated stress-long exposure is the open risk-control question.
 - Defect: indicator Gap/ATR export = 0 on ~10% of valid entries (tied to the obsolete armed state).
 - The daily short zone-in-path add-on (`analysis/sid-room-path/zone_in_path_today.py`) is retired by this result.
+- Final update (21 Nov): removing the old three protected bars makes an automatic re-entry exit significantly worse
+  for longs (-0.17 pts, CI excludes 0). Live calm-market shorts (42 trades) were profitable (59.5%, PF 1.72) —
+  calm shorts continue. Large short signal-candle body = favourable short context (all three periods).
+  Engine-vs-live validation not possible yet (archive overlap). Governing guidance now
+  `SID_FINAL_RECOMMENDATIONS_2026-11-21.md` (trading-indicators), superseding the 5 Oct entry recommendations.
 
 ## 5. Open items (need input — not resolvable from files)
 - [ ] FUTURE (David, 13 Nov 2026, next brief iteration): add a ⚠️ caution when RSI is too close to RSI50 (little room to the mean-reversion target). David's current manual rule: RSI 45–55 (50 ± 5) = absolute no-go.
