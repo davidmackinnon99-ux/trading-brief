@@ -61,7 +61,7 @@ Bar Prediction Values, ATR%, RVOL, VD, Aroon, ADX, DI+/DI-, WRB, Range%, vs Open
 | RVOL | Volume confirmation |
 | VD | Buy/Sell pressure reference |
 
-**Gap/ATR Ratio:** ≥2.0 ideal · <1.5 avoid (shown in context, not a hard filter)
+**Gap/ATR Ratio:** ≥2.0 ideal · <1.5 avoid (shown in context, not a hard filter). *Definition corrected 22 Nov 2026:* long = (signal close − raw lowest low) ÷ ATR(14), short = (raw highest high − signal close) ÷ ATR(14); setup window = latest candle entering OS/OB through the SID signal candle, inclusive; raw extreme, not the whole-dollar stop. The thresholds above came from the old rolling 10-bar proxy and are under review.
 
 ---
 

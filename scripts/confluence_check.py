@@ -152,16 +152,23 @@ def verdict_sid(row,idx):
     p=[setup]
     if rsi is not None:   # RSI is context/colour only — never the setup gate
         p.append(f"RSI {rsi:.0f} ({'OS' if rsi<=40 else 'OB' if rsi>=60 else 'mid'})")
-    # Gap/ATR is calculated MANUALLY for the trade sheet and is deliberately NOT auto-gated here.
-    #   SL  = lowest low from the RSI crossover to entry, floored to the next lowest whole $
-    #   Gap = (entry - SL)/entry ;  Ratio = Gap% / ATR%
-    # The Pine "Gap/ATR Ratio" column is only a swing-high/low approximation, shown as a starting point (~).
-    # There is NO absolute reject/accept threshold — thumbs-up if the ratio is acceptable.
-    gap=num(row,idx,"Gap/ATR Ratio")   # swing approximation — starting point only (~); real value calc'd manually
-    p.append(f"Gap/ATR ~{gap:.2f}" if gap is not None else "Gap/ATR (calc manually)")
+    # Gap/ATR (22 Nov 2026, SID Trading Signals Pro v8.5.27+): raw setup extreme from the latest OS/OB-entry
+    # candle through the SID signal candle vs the signal close, / ATR(14) on the signal candle. The RAW extreme is
+    # used; the whole-dollar floor/ceil applies only to the executable stop. Context only — never auto-gated here.
+    # "Gap/ATR Ratio" is populated only on the signal candle (na otherwise); "Setup Gap/ATR L/S" is the anchored
+    # candidate while a setup is open. Older exports (<= v8.5.26) carried a rolling 10-bar proxy: not used.
+    new_export = ("Setup Gap/ATR L" in idx) or ("Entry Gap/ATR" in idx)   # v8.5.27+ columns
+    gap=num(row,idx,"Gap/ATR Ratio") if new_export else None
+    gap_src="entry"
+    if gap is None:
+        cand=num(row,idx,"Setup Gap/ATR L") if armed_long else num(row,idx,"Setup Gap/ATR S") if armed_short else None
+        if cand is not None: gap, gap_src = cand, "setup"
+    p.append(("Gap/ATR %.2f" % gap if gap_src=="entry" else "Setup Gap/ATR %.2f (candidate)" % gap)
+             if gap is not None else "Gap/ATR n/a (no SID setup on this bar)")
     head="VERDICT (SID - UNVALIDATED, no proven gate yet): " + " | ".join(p)
-    note=("  Gap/ATR (manual): (entry - SL)/entry / ATR%; SL = lowest low from RSI crossover to entry, "
-          "floored to whole $. No absolute reject - thumbs-up if the ratio is acceptable.")
+    note=("  Gap/ATR: (signal close - raw setup low) / ATR(14) for longs, (raw setup high - signal close) / ATR(14) "
+          "for shorts; setup = latest OS/OB-entry candle through the signal candle. Stop = that extreme floored/ceiled "
+          "to whole $ (separate). Context only - no absolute reject.")
     return head + "\n" + note
 
 if __name__=="__main__":

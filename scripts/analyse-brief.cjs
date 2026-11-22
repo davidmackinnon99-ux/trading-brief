@@ -876,11 +876,19 @@ const sidResults = sidBrief ? sidBrief.symbols_scanned.filter(s => !EXCLUDED_TIC
   const diPlusSid     = parseNum(getVal(sidCSt?.values, 'DI+', '+DI', 'DI Plus'));
   const diMinusSid    = parseNum(getVal(sidCSt?.values, 'DI-', '-DI', 'DI Minus'));
   const atrPctSid     = parseNum(getVal(sidCSt?.values, 'ATR%'));
-  // 21 Nov 2026: v8.5.26 exports Gap/ATR Long/Short unconditionally. Older versions exported a false 0 on ~10% of
-  // valid entries (obsolete armed-state dependency), so a legacy 0 is treated as missing, never as a real value.
-  const gatrLegacy    = parseNum(getVal(sidCSt?.values, 'Gap/ATR Ratio'));
+  // 22 Nov 2026 (SID Trading Signals Pro v8.5.27): Gap/ATR = SID setup excursion / ATR(14) on the signal candle —
+  // raw extreme from the latest OS/OB-entry candle through the signal candle vs the signal close (NOT an overnight
+  // gap, NOT the old rolling 10-bar proxy, NOT the whole-dollar stop). 'Gap/ATR Long/Short' are entry-candle values
+  // (na otherwise); 'Setup Gap/ATR L/S' are anchored candidates while a setup is open; 'Entry Gap/ATR' is frozen
+  // while the indicator is in a trade. Missing stays missing — never 0, never the legacy proxy.
   const gatrLongV     = parseNum(sidCSt?.values?.['Gap/ATR Long']);
   const gatrShortV    = parseNum(sidCSt?.values?.['Gap/ATR Short']);
+  const gatrSetupL    = parseNum(sidCSt?.values?.['Setup Gap/ATR L']);
+  const gatrSetupS    = parseNum(sidCSt?.values?.['Setup Gap/ATR S']);
+  const gatrEntryV    = parseNum(sidCSt?.values?.['Entry Gap/ATR']);
+  const sidVer        = (String(sidCSt?.name || '').match(/v(\d+)\.(\d+)\.(\d+)/) || []).slice(1).map(Number);
+  const sidVerNew     = sidVer.length === 3 && (sidVer[0] * 1e6 + sidVer[1] * 1e3 + sidVer[2]) >= 8005027;
+  const gatrIsNew     = sidVerNew || (sidCSt?.values != null && ('Setup Gap/ATR L' in sidCSt.values || 'Entry Gap/ATR' in sidCSt.values));
   // MACD0 (MACD vs Signal) for the SID table — same source as the LORP path.
   const macdStSid  = getStudy(studies, 'MACD_Cross Zero', 'MACD Cross Zero', 'MACD');
   const macdSid    = parseNum(getVal(macdStSid?.values, 'MACD', 'MACD Line', 'MACD line'));
@@ -970,8 +978,13 @@ const sidResults = sidBrief ? sidBrief.symbols_scanned.filter(s => !EXCLUDED_TIC
     macdGapState: exactNum(msepSt, 'MACD Gap State'),         // v1.5: -1 CLOSING, 0 STABLE, 1 EXPANDING
   };
 
-  const gatrDirV = isLongPass ? gatrLongV : isShortPass ? gatrShortV : null;
-  const gatrRatio = gatrDirV != null ? gatrDirV : (gatrLegacy != null && gatrLegacy > 0 ? gatrLegacy : null);
+  // Entry-candle value first, then the anchored setup candidate, then a frozen in-trade entry value.
+  // Charts still on <= v8.5.26 export only the 10-bar proxy: shown as missing (no silent fallback).
+  const gatrDirV = !gatrIsNew ? null
+    : isLongPass  ? (gatrLongV  ?? gatrSetupL ?? gatrEntryV)
+    : isShortPass ? (gatrShortV ?? gatrSetupS ?? gatrEntryV)
+    : null;
+  const gatrRatio = gatrDirV != null && gatrDirV >= 0 ? gatrDirV : null;
   return {
     triageRaw,
     sym: s.symbol, price, isLongPass, isShortPass, isArmed,
