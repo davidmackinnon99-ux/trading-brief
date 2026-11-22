@@ -16,7 +16,7 @@ python3 gap_macd0.py ../../data/trades/trades_all.csv --markdown REPORT.md
 
 ## Required input columns (one row per trade)
 `direction` (long|short) · `return_pct` (signed %) · `win` (0|1) ·
-`macd0_pct` (MACD − signal, % of price) · `gap_atr` ((open − prev_close) / ATR)
+`macd0_pct` (MACD − signal, % of price) · `gap_atr` (room to 10-bar swing stop / ATR14 — a proxy; see analysis/gap-atr-true/)
 
 ## The one thing to verify: sign convention
 `macd0_pct` appears to be stored **raw** (MACD − signal), not sign-normalised. The reference
@@ -31,7 +31,7 @@ wrong-side→>1), the convention is right. If long/short look inverted, set
 
 ## Two different "gap" variables — do not conflate
 - `macd0_pct` = MACD − signal (momentum gap). This is what the chart plots.
-- `gap_atr` = overnight (open − prev_close) / ATR. The committed pre-entry danger flag
+- `gap_atr` = (entry close − 10-bar swing low, or 10-bar swing high − close) / ATR14 — a PROXY for the SID stop, not an overnight gap (corrected 22 Nov 2026; see analysis/gap-atr-true/). The committed pre-entry danger flag
   (STRATEGIES.md: ≥2.0 ideal, <1.5 avoid). Reported here as a cross-check, separately.
 
 ## Reproducibility rule

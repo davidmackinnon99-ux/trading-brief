@@ -7,7 +7,7 @@ analysis/gap-macd0/. A chart PNG alone is not verifiable; this is.
 
 INPUT  : data/trades/trades_all.csv (one row per trade). Required columns:
          direction (long|short), return_pct (signed %), win (0|1),
-         macd0_pct (MACD - signal, % of price), gap_atr ((open-prev_close)/ATR).
+         macd0_pct (MACD - signal, % of price), gap_atr (10-bar swing stop room / ATR14, proxy).
 USAGE  : python3 gap_macd0.py [path/to/trades_all.csv] [--markdown out.md]
 
 WHAT IT DOES

@@ -40,6 +40,7 @@ script plus its data is.
 |----------|------|------------|--------|
 | Gap / MACD0 vs win rate | `analysis/gap-macd0/` | Bucket SID trades by gap-to-signal (MACD0); win rate + avg return per bucket | **Done (2026-07-03)** — `gap_macd0.py` + `README.md` committed; `MACD0_IS_RAW` set to `False` (trades_all.csv already sign-normalises macd0_pct — see its README). Reference-chart N's (2,439/37-ticker) don't apply as-is: trades_all.csv is the full 2,621-row merge, a superset, so bucket N's won't match 1:1 — treat as a fresh run, not a reproduction check. |
 | Price stretch (Z / ATR from SMA50) at SID entry | `analysis/zscore-stretch/` | Bucket SID trades by stretch-at-entry (Z vs SMA20/50/80, ATR distance from SMA50, return Z) | **Done (2026-11-22)** — longs: 2–3 ATR below SMA50 best (79% WR), <1 ATR weak; shorts: no value. See REPORT.md |
+| Gap/ATR on SID's true stop | `analysis/gap-atr-true/` | Rebuild Gap/ATR from the OB/OS-episode stop (whole-number rounded) and compare with the 10-bar proxy | **Done (2026-11-22)** — see REPORT.md; no rule changes yet |
 | _(add rows as analyses land)_ | | | |
 
 > Note on the gap analysis: "Gap/ATR" (overnight open gap ÷ ATR, ≥2.0 ideal) and "MACD0 gap"
