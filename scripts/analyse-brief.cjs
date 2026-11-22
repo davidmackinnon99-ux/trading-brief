@@ -75,13 +75,13 @@ function sidScore(r) {
   if (r.isLongPass) {
     const f = [ true,                                        // RSI oversold & rising = the long signal itself
                 macd0 != null && macd0 >= 0,                 // MACD at/above signal
-                gatr != null && gatr >= 1.5 && gatr < 2.0,   // Gap/ATR 1.5–2.0 = best long band (21 Nov corrected engine)
+                gatr != null && gatr >= 1.0 && gatr < 2.0,   // Gap/ATR 1.0–2.0 = best long band (anchored definition, 23 Nov 2026)
                 r.wrsi != null && r.wrsi <= 50 ];            // weekly RSI agrees
     return `${f.filter(Boolean).length}/4`;
   }
   const fDI = spread != null && spread < 20;                 // heavy
   const fADX = true;                                         // 21 Nov 2026: ADX 40–50 no longer adverse (corrected engine)
-  const fGatr = gatr != null && gatr >= 1.5;                 // <1.5 = more stops / lower completion
+  const fGatr = gatr == null || gatr <= 3.0;                 // >3.0 = wide stop, tail-loss risk (anchored definition, 23 Nov 2026)
   // MACD0 level is NOT scored for shorts: an OB-bounce short is ~always above signal (99% in the
   // data), so the value doesn't discriminate. The MACD *turn* is the entry trigger; the real gate
   // is trend-strength (DI spread / ADX).
@@ -2864,8 +2864,9 @@ if (!VERBOSE) {
       // 21 Nov 2026 (corrected engine): separate flags, never combined into a score.
       function extraFlags(t) {
         const r = rowOf.get(t.sym), out = [], g = r && r.gatrRatio;
-        if (g != null && g < 1.5) out.push('Gap/ATR<1.5 (more stops)');
-        if (t.dir === 'long' && g != null && g >= 2.0 && sidMarket && sidMarket.calmRegime === false) out.push('Gap/ATR 2.0+ wide tails');
+        // 23 Nov 2026 (David): bands from the anchored Gap/ATR re-test — longs 3.0+ weakest; shorts >3.0 tail losses.
+        if (t.dir === 'long' && g != null && g >= 3.0) out.push('Gap/ATR 3.0+ (weak long band)');
+        if (t.dir !== 'long' && g != null && g > 3.0) out.push('Gap/ATR >3.0 (short tail-loss risk)');
         if (t.dir !== 'long' && sidMarket && sidMarket.stress === false) out.push('Non-stress short');
         return out;
       }
@@ -2884,8 +2885,9 @@ if (!VERBOSE) {
         primary.map(t => {
           const r = rowOf.get(t.sym);
           // 13 Nov 2026 (David): section 1 stays structural, but flag ⚠️ when section 2 carries a
-          // caution (short buyer DI ≥ 20, Gap/ATR < 1.5, long unusual stretch) so it's visible on the first pass.
-          const s2Warn = (t.warnings || []).length > 0 || (r.gatrRatio != null && r.gatrRatio < 1.5);
+          // caution (short buyer DI ≥ 20, Gap/ATR long ≥ 3.0 / short > 3.0, long unusual stretch) so it's visible on the first pass.
+          const gW = r.gatrRatio != null && (t.dir === 'long' ? r.gatrRatio >= 3.0 : r.gatrRatio > 3.0);
+          const s2Warn = (t.warnings || []).length > 0 || gW;
           const rsi = r.triageRaw && r.triageRaw.rsi != null ? Number(r.triageRaw.rsi).toFixed(1) : '-';
           return [T.bare(t.sym), t.dir === 'long' ? 'Long' : 'Short', rsi, t.status + (s2Warn ? ' ⚠️' : ''), fmt(r.triageRaw.close ?? r.price), t.path,
             t.hurdle ? `${t.hurdle.label} ${t.hurdle.price.toFixed(2)}` : '-',
@@ -2893,7 +2895,9 @@ if (!VERBOSE) {
         }), new Set([2, 4, 7]));
       console.log('\n**2. Momentum & validated cautions**\n');
       const tHist = loadSidTickerHistory(), tThr = loadSidThresholds();
-      const gatrCell = (t, g) => g == null ? '-' : g.toFixed(2) + (g < 1.5 ? ' ⚠️' : (t.dir === 'long' && g < 2.0) ? ' ★' : '');
+      const gatrCell = (t, g) => g == null ? '-' : g.toFixed(2) + (t.dir === 'long'
+        ? (g >= 3.0 ? ' ⚠️' : (g >= 1.0 && g < 2.0) ? ' ★' : '')
+        : (g > 3.0 ? ' ⚠️' : ''));
       const bodyCell = t => {
         const r = rowOf.get(t.sym), tr = (r && r.triageRaw) || {};
         const c = tr.close ?? (r && r.price), atr = r && r.atrPct != null && c != null ? r.atrPct / 100 * c : null;
@@ -2909,7 +2913,7 @@ if (!VERBOSE) {
             t.cells.adx.replace('rising', '↑').replace('falling', '↓').replace('flat', '→'), t.cells.rvol,
             gatrCell(t, r.gatrRatio), bodyCell(t), historyCell(tHist, T.bare(t.sym), t.dir), warningCell(t)];
         }), new Set([4, 5, 6]));
-      console.log('\n*Section 2 key (corrected engine, 21 Nov 2026): Gap/ATR ⚠️ < 1.5 = more stops / lower completion (not worse expectancy) · ★ = long 1.5–2.0, the best long band · Body = short signal-candle body in ATR, ▲ = top quartile (favourable short context; no threshold rule) · History = this ticker’s corrected-engine SID record in this direction (wins/trades, win rate, PF); Unrated below 10 trades; n/a = not in the research archive; descriptive only, never a gate · Cautions are separate flags, not a score.*');
+      console.log('\n*Section 2 key: Gap/ATR (SID setup extreme vs signal close ÷ ATR14) ★ = long 1.0–2.0, the best long band · ⚠️ = long ≥ 3.0 (weakest band) or short > 3.0 (tail-loss risk) · Body = short signal-candle body in ATR, ▲ = top quartile (favourable short context; no threshold rule) · History = this ticker’s corrected-engine SID record in this direction (wins/trades, win rate, PF); Unrated below 10 trades; n/a = not in the research archive; descriptive only, never a gate · Cautions are separate flags, not a score.*');
       console.log('\n**3. Price, sector & event context**\n');
       const supportCell = t => {
         const rot = t.sector && t.sector.rotation;
@@ -2923,7 +2927,7 @@ if (!VERBOSE) {
           return [T.bare(t.sym), t.cells.bb.replace(' ATR', ''), t.cells.ma.replace('50 ', '').replace(' · 200 ', ' / ').replace(' · gap ', ' · '),
             `${sector} / ${etf}`, supportCell(t), t.cells.event, srcTag(t)];
         }));
-      console.log('\n*Key: ⚠️ on Status = structure OK but section 2 has a caution (Gap/ATR < 1.5, short buyer DI ≥ 20 or long unusual stretch) · Unusual stretch P = how far below the BB mid vs this stock’s own last 500 bars (SID Stretch v1.0; ≥ P80 flagged, longs only; a caution only when SPY > 200-day or VIX < 20, otherwise ℹ️ info) · Room = ATR to first hurdle · MA distances are descriptive context, not a SID veto · Hist% = (MACD − signal) / price × 100; conv/exp and fast/slow describe MACD Histogram behaviour, not the validated MACD-line speed measure · DI Sh = 3-bar shift, Ct = current control · RVOL ↑/↓/→ = volume building/fading/flat (HMA vs SMA of volume) · RVOL * labels are preliminary short context only and never change status · Src A = TV alert, S = scan · Sector Support = SPY and the sector ETF both moving in the trade direction over the last 3 days (🟢 both with the trade · 🔴 both against · ⚪ they disagree or one is flat, ±0.3%).*\n');
+      console.log('\n*Key: ⚠️ on Status = structure OK but section 2 has a caution (Gap/ATR long ≥ 3.0 / short > 3.0, short buyer DI ≥ 20 or long unusual stretch) · Unusual stretch P = how far below the BB mid vs this stock’s own last 500 bars (SID Stretch v1.0; ≥ P80 flagged, longs only; a caution only when SPY > 200-day or VIX < 20, otherwise ℹ️ info) · Room = ATR to first hurdle · MA distances are descriptive context, not a SID veto · Hist% = (MACD − signal) / price × 100; conv/exp and fast/slow describe MACD Histogram behaviour, not the validated MACD-line speed measure · DI Sh = 3-bar shift, Ct = current control · RVOL ↑/↓/→ = volume building/fading/flat (HMA vs SMA of volume) · RVOL * labels are preliminary short context only and never change status · Src A = TV alert, S = scan · Sector Support = SPY and the sector ETF both moving in the trade direction over the last 3 days (🟢 both with the trade · 🔴 both against · ⚪ they disagree or one is flat, ±0.3%).*\n');
       primary.forEach(t => console.log(`- **${T.bare(t.sym)}** — ${T.whyLine(t)}`));
 
       // Validated cautions (unchanged logic) — shown for the reviewed rows only.
@@ -2939,11 +2943,11 @@ if (!VERBOSE) {
       if (rough.length) console.log(`\n> ℹ️ LONG rough ride — DI against ≥ 20 (whipsaw rate ~44% but still +1.29% avg; expect a bumpy entry, not a skip): ${rough.map(r => `${T.bare(r.sym)} (${(-diGap(r)).toFixed(0)})`).join(', ')}`);
       const ustr = primary.filter(t => (t.warnings || []).includes('LONG_UNUSUAL_STRETCH'));
       if (ustr.length) console.log(`\n> ⚠️ LONG unusual stretch — further below the BB mid than this stock usually goes (top 20% of its own 500 bars; 63% vs 78% WR, flagged losers larger): ${ustr.map(t => `${T.bare(t.sym)} (P${Math.round(t.stretchPctl)})`).join(', ')}`);
-      // Gap/ATR reminder (David, 6 Nov 2026) — canonical STRATEGIES.md: ≥2.0 ideal · <1.5 avoid
-      // (danger flag F1; context, not a hard filter). F1 + RVOL<1.0 is the worst validated combo (64% SL).
-      const gLow = rv.filter(r => r.gatrRatio != null && r.gatrRatio < 1.5);
-      if (gLow.length) console.log(`\n> ⚠️ Gap/ATR < 1.5 — more stops and lower completion, not reliably worse expectancy (corrected engine): ${gLow.map(r => `${T.bare(r.sym)} (${r.gatrRatio.toFixed(2)})`).join(', ')}`);
-      console.log(`\n> 📏 Gap/ATR (corrected engine, 21 Nov 2026): longs 1.5–2.0 = best band (prioritise) · 2.0+ = wider loss tails outside calm markets (caution, not avoid) · < 1.5 = more stops both sides. None is a gate.`);
+      // Gap/ATR reminder (David, 6 Nov 2026; bands revised 23 Nov 2026 on the anchored SID definition —
+      // analysis/sid-gap-atr-episode/RESULTS_REENTRY_CANDLE.md). Context, not a hard filter.
+      const gWide = rv.filter(r => r.gatrRatio != null && (r.isLongPass ? r.gatrRatio >= 3.0 : r.gatrRatio > 3.0));
+      if (gWide.length) console.log(`\n> ⚠️ Gap/ATR wide stop — longs ≥ 3.0 are the weakest band; shorts > 3.0 carry tail losses: ${gWide.map(r => `${T.bare(r.sym)} ${r.isLongPass ? 'L' : 'S'} (${r.gatrRatio.toFixed(2)})`).join(', ')}`);
+      console.log(`\n> 📏 Gap/ATR (SID setup extreme vs signal close ÷ ATR14): longs 1.0–2.0 = best band (prioritise) · 2.0–3.0 weaker · 3.0+ weakest · shorts > 3.0 = tail-loss risk. None is a gate.`);
     } else {
       console.log('\n*No alert reached Review now or Conditional today — see the appendix for every alert and its reason.*');
     }
