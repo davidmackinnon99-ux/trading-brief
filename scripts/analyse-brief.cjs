@@ -826,30 +826,31 @@ const sidUniverseSet   = new Set([...sidScreenerSet, ...sidBriefSet, ...btwSet])
 // Scanning BRIEF would cause it to grow each run (coiling candidates pushed back → scanned again next day).
 const adxUniverseSet   = new Set([...adxScreenerSet]);
 
-// ── 23 Nov 2026 (David): $10 price floor for SID and LORP candidates ─────────────────
+// ── 23 Nov 2026 (David): $10-$300 range for SID and LORP candidates ──────────────
 // Screeners only filter price when a ticker is ADDED to a watchlist section; tickers that later fall
-// below $10 stay in the section and were still being scanned (e.g. COTY $3.95 in SID SCREENER).
+// outside $10-$300 stay in the section and were still being scanned (e.g. COTY $3.95 in SID SCREENER).
 // Context-only sections (PRE MARKET CHECKLIST, SECTOR ETFS) are exempt. Missing price = kept.
 const MIN_PRICE = 10;
-const belowFloor = new Map();   // bare ticker -> last price
-function passesPriceFloor(s) {
+const MAX_PRICE = 300;
+const outsidePriceRange = new Map();   // bare ticker -> last price
+function passesPriceRange(s) {
   if (!s || s.error) return true;
   const px = s.quote?.last;
   const bare = String(s.symbol || '').includes(':') ? String(s.symbol).split(':')[1] : String(s.symbol || '');
   if (px == null || !isFinite(px)) return true;
   if (lorpContextOnlySet.has(bare) || lorpContextOnlySet.has(s.symbol)) return true;
-  if (px >= MIN_PRICE) return true;
-  belowFloor.set(bare.toUpperCase(), px);
+  if (px >= MIN_PRICE && px <= MAX_PRICE) return true;
+  outsidePriceRange.set(bare.toUpperCase(), px);
   return false;
 }
-function priceFloorNote() {
-  if (!belowFloor.size) return;
-  const list = [...belowFloor.entries()].sort((a, b) => a[1] - b[1]).map(([t, px]) => `${t} $${px.toFixed(2)}`).join(', ');
-  console.log(`\n> 💲 Below the $${MIN_PRICE} price floor — not scanned as candidates (remove from the TradingView watchlist to stop alerts): ${list}`);
+function priceRangeNote() {
+  if (!outsidePriceRange.size) return;
+  const list = [...outsidePriceRange.entries()].sort((a, b) => a[1] - b[1]).map(([t, px]) => `${t} $${px.toFixed(2)}`).join(', ');
+  console.log(`\n> 💲 Outside the $${MIN_PRICE}-$${MAX_PRICE} candidate range — not included as SID/LORP candidates (remove from the TradingView watchlist to stop alerts): ${list}`);
 }
 
 // ── Process SID brief (from SID layout scan) ─────────────────────
-const sidResults = sidBrief ? sidBrief.symbols_scanned.filter(s => !EXCLUDED_TICKERS.has(s.symbol) && !SID_LEVERAGED_EXCLUDE.has(s.symbol.includes(':') ? s.symbol.split(':')[1] : s.symbol) && passesPriceFloor(s)).map(s => {
+const sidResults = sidBrief ? sidBrief.symbols_scanned.filter(s => !EXCLUDED_TICKERS.has(s.symbol) && !SID_LEVERAGED_EXCLUDE.has(s.symbol.includes(':') ? s.symbol.split(':')[1] : s.symbol) && passesPriceRange(s)).map(s => {
   if (s.error) return { sym: s.symbol, error: s.error };
   const studies = s.indicators?.studies || [];
   const price   = s.quote?.last;
@@ -1174,7 +1175,7 @@ function sidReviewSet(scanFired, alertLog) {
 }
 function sidAlertOnly(scanFired, alertLog) {
   const scanBare = new Set(scanFired.map(r => bareSym(String(r?.triageRaw?.resolvedSymbol || r?.sym || '')).toUpperCase()));
-  return ((alertLog && alertLog.sid) || []).map(a => String(a.ticker || '').toUpperCase()).filter(t => t && !scanBare.has(t) && !belowFloor.has(t));
+  return ((alertLog && alertLog.sid) || []).map(a => String(a.ticker || '').toUpperCase()).filter(t => t && !scanBare.has(t) && !outsidePriceRange.has(t));
 }
 
 // David (7 Oct 2026): TradingView files EVERY ETF under sector "Miscellaneous", so the
@@ -1448,7 +1449,7 @@ if (DEBUG) {
 }
 
 // ── Extract per symbol ───────────────────────────────────────────
-const results = brief.symbols_scanned.filter(s => !EXCLUDED_TICKERS.has(s.symbol) && passesPriceFloor(s)).map(s => {
+const results = brief.symbols_scanned.filter(s => !EXCLUDED_TICKERS.has(s.symbol) && passesPriceRange(s)).map(s => {
   if (s.error) return { sym: s.symbol, error: s.error };
 
   const studies = s.indicators?.studies || [];
@@ -2809,7 +2810,7 @@ if (!VERBOSE) {
   sidShorts.forEach(r => _sidShortSyms.add(r.sym));
 
   const sidIndicatorFound = sidResults.some(r => !r.error && r.sidArmedLong != null);
-  priceFloorNote();
+  priceRangeNote();
   if (!sidBrief) {
     console.log('**⚡ SID — no SID scan data** *(SID layout not scanned)*\n');
   } else if (!sidIndicatorFound && sidBrief) {
