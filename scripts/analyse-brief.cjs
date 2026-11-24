@@ -1557,7 +1557,22 @@ const results = brief.symbols_scanned.filter(s => !EXCLUDED_TICKERS.has(s.symbol
   // LC Premium — Kernel values from data window
   const lcSt           = getStudy(studies, 'Lorentzian Classification', 'LC Premium', 'ML: Lorentzian');
   const kernelVal      = parseNum(getVal(lcSt?.values, 'Kernel Regression Estimate', 'Kernel'));
-  const distFromKernel = parseNum(getVal(lcSt?.values, 'Distance from Kernel'));
+  // 24 Nov 2026: LC Premium no longer exports "Distance from Kernel" (gone after 10 Nov) — fall back to
+  // (close − Kernel Regression Estimate) ÷ Wilder ATR14 from the captured bars. Verified against the
+  // last exported value (AAL 10 Nov: exported 2.088, recomputed 2.098).
+  const distFromKernel = (() => {
+    const v = parseNum(getVal(lcSt?.values, 'Distance from Kernel'));
+    if (v != null) return v;
+    const B = s.bars;
+    if (kernelVal == null || !Array.isArray(B) || B.length < 16) return null;
+    const n = 14, tr = i => Math.max(B[i][2] - B[i][3], Math.abs(B[i][2] - B[i-1][4]), Math.abs(B[i][3] - B[i-1][4]));
+    let atr = 0; for (let i = 1; i <= n; i++) atr += tr(i); atr /= n;
+    for (let i = n + 1; i < B.length; i++) atr = (atr * (n - 1) + tr(i)) / n;
+    const c = B[B.length - 1][4];
+    const px = parseNum(s.quote?.close ?? s.quote?.last);
+    if (!(atr > 0) || (px != null && Math.abs(c - px) / px > 0.03)) return null;   // stale/wrong-symbol bars
+    return (c - kernelVal) / atr;
+  })();
   const distAboveKernel = parseNum(getVal(lcSt?.values, 'Distance Above Kernel'));
   const lorpHistory = parseLorpHistoryTable(s.pine_tables);
 
@@ -1748,14 +1763,24 @@ const results = brief.symbols_scanned.filter(s => !EXCLUDED_TICKERS.has(s.symbol
   const CANDLE_BEAR = ['Bearish Engulfing', 'Evening Star', 'Bearish Kicker', 'Bearish Harami', 'Hanging Man', 'Shooting Star'];
   const CANDLE_NEUT = ['Hammer', 'Inverted Hammer', 'Doji'];
   const fired = k => { const v = parseNum(getVal(patSt?.values, k)); return v != null && v !== 0; };
-  const pattern = !patSt ? null : (() => {
+  const pfSt = getStudy(studies, 'SID Pattern Finder', 'SID Patterns');
+  const PF_NAMES = { 1: 'H&S', 2: 'INV H&S', 3: 'Dbl Top', 4: 'Dbl Bottom' };
+  const pattern = patSt ? (() => {
     const out = [
       ...CANDLE_BULL.filter(fired).map(k => '🟢 ' + k),
       ...CANDLE_BEAR.filter(fired).map(k => '🔴 ' + k),
       ...CANDLE_NEUT.filter(fired),
     ];
     return out.length ? out.join(', ') : 'none';
-  })();
+  })()
+    // fallback: SID Pattern Finder (most recent pattern in last 20 bars) when Candlestick is off the chart
+    : pfSt ? (() => {
+      const k = parseNum(getVal(pfSt.values, 'Recent Pattern Kind'));
+      const b = parseNum(getVal(pfSt.values, 'Recent Pattern Bars'));
+      const st = parseNum(getVal(pfSt.values, 'Recent Pattern State'));
+      return (k != null && k > 0 && PF_NAMES[k]) ? `${PF_NAMES[k]}${st === 0 ? ' (forming)' : ''}${b != null ? ' ' + b + 'b' : ''}` : 'none';
+    })()
+    : null;
 
   // 10 Nov 2026: bar-based ATR(14, Wilder) + last bar range from the captured OHLC bars, so the
   // Bar column works even when the ATR SL study is missing from the scan. Bars = [t,o,h,l,c].
@@ -2288,7 +2313,7 @@ if (!VERBOSE) {
     console.log(`**✅ LORP — ${_nBuy} LC Buy${_nBuy === 1 ? '' : 's'}** *(+${_nSell} LC Sell${_nSell === 1 ? '' : 's'} — context only, LORP is long-only)*`);
     console.log('*Pre-filtered by TV Screener + brief filters — check chart before acting*\n');
     console.log('*Every row below is a genuine LC entry. PB/TREND/OTHER/HIST20 uses the revised 7/20-bar price-structure definition; momentum and path fields are context, not gates.*\n');
-    console.log('*Structure (confirmed 2-bar pivots): PB = confirmed HH followed by confirmed HL, with the HL no more than 7 completed bars old · TREND = not PB and price higher than 7 bars ago · OTHER = neither · HIST20 = the same HH→HL structure is 8–20 bars old. Pattern = Candlestick Patterns Identified on the signal bar (🟢 bullish · 🔴 bearish · blank = none · — = indicator not on the LORP chart). SD = CAP Strong Demand fired today (now) or n briefs ago. Context only — not gates; the revised structure definition has not yet been outcome-validated.*\n');
+    console.log('*Structure (confirmed 2-bar pivots): PB = confirmed HH followed by confirmed HL, with the HL no more than 7 completed bars old · TREND = not PB and price higher than 7 bars ago · OTHER = neither · HIST20 = the same HH→HL structure is 8–20 bars old. Pattern = Candlestick Patterns Identified on the signal bar (🟢 bullish · 🔴 bearish) when it is visible on the LORP chart, otherwise SID Pattern Finder (most recent pattern in last 20 bars, n bars ago) · blank = none · — = neither visible. SD = CAP Strong Demand fired today (now) or n briefs ago. Context only — not gates; the revised structure definition has not yet been outcome-validated.*\n');
   }
 
   function lorpRowCells(r) {
