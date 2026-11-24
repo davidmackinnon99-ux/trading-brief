@@ -2250,6 +2250,7 @@ if (!VERBOSE) {
 
   // ── Header ──
   console.log(`## 📊 MORNING BRIEF — ${dateStr} · ${scanned} scanned\n`);
+  priceRangeNote();   // layout v2 (24 Nov 2026): price-range note under the header
 
   // ── LORP ──
   console.log('---\n');
@@ -2311,9 +2312,21 @@ if (!VERBOSE) {
     const _fired = allLorpFiltered.filter(r => (r.lorpBuySignal || r.lorpSellSignal) && !_firedSeen.has(r.sym) && _firedSeen.add(r.sym));
     const _nBuy = _fired.filter(r => r.lorpBuySignal).length, _nSell = _fired.length - _nBuy;
     console.log(`**✅ LORP — ${_nBuy} LC Buy${_nBuy === 1 ? '' : 's'}** *(+${_nSell} LC Sell${_nSell === 1 ? '' : 's'} — context only, LORP is long-only)*`);
-    console.log('*Pre-filtered by TV Screener + brief filters — check chart before acting*\n');
-    console.log('*Every row below is a genuine LC entry. PB/TREND/OTHER/HIST20 uses the revised 7/20-bar price-structure definition; momentum and path fields are context, not gates.*\n');
-    console.log('*Structure (confirmed 2-bar pivots): PB = confirmed HH followed by confirmed HL, with the HL no more than 7 completed bars old · TREND = not PB and price higher than 7 bars ago · OTHER = neither · HIST20 = the same HH→HL structure is 8–20 bars old. Pattern = Candlestick Patterns Identified on the signal bar (🟢 bullish · 🔴 bearish) when it is visible on the LORP chart, otherwise SID Pattern Finder (most recent pattern in last 20 bars, n bars ago) · blank = none · — = neither visible. SD = CAP Strong Demand fired today (now) or n briefs ago. Context only — not gates; the revised structure definition has not yet been outcome-validated.*\n');
+    // layout v2 (24 Nov 2026): screener match + LORP Keys block under the LORP heading
+    if (lorpScreenerSet.size > 0) {
+      console.log(`\n*📊 Screener match: ${screenerMatched.length}/${lorpScreenerSet.size} tickers scanned*`);
+      if (screenerMissed.length > 0) console.log(`\n*⚠️ Not in scan: ${screenerMissed.join(' · ')}*`);
+    }
+    console.log('\n**LORP Keys:**\n');
+    console.log('• Every row below is a genuine LC entry. PB/TREND/OTHER/HIST20 uses the revised 7/20-bar price-structure definition; momentum fields are context, not gates.');
+    console.log([
+      '• Structure (confirmed 2-bar pivots)',
+      '• PB = confirmed HH followed by confirmed HL, with the HL no more than 7 completed bars old',
+      '• TREND = not PB and price higher than 7 bars ago · OTHER = neither',
+      '• HIST20 = the same HH→HL structure is 8–20 bars old',
+      '• Pattern = Candlestick Patterns Identified on the signal bar (🟢 bullish · 🔴 bearish) when visible on the LORP chart, otherwise SID Pattern Finder (most recent pattern in the last 20 bars, n bars ago) · blank = none · — = neither visible',
+      '• Context only — not gates; the revised structure definition has not yet been outcome-validated.',
+    ].join('\n') + '\n');
   }
 
   function lorpRowCells(r) {
@@ -2528,8 +2541,10 @@ if (!VERBOSE) {
 
     return {
       entry: [r.sym, sigStr, `$${fmt(r.price)}`, barStr, dipStr, histStr, patStr],
-      path: [r.sym, pathStr, hurdleStr, roomStr, capStr, macd0Str, diStr, adxStr, rvolStr, vdBrief, atrBrief, distStr, sdStr || '—'],
-      context: [r.sym, avwapStr, `${sectorNameStr} / ${sectorEtfStr}`, sectorStr, macdXStr, r._srcLabel || normalizeSrc(r)],
+      // layout v2 (24 Nov 2026): Path/First hurdle/Room/CAP/SD and AVWAP dropped — CAP is on LORP Clean,
+      // AVWAP hidden, SD removed by David. (pathStr/capStr/avwapStr/sdStr kept for the CSV/log paths.)
+      path: [r.sym, macd0Str, diStr, adxStr, rvolStr, vdBrief, atrBrief, distStr],
+      context: [r.sym, `${sectorNameStr} / ${sectorEtfStr}`, sectorStr, macdXStr, r._srcLabel || normalizeSrc(r)],
     };
   }
 
@@ -2548,10 +2563,13 @@ if (!VERBOSE) {
     };
     if (!keyOnly) {
     render('1. Entry, structure & ticker history', 'entry', ['Ticker', 'Signals', 'Price', 'Bar', 'Structure', 'Matching history', 'Pattern'], new Set([2, 3]));
-    render('2. Path & momentum', 'path', ['Ticker', 'Path', 'First hurdle', 'Room', 'CAP', 'MACD0', 'DI', 'ADX', 'RVOL', 'VD', 'ATR%', 'Kernel dist', 'SD'], new Set([3, 8, 9, 10, 11]));
-    render('3. AVWAP, sector & MACD-cross context', 'context', ['Ticker', 'AVWAP', 'Sector / ETF', 'Sector Support', 'MACD Cross', 'Src']);
+    console.log('• Bar = signal candle’s high–low in ATR (⚠️ ≥1.5, 🚩 ≥2.0 — big entry candle = chasing; context, not a gate)');
+    console.log('• Matching history = this ticker’s prior adapter results for the current PB / TREND / OTHER structure, using the adapter’s selected test range and exits; fewer than 6 trades is always labelled small. It is a triage flag, not a gate.\n');
+    render('2. Momentum', 'path', ['Ticker', 'MACD0', 'DI', 'ADX', 'RVOL', 'VD', 'ATR%', 'Kernel dist'], new Set([4, 5, 6, 7]));
+    console.log('• Kernel dist = (close − LC Kernel Regression Estimate) ÷ ATR14\n');
+    render('3. Sector & MACD-cross context', 'context', ['Ticker', 'Sector / ETF', 'Sector Support', 'MACD Cross', 'Src']);
     }
-    if (printKey) console.log('*Key: Bar = signal candle’s high–low in ATR (⚠️ ≥1.5, 🚩 ≥2.0 — big entry candle = chasing; context, not a gate) · Matching history = this ticker’s prior adapter results for the current PB / TREND / OTHER structure, using the adapter’s selected test range and exits; fewer than 6 trades is always labelled small. It is a triage flag, not a gate. Room = ATR to the nearest CAP opposing zone · LC envelopes are model references, not labelled as resistance/support hurdles · AVWAP shows anchors above price and the nearest Year/Quarter/Month/Earnings anchor in ATR · Path, RVOL, VD, ATR%, AVWAP, sector rotation and MACD Cross are context, not new entry gates.*\n');
+    if (printKey) console.log('• RVOL, VD, ATR%, sector rotation and MACD Cross are context, not new entry gates.\n');
   }
 
   const sortLorp = arr => [...arr].sort((a, b) => {
@@ -2579,7 +2597,7 @@ if (!VERBOSE) {
     });
     if (!buys.length && !sells.length) { console.log('*No LC entries on this bar.*\n'); return; }
     if (buys.length) printLorpTable(buys, false);
-    if (sells.length) console.log(`*LC Sell signals (context only — LORP is long-only): ${sells.map(r => `${bareSym(r.sym)} (${r._srcLabel})`).join(' · ')}*\n`);
+    if (sells.length) console.log(`• LC Sell signals (context only — LORP is long-only): ${sells.map(r => `${bareSym(r.sym)} (${r._srcLabel})`).join(' · ')}`);
     if (buys.length) printLorpTable([], true, true);
   }
 
@@ -2637,13 +2655,7 @@ if (!VERBOSE) {
   printLorpCombined([[lorpScreener, 'Screener'], [lorpBriefTickers, 'Watch list'], [lorpFiredOther, null]]);
 
   // Screener comparison
-  if (lorpScreenerSet.size > 0) {
-    console.log(`*📊 Screener match: ${screenerMatched.length}/${lorpScreenerSet.size} tickers scanned*`);
-    if (screenerMissed.length > 0) {
-      console.log(`*⚠️ Not in scan: ${screenerMissed.join(' · ')}*`);
-    }
-    console.log('');
-  }
+  // (layout v2: screener match moved under the LORP heading)
 
   // David (27 Aug 2026): separate native-code Trend/Pullback tables retired — folded into
   // the "LORP Screener" section above (see printLorpSection). lorpPullbackRows kept as the
@@ -2840,7 +2852,6 @@ if (!VERBOSE) {
   sidShorts.forEach(r => _sidShortSyms.add(r.sym));
 
   const sidIndicatorFound = sidResults.some(r => !r.error && r.sidArmedLong != null);
-  priceRangeNote();
   if (!sidBrief) {
     console.log('**⚡ SID — no SID scan data** *(SID layout not scanned)*\n');
   } else if (!sidIndicatorFound && sidBrief) {
@@ -2908,7 +2919,7 @@ if (!VERBOSE) {
           }
         }
       }
-      console.log(`\n*Review now + Conditional (${primary.length}) — open these charts first:*\n`);
+      console.log(`\n**Review now + Conditional (${primary.length}) — open these charts first:**\n`);
       console.log('**1. Structural priority**\n');
       const warningCell = t => (t.warnings || []).map(w => ({
         SHORT_DI_RUNOVER: 'Buyer DI≥20 (more stops)',
@@ -2935,7 +2946,10 @@ if (!VERBOSE) {
         return [];
       }
       // 19 Nov 2026 (David): RSI column after Side (SID indicator's RSI 0-100 on the signal bar).
-      mdTable(['Ticker', 'Side', 'RSI', 'Status', 'Price', 'Path', 'First hurdle', 'Room', 'CAP'],
+      // layout v2 (24 Nov 2026, David): DI (shift + control) moved here from section 2 — part of the first
+      // pass with price position and tramlines. CAP column dropped (CAP lives on SID Clean, checked by eye).
+      const diCell = t => t.cells.di.replace('Shift–', 'Sh ').replace('Control–', 'Ct ').replace(/Buyers/g, 'Buy').replace(/Sellers/g, 'Sell');
+      mdTable(['Ticker', 'Side', 'RSI', 'Status', 'DI', 'Price', 'Path', 'First hurdle', 'Room'],
         primary.map(t => {
           const r = rowOf.get(t.sym);
           // 13 Nov 2026 (David): section 1 stays structural, but flag ⚠️ when section 2 carries a
@@ -2943,14 +2957,23 @@ if (!VERBOSE) {
           const gW = r.gatrRatio != null && (t.dir === 'long' ? r.gatrRatio >= 3.0 : r.gatrRatio > 3.0);
           const s2Warn = (t.warnings || []).length > 0 || gW;
           const rsi = r.triageRaw && r.triageRaw.rsi != null ? Number(r.triageRaw.rsi).toFixed(1) : '-';
-          return [T.bare(t.sym), t.dir === 'long' ? 'Long' : 'Short', rsi, t.status + (s2Warn ? ' ⚠️' : ''), fmt(r.triageRaw.close ?? r.price), t.path,
+          return [T.bare(t.sym), t.dir === 'long' ? 'Long' : 'Short', rsi, t.status + (s2Warn ? ' ⚠️' : ''), diCell(t), fmt(r.triageRaw.close ?? r.price), t.path,
             t.hurdle ? `${t.hurdle.label} ${t.hurdle.price.toFixed(2)}` : '-',
-            t.hurdle && t.hurdle.distAtr != null ? t.hurdle.distAtr.toFixed(1) : '-', t.cells.cap];
-        }), new Set([2, 4, 7]));
+            t.hurdle && t.hurdle.distAtr != null ? t.hurdle.distAtr.toFixed(1) : '-'];
+        }), new Set([2, 5, 8]));
+      console.log('\n**Section 1 Keys:**\n');
+      console.log([
+        '• ⚠️ on Status = structure OK but section 2 has a caution (Gap/ATR long ≥ 3.0 / short > 3.0, short buyer DI ≥ 20 or long unusual stretch)',
+        '• Unusual stretch P = how far below the BB mid vs this stock’s own last 500 bars (SID Stretch v1.0; ≥ P80 flagged, longs only; a caution only when SPY > 200-day or VIX < 20, otherwise ℹ️ info)',
+        '• Room = ATR to first hurdle · MA distances are descriptive context, not a SID veto',
+        '• Hist% = (MACD − signal) / price × 100; conv/exp and fast/slow describe MACD Histogram behaviour, not the validated MACD-line speed measure',
+        '• DI: Sh = 3-bar DI shift (who is gaining) · Ct = current DI control (who is in charge)',
+      ].join('\n') + '\n');
+      primary.forEach(t => console.log(`- **${T.bare(t.sym)}** — ${T.whyLine(t)}\n`));
       console.log('\n**2. Momentum & validated cautions**\n');
       const tHist = loadSidTickerHistory(), tThr = loadSidThresholds();
       const gatrCell = (t, g) => g == null ? '-' : g.toFixed(2) + (t.dir === 'long'
-        ? (g >= 3.0 ? ' ⚠️' : (g >= 1.0 && g < 2.0) ? ' ★' : '')
+        ? (g >= 3.0 ? ' ⚠️' : (g >= 1.0 && g < 2.0) ? ' ⭐' : '')
         : (g > 3.0 ? ' ⚠️' : ''));
       const bodyCell = t => {
         const r = rowOf.get(t.sym), tr = (r && r.triageRaw) || {};
@@ -2959,15 +2982,22 @@ if (!VERBOSE) {
         const b = Math.abs(c - tr.open) / atr;
         return b.toFixed(2) + (tThr.short_body_atr_q75 != null && b >= tThr.short_body_atr_q75 ? ' ▲' : '');
       };
-      mdTable(['Ticker', 'MACD', 'DI', 'ADX', 'RVOL', 'Gap/ATR', 'Body', 'History', 'Caution'],
+      mdTable(['Ticker', 'MACD', 'ADX', 'RVOL', 'Gap/ATR', 'Body', 'History', 'Caution'],
         primary.map(t => {
           const r = rowOf.get(t.sym);
           return [T.bare(t.sym), short(t.cells.macd),
-            t.cells.di.replace('Shift–', 'Sh ').replace('Control–', 'Ct ').replace(/Buyers/g, 'Buy').replace(/Sellers/g, 'Sell'),
-            t.cells.adx.replace('rising', '↑').replace('falling', '↓').replace('flat', '→'), t.cells.rvol,
+            t.cells.adx.replace('rising', '↑').replace('falling', '↓').replace('flat', '→'), t.cells.rvol.replace(/\*/g, '⭐'),
             gatrCell(t, r.gatrRatio), bodyCell(t), historyCell(tHist, T.bare(t.sym), t.dir), warningCell(t)];
-        }), new Set([4, 5, 6]));
-      console.log('\n*Section 2 key: Gap/ATR (SID setup extreme vs signal close ÷ ATR14) ★ = long 1.0–2.0, the best long band · ⚠️ = long ≥ 3.0 (weakest band) or short > 3.0 (tail-loss risk) · Body = short signal-candle body in ATR, ▲ = top quartile (favourable short context; no threshold rule) · History = this ticker’s corrected-engine SID record in this direction (wins/trades, win rate, PF); Unrated below 10 trades; n/a = not in the research archive; descriptive only, never a gate · Cautions are separate flags, not a score.*');
+        }), new Set([3, 4, 5]));
+      console.log('\n**Section 2 Keys:**\n');
+      console.log([
+        '• RVOL ↑/↓/→ = volume building/fading/flat (HMA vs SMA of volume) · ⭐ RVOL labels (low/support/extreme) are preliminary short context only and never change status',
+        '• Gap/ATR (SID setup extreme vs signal close ÷ ATR14) ⭐ = long 1.0–2.0, the best long band · ⚠️ = long ≥ 3.0 (weakest band) or short > 3.0 (tail-loss risk)',
+        '• Body = short signal-candle body in ATR, ▲ = top quartile (favourable short context; no threshold rule)',
+        '• History = this ticker’s corrected-engine SID record in this direction (wins/trades, win rate, PF); Unrated below 10 trades; n/a = not in the research archive; descriptive only, never a gate',
+        '• Cautions are separate flags, not a score.',
+      ].join('\n'));
+      printSidCallouts();   // layout v2: validated-caution call-outs sit with section 2
       console.log('\n**3. Price, sector & event context**\n');
       const supportCell = t => {
         const rot = t.sector && t.sector.rotation;
@@ -2981,10 +3011,11 @@ if (!VERBOSE) {
           return [T.bare(t.sym), t.cells.bb.replace(' ATR', ''), t.cells.ma.replace('50 ', '').replace(' · 200 ', ' / ').replace(' · gap ', ' · '),
             `${sector} / ${etf}`, supportCell(t), t.cells.event, srcTag(t)];
         }));
-      console.log('\n*Key: ⚠️ on Status = structure OK but section 2 has a caution (Gap/ATR long ≥ 3.0 / short > 3.0, short buyer DI ≥ 20 or long unusual stretch) · Unusual stretch P = how far below the BB mid vs this stock’s own last 500 bars (SID Stretch v1.0; ≥ P80 flagged, longs only; a caution only when SPY > 200-day or VIX < 20, otherwise ℹ️ info) · Room = ATR to first hurdle · MA distances are descriptive context, not a SID veto · Hist% = (MACD − signal) / price × 100; conv/exp and fast/slow describe MACD Histogram behaviour, not the validated MACD-line speed measure · DI Sh = 3-bar shift, Ct = current control · RVOL ↑/↓/→ = volume building/fading/flat (HMA vs SMA of volume) · RVOL * labels are preliminary short context only and never change status · Src A = TV alert, S = scan · Sector Support = SPY and the sector ETF both moving in the trade direction over the last 3 days (🟢 both with the trade · 🔴 both against · ⚪ they disagree or one is flat, ±0.3%).*\n');
-      primary.forEach(t => console.log(`- **${T.bare(t.sym)}** — ${T.whyLine(t)}`));
+      console.log('\n**Section 3 Keys:**\n');
+      console.log('• Sector Support = SPY and the sector ETF both moving in the trade direction over the last 3 days (🟢 both with the trade · 🔴 both against · ⚪ they disagree or one is flat, ±0.3%) · Src A = TV alert, S = scan\n');
 
       // Validated cautions (unchanged logic) — shown for the reviewed rows only.
+      function printSidCallouts() {
       const rv = primary.map(t => rowOf.get(t.sym));
       const rvS = rv.filter(r => r.isShortPass);
       const diGap = r => (r.diPlus != null && r.diMinus != null) ? (r.diPlus - r.diMinus) : null;
@@ -3002,6 +3033,7 @@ if (!VERBOSE) {
       const gWide = rv.filter(r => r.gatrRatio != null && (r.isLongPass ? r.gatrRatio >= 3.0 : r.gatrRatio > 3.0));
       if (gWide.length) console.log(`\n> ⚠️ Gap/ATR wide stop — longs ≥ 3.0 are the weakest band; shorts > 3.0 carry tail losses: ${gWide.map(r => `${T.bare(r.sym)} ${r.isLongPass ? 'L' : 'S'} (${r.gatrRatio.toFixed(2)})`).join(', ')}`);
       console.log(`\n> 📏 Gap/ATR (SID setup extreme vs signal close ÷ ATR14): longs 1.0–2.0 = best band (prioritise) · 2.0–3.0 weaker · 3.0+ weakest · shorts > 3.0 = tail-loss risk. None is a gate.`);
+      }
     } else {
       console.log('\n*No alert reached Review now or Conditional today — see the appendix for every alert and its reason.*');
     }
@@ -3023,7 +3055,7 @@ if (!VERBOSE) {
     const capN = triaged.filter(t => t.cap.available).length;
     const sma50N = triaged.filter(t => t.ma.d50 != null).length;
     const C = T.CFG;
-    console.log(`*Data: CAP zones captured for ${capN}/${triaged.length} alerts · SMA50/200 (MA Ribbon MA #2/#4) for ${sma50N}/${triaged.length} · BB mid = path proxy for RSI 50 (not a guaranteed target) · Pivots, pattern targets, Weekly MACD and sector structure/turn are not in the SID Data Window → n/a · WT3D/OBV-MACD excluded by design.*`);
+    console.log(`*Data: CAP is checked by eye on SID Clean (not scanned) · SMA50/200 (MA Ribbon MA #2/#4) for ${sma50N}/${triaged.length} · BB mid = path proxy for RSI 50 (not a guaranteed target) · Pivots, pattern targets, Weekly MACD and sector structure/turn are not in the SID Data Window → n/a · WT3D/OBV-MACD excluded by design.*`);
     console.log(`*Thresholds: Open/Cleared ≥${C.ROOM_OPEN_ATR} ATR room · limited initial room <${C.ROOM_MIN_ATR} ATR (context, not an automatic exclusion) · cluster ${C.CLUSTER_ATR} ATR · MACD fast ≥${C.MACD_FAST} · DI shift ±${C.DI_SHIFT_PTS} pts over 3 bars · earnings ≤${C.EARNINGS_TRADING_DAYS} trading days · after-hours move ≥${C.OVERNIGHT_MOVE_ATR} ATR · missed entry = earlier alert ≤${C.ENTRY_MISSED_LOOKBACK}d and ≥${C.ENTRY_MISSED_ATR} ATR in favour · multiple context conditions lower review priority but do not create an exclusion.*\n`);
   }
   // SPY Regime Gate removed 28 Aug 2026 — see extraction removal note near top of file.
@@ -3179,17 +3211,17 @@ if (!VERBOSE) {
   console.log('*Structure: PB = confirmed HH→HL with HL ≤7 completed bars old · TREND = not PB and price above 7 bars ago · HIST20 = HH→HL aged 8–20 bars · OTHER = neither*  ');
   console.log('');
   console.log('📐 **CONFLUENCE FACTORS BY STRATEGY**\n');
-  console.log('**LORP:** 🟢 LC Premium Buy signal · path, momentum, AVWAP and sector/MACD-cross context shown for review  ');
+  console.log('**LORP:** 🟢 LC Premium Buy signal · momentum and sector/MACD-cross context shown for review (CAP checked by eye on LORP Clean)  ');
   console.log('         Sig = FRESH fires only — markers already in the prior brief are filtered as carried-over · ·Nc = N held-over markers suppressed\n');
   console.log('**SID:**  Long: RSI crossed below 30 (OS touch) · RSI rising  ');
   console.log('          Short: RSI crossed above 70 (OB touch) · RSI falling  ');
   console.log('          Mechanical confirmation: RSI and the MACD line turn together inside the fresh-touch window · MACD/signal crossover is NOT required · Weekly RSI direction is mandatory  ');
   console.log('          Long context: faster upward MACD-line turn is supportive, but its validated speed measure is not yet exported here · no ADX/DI/MACD-distance/SMA/volume veto  ');
   console.log('          Short context: ADX 40–50 = material run-over risk · DI spread ≥20 = low-hit-rate warning · no Hist% +0.25 veto  ');
-  console.log('          Path: BB midpoint = target · CAP/MA = possible hurdles and ATR room · Gap/ATR is displayed execution context, not a validated selection gate  ');
+  console.log('          Path: BB midpoint = target · MA = possible hurdles and ATR room (CAP checked by eye on SID/LORP Clean) · Gap/ATR is displayed execution context, not a validated selection gate  ');
   console.log('          Pattern context: confirmed Double Bottom with measured target still open was supportive in the 75-symbol SID v10.5.21 study; Double Top was not · if a target was reached, distinguish reversed back through from still beyond · context only, not a gate · chart review required until target state is exported  ');
   console.log('**MACD State:** Hist% = (MACD − signal) / price × 100 · converging/expanding and fast/slow describe MACD Histogram behaviour · MACD means the MACD line  ');
-  console.log('          RVOL/volume, ATR%, AVWAP, sector rotation and MA position are context only and do not create or veto an entry\n');
+  console.log('          RVOL/volume, ATR%, sector rotation and MA position are context only and do not create or veto an entry\n');
 
   // ── CSV Export ──
   // Save alongside the LORP JSON but with standardised name for email attachment

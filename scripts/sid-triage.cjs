@@ -16,7 +16,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 const CFG = {
-  VERSION: 'sid-triage-1.8 (21 Nov 2026)',
+  VERSION: 'sid-triage-1.9 (24 Nov 2026)',
   ROOM_OPEN_ATR: 1.0,        // room to first hurdle >= this → path "Open"/"Cleared"; below → "Hurdle near"
   ROOM_MIN_ATR: 0.25,        // room below this → limited initial room (priority context, not a gate)
   CLUSTER_ATR: 0.5,          // levels within this of the first hurdle form a cluster
@@ -354,7 +354,8 @@ function triageAlert(a) {
     if (bb.inDirection === false) conditions.push('BB_MID_BEHIND');
     // Data gaps are not trade conditions, but missing data can never create a pass:
     // any gap caps the status at Conditional (and is named in the note).
-    if (!capAvailable) dataGaps.push('CAP_NA');
+    // 24 Nov 2026 (David): CAP moved to the SID Clean layout as a manual first-pass check, so the
+    // scan never captures it — CAP_NA no longer blocks Review now (it blocked every alert).
     if (di.gapChange3 == null) dataGaps.push('DI_HISTORY_NA');
     // Spec §5.4: a missing earlier scan is never on its own a reason for Data incomplete.
     // Opposed MACD with unknown convergence stays one open condition + a data gap (≤ Conditional).
@@ -429,9 +430,9 @@ function whyLine(t) {
     ? (t.cap.opposing.state === 'cleared' ? `price has cleared the nearest CAP ${t.dir === 'long' ? 'supply' : 'demand'} zone`
       : t.cap.opposing.state === 'ahead' ? `nearest CAP ${t.dir === 'long' ? 'supply' : 'demand'} ${fmtA(t.cap.opposing.roomAtr)} ATR ahead`
       : 'CAP n/a')
-    : 'CAP zones not captured';
+    : '';
   const diTxt = [t.di.shift, t.di.control].filter(Boolean).join(', ') || 'DI n/a';
-  const base = `Path ${t.path.toLowerCase()} to ${h}; ${capTxt}. MACD ${t.cells.macd.toLowerCase()}; ${diTxt}; ${t.sector.rotation.toLowerCase()}.`;
+  const base = `Path ${t.path.toLowerCase()} to ${h}${capTxt ? '; ' + capTxt : ''}. MACD ${t.cells.macd.toLowerCase()}; ${diTxt}; ${t.sector.rotation.toLowerCase()}.`;
   if (t.status === STATUS.REVIEW) return `Why review now: ${base}`;
   const open = t.conditions.map((c) => REASON_TEXT[c] || c).join('; ');
   const gaps = (t.dataGaps || []).map((c) => REASON_TEXT[c] || c).join('; ');

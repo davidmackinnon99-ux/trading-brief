@@ -83,12 +83,13 @@ const outflow = G.filter(g => g.status === 'FADING' || g.rs5 < 0).sort((a, b) =>
 const ob = G.filter(g => g.overbought).sort((a, b) => b.rsi - a.rsi);
 const nearOb = G.filter(g => !g.overbought && g.rsi >= 67).sort((a, b) => b.rsi - a.rsi);
 
+// layout v2 (24 Nov 2026): bold heading, money flow first, SID triggers/setups as bullets
 const L = [];
-L.push(`ROTATION — US close ${J.date}: SPY ${sg(J.spy_5d)}% 5D (prior month ${sg(J.spy_prior)}%), ${J.beating_spy}/${J.total} groups beating SPY${stale}`);
-L.push(`  SID triggers: ${list(trig, g => `${lbl(g)} RSI ${g.rsi} (low ${g.rsi_low5}), vol ${g.vol_ratio}x`)}`);
-L.push(`  SID setups:   ${list(setup, g => `${lbl(g)} RSI ${g.rsi}`)}${watch.length ? '  | watch: ' + list(watch, g => `${g.ticker} ${g.rsi}`) : ''}`);
+L.push(`**ROTATION — US close ${J.date}: SPY ${sg(J.spy_5d)}% 5D (prior month ${sg(J.spy_prior)}%), ${J.beating_spy}/${J.total} groups beating SPY${stale}**`);
 L.push(`  Money in:     ${list(inflow, g => `${lbl(g)} ${sg(g.r5)}%${g.vol_ratio >= 1 ? ' vol ' + g.vol_ratio + 'x' : ' light vol'}${below2(g) ? ' [below 50/200]' : ''}`)}`);
 L.push(`  Money out:    ${list(outflow, g => `${lbl(g)} ${sg(g.r5)}%${g.vol_ratio >= 1.2 ? ' heavy vol ' + g.vol_ratio + 'x' : ''}`, 4)}`);
 L.push(`  Overbought:   ${ob.length ? list(ob, g => `${lbl(g)} RSI ${g.rsi}`) : 'none'}${nearOb.length ? '  | near: ' + list(nearOb, g => `${g.ticker} ${g.rsi}`) : ''}`);
-L.push(`  Full report: ${path.join(dir, path.basename(f).replace('.json', '.md'))}`);
+L.push(`\n• SID triggers: ${list(trig, g => `${lbl(g)} RSI ${g.rsi} (low ${g.rsi_low5}), vol ${g.vol_ratio}x`)}`);
+L.push(`\n• SID setups: ${list(setup, g => `${lbl(g)} RSI ${g.rsi}`)}${watch.length ? '  | watch: ' + list(watch, g => `${g.ticker} ${g.rsi}`) : ''}`);
+L.push(`\nFull report: ${path.join(dir, path.basename(f).replace('.json', '.md'))}`);
 console.log(L.join('\n'));
