@@ -1740,17 +1740,22 @@ const results = brief.symbols_scanned.filter(s => !EXCLUDED_TICKERS.has(s.symbol
   let dip = lorpDip(s.bars);
   if (dip && price != null && Math.abs(dip.lastClose - price) / price > 0.03) dip = null; // bars from wrong symbol/stale
   const sdAgo = (capStrongDemand != null && capStrongDemand > 0) ? 0 : (sdAgoMap[s.symbol] ?? null);
-  // 19 Oct 2026: SID Pattern Finder v2.8 on the LORP layout — most recent forming/confirmed pattern
-  // in the last 20 bars. Tested on 40 live LORP trades: pattern 11 avg +3.4% vs none 29 -0.9%
-  // (backtest +0.75% vs +0.14%). Context only.
-  const patSt   = getStudy(studies, 'SID Pattern Finder', 'SID Patterns');
-  const patKind = parseNum(getVal(patSt?.values, 'Recent Pattern Kind'));
-  const patBars = parseNum(getVal(patSt?.values, 'Recent Pattern Bars'));
-  const patStat = parseNum(getVal(patSt?.values, 'Recent Pattern State'));
-  const PAT_NAMES = { 1: 'H&S', 2: 'INV H&S', 3: 'Dbl Top', 4: 'Dbl Bottom' };
-  const pattern = !patSt ? null
-    : (patKind != null && patKind > 0 && PAT_NAMES[patKind]) ? `${PAT_NAMES[patKind]}${patStat === 0 ? ' (forming)' : ''}${patBars != null ? ' ' + patBars + 'b' : ''}`
-    : 'none';
+  // 24 Nov 2026: LORP Pattern column now reads "Candlestick Patterns Identified" (David: agrees with
+  // the STB better for LORP). Signal-bar candle patterns, 1 = fired. SID keeps SID Pattern Finder.
+  // Bullish first (🟢), then bearish (🔴), then neutral (Doji/Hammer/Inverted Hammer as plotted white).
+  const patSt = getStudy(studies, 'Candlestick Patterns Identified', 'Candlestick Patterns');
+  const CANDLE_BULL = ['Bullish Engulfing', 'Morning Star', 'Bullish Kicker', 'Piercing Line', 'Bullish Harami', 'Bullish Belt'];
+  const CANDLE_BEAR = ['Bearish Engulfing', 'Evening Star', 'Bearish Kicker', 'Bearish Harami', 'Hanging Man', 'Shooting Star'];
+  const CANDLE_NEUT = ['Hammer', 'Inverted Hammer', 'Doji'];
+  const fired = k => { const v = parseNum(getVal(patSt?.values, k)); return v != null && v !== 0; };
+  const pattern = !patSt ? null : (() => {
+    const out = [
+      ...CANDLE_BULL.filter(fired).map(k => '🟢 ' + k),
+      ...CANDLE_BEAR.filter(fired).map(k => '🔴 ' + k),
+      ...CANDLE_NEUT.filter(fired),
+    ];
+    return out.length ? out.join(', ') : 'none';
+  })();
 
   // 10 Nov 2026: bar-based ATR(14, Wilder) + last bar range from the captured OHLC bars, so the
   // Bar column works even when the ATR SL study is missing from the scan. Bars = [t,o,h,l,c].
@@ -2283,7 +2288,7 @@ if (!VERBOSE) {
     console.log(`**✅ LORP — ${_nBuy} LC Buy${_nBuy === 1 ? '' : 's'}** *(+${_nSell} LC Sell${_nSell === 1 ? '' : 's'} — context only, LORP is long-only)*`);
     console.log('*Pre-filtered by TV Screener + brief filters — check chart before acting*\n');
     console.log('*Every row below is a genuine LC entry. PB/TREND/OTHER/HIST20 uses the revised 7/20-bar price-structure definition; momentum and path fields are context, not gates.*\n');
-    console.log('*Structure (confirmed 2-bar pivots): PB = confirmed HH followed by confirmed HL, with the HL no more than 7 completed bars old · TREND = not PB and price higher than 7 bars ago · OTHER = neither · HIST20 = the same HH→HL structure is 8–20 bars old. Pattern = SID Pattern Finder v2.8, most recent forming/confirmed pattern in the last 20 bars, n bars ago (— = Pattern Finder not on the LORP chart). SD = CAP Strong Demand fired today (now) or n briefs ago. Context only — not gates; the revised structure definition has not yet been outcome-validated.*\n');
+    console.log('*Structure (confirmed 2-bar pivots): PB = confirmed HH followed by confirmed HL, with the HL no more than 7 completed bars old · TREND = not PB and price higher than 7 bars ago · OTHER = neither · HIST20 = the same HH→HL structure is 8–20 bars old. Pattern = Candlestick Patterns Identified on the signal bar (🟢 bullish · 🔴 bearish · blank = none · — = indicator not on the LORP chart). SD = CAP Strong Demand fired today (now) or n briefs ago. Context only — not gates; the revised structure definition has not yet been outcome-validated.*\n');
   }
 
   function lorpRowCells(r) {
