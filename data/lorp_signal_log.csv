@@ -92,3 +92,4 @@ brief_date,symbol,price,native_label,entry_type,structure,pattern,sd_ago,extende
 2026-11-14,KOD,111.19,,No LC data,TREND · HIST20,,,0,0.24,,34.32,1.13,SBT
 2026-11-18,VIK,94.28,,No LC data,TREND,,,0,0.52,,31.68,2.36,LORP
 2026-11-19,TDC,36.04,,No LC data,TREND · HIST20,,7,0,0.10,,20.61,1.02,SID
+2026-11-24,CHKP,159.25,,No LC data,PB,,,0,0.74,,22.00,0.85,SID
