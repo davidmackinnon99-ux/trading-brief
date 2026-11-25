@@ -356,6 +356,10 @@ if [ $BRIEF_EXIT -eq 0 ] && [ -s "$OUTFILE_LORP" ]; then
             "$NODE" "$TV_DIR/scripts/push-watchlist.cjs" "$WATCHLIST_UPDATES" >> "$LOGFILE" 2>&1
             if [ $? -eq 0 ]; then
                 echo "[$(date)] Watchlist updated successfully" >> "$LOGFILE"
+                # 26 Nov 2026 (David): reload the TradingView chart pages so the watchlist panel
+                # shows the cleared screeners straight away (the app caches the old list).
+                sleep 3
+                "$NODE" "$TV_DIR/scripts/reload-tv-pages.cjs" >> "$LOGFILE" 2>&1 || true
             else
                 echo "[$(date)] Watchlist update failed — check log above" >> "$LOGFILE"
             fi
