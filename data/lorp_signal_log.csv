@@ -95,3 +95,4 @@ brief_date,symbol,price,native_label,entry_type,structure,pattern,sd_ago,extende
 2026-11-24,CHKP,159.25,,No LC data,PB,,,0,0.74,,22.00,0.85,SID
 2026-11-25,KYMR,173.92,,Pullback 🔄,TREND,none,,0,2.72,3.90,29.32,3.84,LORP
 2026-11-25,SRRK,53.34,,Trend ↗,TREND,none,,0,0.81,2.08,31.55,1.07,LORP
+2026-11-26,VVV,39.03,,Trend ↗,PB,,,0,0.30,2.17,38.97,0.83,LORP
