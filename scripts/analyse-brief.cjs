@@ -2948,7 +2948,24 @@ if (!VERBOSE) {
       // 19 Nov 2026 (David): RSI column after Side (SID indicator's RSI 0-100 on the signal bar).
       // layout v2 (24 Nov 2026, David): DI (shift + control) moved here from section 2 — part of the first
       // pass with price position and tramlines. CAP column dropped (CAP lives on SID Clean, checked by eye).
-      const diCell = t => t.cells.di.replace('Shift–', 'Sh ').replace('Control–', 'Ct ').replace(/Buyers/g, 'Buy').replace(/Sellers/g, 'Sell');
+      // 27 Nov 2026 (David): Sh/Ct words replaced by numbers. Ct read "against the trade" on ~97% of SID
+      // entries, so it told nothing (trading-indicators analysis/sid-di-zones). Shows the signed DI gap
+      // (DI+ − DI−) and the 3-bar % change in the SIZE of the gap (− narrowing, + widening; "flip" = the
+      // leader changed). ℹ️ long gap ≤ −20 / ⚠️ short gap ≥ +20 = the validated thresholds. Matches ADX/DI Table v3.4.
+      const diCell = t => {
+        const g = t.di && t.di.gap, c = t.di && t.di.gapChange3;
+        if (g == null) return 'n/a';
+        const sg = v => (v > 0 ? '+' : v < 0 ? '−' : '') + Math.abs(v).toFixed(0);
+        let out = sg(g);
+        if (c != null) {
+          const p = g - c;
+          if (p !== 0 && g !== 0 && Math.sign(p) !== Math.sign(g)) out += ' flip';
+          else if (Math.abs(p) >= 1) { const pct = (Math.abs(g) - Math.abs(p)) / Math.abs(p) * 100; out += ` (${pct > 0 ? '+' : pct < 0 ? '−' : ''}${Math.abs(pct).toFixed(0)}%)`; }
+        }
+        if (t.dir === 'long' && g <= -20) out += ' ℹ️';
+        if (t.dir !== 'long' && g >= 20) out += ' ⚠️';
+        return out;
+      };
       mdTable(['Ticker', 'Side', 'RSI', 'Status', 'DI', 'Price', 'Path', 'First hurdle', 'Room'],
         primary.map(t => {
           const r = rowOf.get(t.sym);
@@ -2967,7 +2984,7 @@ if (!VERBOSE) {
         '• Unusual stretch P = how far below the BB mid vs this stock’s own last 500 bars (SID Stretch v1.0; ≥ P80 flagged, longs only; a caution only when SPY > 200-day or VIX < 20, otherwise ℹ️ info)',
         '• Room = ATR to first hurdle · MA distances are descriptive context, not a SID veto',
         '• Hist% = (MACD − signal) / price × 100; conv/exp and fast/slow describe MACD Histogram behaviour, not the validated MACD-line speed measure',
-        '• DI: Sh = 3-bar DI shift (who is gaining) · Ct = current DI control (who is in charge)',
+        '• DI = gap DI+ − DI− (− sellers lead, + buyers lead) · (%) = 3-bar change in the size of the gap: − narrowing (the leader losing ground), + widening · flip = leader changed in the last 3 bars · ℹ️ long gap ≤ −20 (rough ride) · ⚠️ short gap ≥ +20 (more stops) — matches the ADX/DI Table v3.4 on the chart',
       ].join('\n') + '\n');
       primary.forEach(t => console.log(`- **${T.bare(t.sym)}** — ${T.whyLine(t)}\n`));
       console.log('\n**2. Momentum & validated cautions**\n');
