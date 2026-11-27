@@ -3234,7 +3234,7 @@ if (!VERBOSE) {
   console.log('          Short: RSI crossed above 70 (OB touch) · RSI falling  ');
   console.log('          Mechanical confirmation: RSI and the MACD line turn together inside the fresh-touch window · MACD/signal crossover is NOT required · Weekly RSI direction is mandatory  ');
   console.log('          Long context: faster upward MACD-line turn is supportive, but its validated speed measure is not yet exported here · no ADX/DI/MACD-distance/SMA/volume veto  ');
-  console.log('          Short context: ADX 40–50 = material run-over risk · DI spread ≥20 = low-hit-rate warning · no Hist% +0.25 veto  ');
+  console.log('          Short context: buyer DI gap ≥20 = more stops / lower completion (not an expectancy gate) · ADX 40–50 warning dropped 21 Nov (corrected engine) · no Hist% +0.25 veto  ');
   console.log('          Path: BB midpoint = target · MA = possible hurdles and ATR room (CAP checked by eye on SID/LORP Clean) · Gap/ATR is displayed execution context, not a validated selection gate  ');
   console.log('          Pattern context: confirmed Double Bottom with measured target still open was supportive in the 75-symbol SID v10.5.21 study; Double Top was not · if a target was reached, distinguish reversed back through from still beyond · context only, not a gate · chart review required until target state is exported  ');
   console.log('**MACD State:** Hist% = (MACD − signal) / price × 100 · converging/expanding and fast/slow describe MACD Histogram behaviour · MACD means the MACD line  ');
