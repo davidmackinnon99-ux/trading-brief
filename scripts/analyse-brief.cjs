@@ -3042,7 +3042,7 @@ if (!VERBOSE) {
       const diSup = rvS.filter(r => { const g = diGap(r); return g != null && g < 10; });
       if (diSup.length) console.log(`\n> ✓ SHORT DI supportive — DI against < 10 (best short group: +0.03% avg, 29% whipsaw): ${diSup.map(r => `${T.bare(r.sym)} (${diGap(r).toFixed(0)})`).join(', ')}`);
       const rough = rv.filter(r => r.isLongPass && diGap(r) != null && -diGap(r) >= 20);
-      if (rough.length) console.log(`\n> ℹ️ LONG rough ride — DI against ≥ 20 (whipsaw rate ~44% but still +1.29% avg; expect a bumpy entry, not a skip): ${rough.map(r => `${T.bare(r.sym)} (${(-diGap(r)).toFixed(0)})`).join(', ')}`);
+      if (rough.length) console.log(`\n> ℹ️ LONG rough ride — sellers lead the DI by ≥ 20 (corrected engine: 55% vs 67% win rate, PF 1.10 vs 1.52, 39% vs 30% stopped out; a heads-up, not a skip — the bigger the lead, the rougher): ${rough.map(r => `${T.bare(r.sym)} (${(-diGap(r)).toFixed(0)})`).join(', ')}`);
       const ustr = primary.filter(t => (t.warnings || []).includes('LONG_UNUSUAL_STRETCH'));
       if (ustr.length) console.log(`\n> ⚠️ LONG unusual stretch — further below the BB mid than this stock usually goes (top 20% of its own 500 bars; 63% vs 78% WR, flagged losers larger): ${ustr.map(t => `${T.bare(t.sym)} (P${Math.round(t.stretchPctl)})`).join(', ')}`);
       // Gap/ATR reminder (David, 6 Nov 2026; bands revised 23 Nov 2026 on the anchored SID definition —
