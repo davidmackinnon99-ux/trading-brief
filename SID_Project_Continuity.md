@@ -821,6 +821,10 @@ Shown in the Caution column of SID table 2 plus a callout line under the tables 
   reached only earlier in the setup does not rescue a shallow entry. Aqua cross during a long: strong warning (PF ~0.5)
   but exiting at it is worse than holding. HIST ⚠ then a yellow candle within 3 bars: clearly better than HIST ⚠ alone
   (IS longs PF 0.77 vs 0.43, OOS 1.17 vs 0.60), still below trades with no HIST warning. Information only.
+- **AlgoAlpha white-dot timing, 28 Nov** (`stretch-vs-stochz/DOT_TIMING_RESULTS.md`): David takes the SID entry the bar
+  after the white momentum-shift dot. Up-dot 1 bar before the signal: IS PF 1.36 (2020+ 1.56), OOS 0.88 (2020+ 1.60) —
+  about average, no consistent edge or penalty. The 27 Nov "dot in last 2 bars = weaker" result mixed up- and down-turn
+  dots and is withdrawn. The chart's white dotted line is SMA10 (matches the SMA10 studies).
 - **iCloud copy of the continuity docs (28 Nov):** now made by launchd job `com.davidmackinnon.continuity-icloud-mirror`
   (`scripts/continuity-icloud-mirror.sh`, every 15 min, log `~/Library/Logs/continuity-icloud-mirror.log`). The git
   post-commit hook is disabled: the Claude app is not allowed to write into iCloud Drive, so hook copies failed whenever
