@@ -811,6 +811,18 @@ Shown in the Caution column of SID table 2 plus a callout line under the tables 
   ~1.66 → ~1.0 (not SID); SMA10 exit not better than RSI 50 (RSI 50 unchanged, David); MACD gradient at bars +1/+2 is a
   warning sign but exiting on it does not help; Stretch, AlgoAlpha Stoch-Z and LazyBear WaveTrend all say deep long
   setups work, shallow ones are weak; no indicator separates short outcomes.
+- **SMA10 studies (26–28 Nov) — where to find them:** trading-indicators `analysis/sid-sma10-exit/` (`RESULTS.md` = exit
+  test, `RESULTS_PATTERN.md` = entry/hold pattern + MACD Sep) and `analysis/sid-wavetrend/OOS_RESULTS.md` (late-entry
+  out-of-sample). Chart line = SMA10 (white dotted). Findings, longs (actual SID trades, 890):
+  - SMA10 flips ~3 times in a typical trade; the first favourable flip usually comes 3+ bars before the RSI 50 exit.
+  - Exit on the first favourable flip: PF 1.66 → 1.18 (2020+ 1.54 → 0.97). Exit on an adverse flip: PF 0.99. RSI 50
+    stays the exit (David: not changing RSI 50).
+  - At entry: already favourable (flip on the signal bar or 1 before) PF 1.40 vs 1.72 not yet favourable (2020+ 0.88
+    vs 1.80); out-of-sample 1.12 vs 1.20 — direction holds, too small to act on.
+  - After entry: held favourable to the exit = 100% winners; flipped back before exit = 52% WR, PF 0.41. An adverse
+    flip is a warning, but exiting at it averaged −2.8% vs −0.9% if held. Adding a MACD Sep warning does not help.
+  - Shorts: exiting on the first favourable flip was slightly better (PF 0.81 → 0.94); losing shorts had an adverse
+    flip first on 62% (n=21) — watch item only.
 - **Out-of-sample check, 28 Nov** (`analysis/sid-wavetrend/OOS_RESULTS.md`; 72 fresh symbols, 2,505 longs, Python SID
   engine + weekly gate, re-entry exit not modelled): **shallow long (LazyBear wt1 inside ±53) holds** — PF 0.90 vs
   1.37 deep (2020+: 0.87 vs 1.53). **Late entry (SMA10 already favourable) only weakly holds** — PF 1.12 vs 1.20
