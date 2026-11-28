@@ -1,7 +1,7 @@
 # SID Strategy — Project Continuity
 
 **Living doc — git is the version history (no more numbered copies).**
-**Last updated:** 20 November 2026
+**Last updated:** 28 November 2026
 **Supersedes:** SID_Project_Continuity_9 (29 Mar 2026) + the iCloud `v10` draft — both archive only.
 **Strategy:** SID Strategy v10.5.21 (backtest) · **Indicator:** SID Trading Signals Pro v8.5.22 (entry+confluence) — code in `~/Trading Indicators` repo, `current/` folder; what is on each chart is in that repo's `CHART_INVENTORY.md`
 
@@ -794,6 +794,29 @@ Shown in the Caution column of SID table 2 plus a callout line under the tables 
   SID regime line (stress = VIX >= 30 or SPY >= 10% below 52-week high) and, in stress, an open-long risk monitor
   read from trading-indicators data/open_trades.csv (needs direction, entry, stop, shares columns).
 - Context files rebuilt by `tools/build_sid_brief_context.py` (trading-indicators).
+
+## 2i. Gap/ATR corrected to the true SID stop + related changes — 22–28 November 2026
+- **Gap/ATR redefined** (SOW `testing/specs/CLAUDE_SOW_GAP_ATR_CORRECTION.md`): raw setup extreme (latest RSI entry into
+  OS/OB while flat, through the signal candle) vs signal close, ÷ ATR(14) on the signal candle. The 10-bar proxy is
+  retired everywhere. Context only, never a gate. Stop rule unchanged: floor/ceil of the same extreme.
+- **Versions (pending/installed):** SID Strategy v10.5.27 (Entry Gap/ATR exports; SPY lookback default 3), Signals Pro
+  v8.5.27 (mandatory OB/OS re-entry exit, same as strategy; exit crosses RSI50 green / Hard SL orange kept; entry
+  parity V/AAPL/IBM), ATR SL v2.9 (shows SID stop + distance in ATR; 1.5×ATR stops off by default), MACD Sep v1.7
+  (Gradient row = (gap−gap[2])/2 ÷ avg|gap|50; table size setting, default Small).
+- **Brief:** Gap/ATR bands longs ★ 1.0–2.0, ⚠️ ≥ 3.0; shorts ⚠️ > 3.0 (old <1.5 / ≥2.0 bands retired). $10 minimum
+  price for SID/LORP candidates (context sections exempt). Sub-$10 names came from stale watchlist sections and an
+  OB screener set to $1–$300 (David fixed to $10–$300).
+- **TrendSpider delta** for ChatGPT: `testing/specs/TS_Delta_2026-11-23_SID_GapATR_Stops.md`.
+- **Research (trading-indicators `analysis/`), none adopted as rules:** trailing / 1.5–2×ATR / chandelier stops cut long PF
+  ~1.66 → ~1.0 (not SID); SMA10 exit not better than RSI 50 (RSI 50 unchanged, David); MACD gradient at bars +1/+2 is a
+  warning sign but exiting on it does not help; Stretch, AlgoAlpha Stoch-Z and LazyBear WaveTrend all say deep long
+  setups work, shallow ones are weak; no indicator separates short outcomes.
+- **Out-of-sample check, 28 Nov** (`analysis/sid-wavetrend/OOS_RESULTS.md`; 72 fresh symbols, 2,505 longs, Python SID
+  engine + weekly gate, re-entry exit not modelled): **shallow long (LazyBear wt1 inside ±53) holds** — PF 0.90 vs
+  1.37 deep (2020+: 0.87 vs 1.53). **Late entry (SMA10 already favourable) only weakly holds** — PF 1.12 vs 1.20
+  (2020+: 1.16 vs 1.29), with a higher win rate. Shallow + late = worst (PF 0.86). Brief caution pending David.
+- **Open:** whole-number stop rounding on low-priced stocks (David at install); V 18 Jan 2023 high $224.99 (TV) vs
+  $225.85 (SOW); gate ATR SL v2.9 blue lines with the toggle?; strategy "Show ATR SL lines" off by default?
 
 ## 5. Open items (need input — not resolvable from files)
 - [ ] DEFERRED (David, 21 Nov 2026): STB (swingtradebot.com) sector/industry grades (A–F, rank 0–100, public pages, no login) as an info column + daily log to test against SID/LORP outcomes. Not now — STB's sector/industry naming differs from TradingView's (needs a per-ticker STB lookup/cache); David also suspects the grade is longer-term than SID/LORP horizons.
