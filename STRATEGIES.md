@@ -47,8 +47,10 @@ Bar Prediction Values, ATR%, RVOL, VD, Aroon, ADX, DI+/DI-, WRB, Range%, vs Open
 | Factor | Rule |
 |--------|------|
 | Entry signal | `Long Entry Signal = 1` or `Short Entry Signal = 1` from v8.5.20 must be true |
-| Weekly RSI direction | Built into indicator since v8.5.19 (12 Oct 2026): longs need weekly RSI rising, shorts falling — last COMPLETED week vs the week before (v8.5.20, non-repainting) |
+| Weekly RSI direction | Built into indicator: longs need weekly RSI rising, shorts falling — THIS WEEK SO FAR vs the last completed week, computed from daily bars (v8.5.23 / v10.5.22, 11 Nov 2026; same value live and on reload) |
 | 10-bar rule | Built into indicator — entry can only fire within 10 bars of initial OB/OS cross |
+| RSI 45–55 no-go | David's execution rule: RSI 45–55 at the signal → Exclude today (`sid-triage.cjs` RSI_NO_GO, since 21 Nov 2026). Reason: too little left to RSI 50 to take a profit — not a weaker-result filter. |
+| $10 price floor | SID/LORP candidates below $10 at the signal are dropped (28 Nov 2026 brief) |
 
 ### Context columns (shown, not filtered)
 
@@ -61,7 +63,7 @@ Bar Prediction Values, ATR%, RVOL, VD, Aroon, ADX, DI+/DI-, WRB, Range%, vs Open
 | RVOL | Volume confirmation |
 | VD | Buy/Sell pressure reference |
 
-**Gap/ATR Ratio:** ≥2.0 ideal · <1.5 avoid (shown in context, not a hard filter). *Definition corrected 22 Nov 2026:* long = (signal close − raw lowest low) ÷ ATR(14), short = (raw highest high − signal close) ÷ ATR(14); setup window = latest candle entering OS/OB through the SID signal candle, inclusive; raw extreme, not the whole-dollar stop. The thresholds above came from the old rolling 10-bar proxy and are under review.
+**Gap/ATR Ratio:** context only, never a gate. Brief bands (23 Nov 2026, to test): longs ★ 1.0–2.0, ⚠️ ≥ 3.0; shorts ⚠️ > 3.0. The old ≥2.0 ideal · <1.5 avoid bands are retired (proxy-based). *Definition corrected 22 Nov 2026:* long = (signal close − raw lowest low) ÷ ATR(14), short = (raw highest high − signal close) ÷ ATR(14); setup window = latest candle entering OS/OB through the SID signal candle, inclusive; raw extreme, not the whole-dollar stop.
 
 ---
 
