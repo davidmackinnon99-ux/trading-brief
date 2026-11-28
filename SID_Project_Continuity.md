@@ -815,6 +815,10 @@ Shown in the Caution column of SID table 2 plus a callout line under the tables 
   engine + weekly gate, re-entry exit not modelled): **shallow long (LazyBear wt1 inside ±53) holds** — PF 0.90 vs
   1.37 deep (2020+: 0.87 vs 1.53). **Late entry (SMA10 already favourable) only weakly holds** — PF 1.12 vs 1.20
   (2020+: 1.16 vs 1.29), with a higher win rate. Shallow + late = worst (PF 0.86). **Not added to the brief** (David, 28 Nov): information only, he enters in the OB/OS area so the warning would rarely apply.
+- **iCloud copy of the continuity docs (28 Nov):** now made by launchd job `com.davidmackinnon.continuity-icloud-mirror`
+  (`scripts/continuity-icloud-mirror.sh`, every 15 min, log `~/Library/Logs/continuity-icloud-mirror.log`). The git
+  post-commit hook is disabled: the Claude app is not allowed to write into iCloud Drive, so hook copies failed whenever
+  Claude made the commit.
 - **Open:** whole-number stop rounding on low-priced stocks (David at install); V 18 Jan 2023 high $224.99 (TV) vs
   $225.85 (SOW); gate ATR SL v2.9 blue lines with the toggle?; strategy "Show ATR SL lines" off by default?
 
