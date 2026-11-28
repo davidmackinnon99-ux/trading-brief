@@ -825,6 +825,7 @@ Shown in the Caution column of SID table 2 plus a callout line under the tables 
   after the white momentum-shift dot. Up-dot 1 bar before the signal: IS PF 1.36 (2020+ 1.56), OOS 0.88 (2020+ 1.60) —
   about average, no consistent edge or penalty. The 27 Nov "dot in last 2 bars = weaker" result mixed up- and down-turn
   dots and is withdrawn. The chart's white dotted line is SMA10 (matches the SMA10 studies).
+- **Layouts (28 Nov, David):** LazyBear WaveTrend added to SID CLEAN; AlgoAlpha Stoch Z-Score stays on SID — both monitored as information only.
 - **iCloud copy of the continuity docs (28 Nov):** now made by launchd job `com.davidmackinnon.continuity-icloud-mirror`
   (`scripts/continuity-icloud-mirror.sh`, every 15 min, log `~/Library/Logs/continuity-icloud-mirror.log`). The git
   post-commit hook is disabled: the Claude app is not allowed to write into iCloud Drive, so hook copies failed whenever
