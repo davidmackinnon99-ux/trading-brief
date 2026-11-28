@@ -1,0 +1,78 @@
+{
+  "id": "1788999856370",
+  "alias": "GoSungrow - Stale Data Alert",
+  "description": "Sends a time-sensitive iPhone alert when GoSungrow solar data has not updated for 15 minutes and clears the Home Assistant alert when data resumes.",
+  "triggers": [
+    {
+      "trigger": "template",
+      "value_template": "{% set value = states('sensor.roof_gosungrow_1498605_sungrow_gosungrow_data_last_update_time') %} {{ value in ['unknown', 'unavailable', 'none', ''] or\n   (as_timestamp(now()) - as_timestamp(value, 0)) > 900 }}",
+      "for": "00:01:00",
+      "id": "stale"
+    },
+    {
+      "trigger": "state",
+      "entity_id": "sensor.roof_gosungrow_1498605_sungrow_gosungrow_data_last_update_time",
+      "id": "fresh"
+    }
+  ],
+  "conditions": [],
+  "actions": [
+    {
+      "choose": [
+        {
+          "conditions": [
+            {
+              "condition": "trigger",
+              "id": "stale"
+            }
+          ],
+          "sequence": [
+            {
+              "action": "persistent_notification.create",
+              "data": {
+                "notification_id": "gosungrow_stale_data",
+                "title": "GoSungrow solar data is stale",
+                "message": "Home Assistant has not received fresh GoSungrow data for at least 15 minutes. Check or restart the GoSungrow app before relying on solar or pool automation readings."
+              }
+            },
+            {
+              "action": "notify.mobile_app_davids_iphone_17",
+              "data": {
+                "title": "GoSungrow solar data is stale",
+                "message": "Home Assistant has not received fresh GoSungrow data for at least 15 minutes. Check the GoSungrow app.",
+                "data": {
+                  "tag": "gosungrow_stale_data",
+                  "push": {
+                    "interruption-level": "time-sensitive",
+                    "sound": "default"
+                  }
+                }
+              }
+            }
+          ]
+        },
+        {
+          "conditions": [
+            {
+              "condition": "trigger",
+              "id": "fresh"
+            },
+            {
+              "condition": "template",
+              "value_template": "{{ (as_timestamp(now()) - as_timestamp(states('sensor.roof_gosungrow_1498605_sungrow_gosungrow_data_last_update_time'), 0)) < 300 }}"
+            }
+          ],
+          "sequence": [
+            {
+              "action": "persistent_notification.dismiss",
+              "data": {
+                "notification_id": "gosungrow_stale_data"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "mode": "restart"
+}
