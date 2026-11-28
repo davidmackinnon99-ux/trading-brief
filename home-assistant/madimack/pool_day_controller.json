@@ -1,7 +1,7 @@
 {
   "id": "1788744342419",
   "alias": "Pool - Day Controller",
-  "description": "Consolidated pool controller. Starts solar circulation with 0.20 kW export sustained for 2 minutes, but requires 1.20 kW export sustained for 5 minutes before starting the Madimack. Guarantees minimum daily circulation from 11am until 4pm. After 4pm, Solar Available must remain Good as well as sufficient export being present. Startup waits for Madimack availability and retries its integration once. If local control remains unavailable, temperature-based startup monitoring allows 30 minutes and accepts 0.5 C below the requested target. Shutdown is verified before pool power is removed. Manual Override bypasses automatic control.\n",
+  "description": "Consolidated pool controller. Starts solar circulation with 0.20 kW export sustained for 2 minutes, but requires 1.20 kW export sustained for 5 minutes before starting the Madimack. Guarantees minimum daily circulation from 11am until 4pm. After 4pm, Solar Available must remain Good as well as sufficient export being present. Startup waits for Madimack availability and retries its integration once. If local control remains unavailable, temperature-based startup monitoring allows 30 minutes and accepts 0.5 C below the requested target. Shutdown is verified before pool power is removed. Pool System Off blocks all automatic and manual starts; Manual Override otherwise bypasses automatic control.\n",
   "triggers": [
     {
       "trigger": "time",
@@ -55,6 +55,10 @@
     },
     {
       "trigger": "state",
+      "entity_id": "input_boolean.pool_system_off"
+    },
+    {
+      "trigger": "state",
       "entity_id": [
         "climate.spa_madimack_inverter_pool_heat_pump"
       ],
@@ -68,7 +72,13 @@
       }
     }
   ],
-  "conditions": [],
+  "conditions": [
+    {
+      "condition": "state",
+      "entity_id": "input_boolean.pool_system_off",
+      "state": "off"
+    }
+  ],
   "actions": [
     {
       "variables": {
