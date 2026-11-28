@@ -815,6 +815,12 @@ Shown in the Caution column of SID table 2 plus a callout line under the tables 
   engine + weekly gate, re-entry exit not modelled): **shallow long (LazyBear wt1 inside ±53) holds** — PF 0.90 vs
   1.37 deep (2020+: 0.87 vs 1.53). **Late entry (SMA10 already favourable) only weakly holds** — PF 1.12 vs 1.20
   (2020+: 1.16 vs 1.29), with a higher win rate. Shallow + late = worst (PF 0.86). **Not added to the brief** (David, 28 Nov): information only, he enters in the OB/OS area so the warning would rarely apply.
+- **WaveTrend follow-up, 28 Nov** (prompted by HBAN Sep–Nov; `analysis/sid-wavetrend/WT_FOLLOWUP_RESULTS.md`, IS + OOS):
+  yellow (bullish wt cross) with wt2 <= -53 in the 10 bars before a long: PF 1.91 vs 1.39 (OOS 1.32 vs 0.98); about half
+  of such candles are followed by a SID long, usually within a day — David may alert on it as a watch signal. Depth
+  reached only earlier in the setup does not rescue a shallow entry. Aqua cross during a long: strong warning (PF ~0.5)
+  but exiting at it is worse than holding. HIST ⚠ then a yellow candle within 3 bars: clearly better than HIST ⚠ alone
+  (IS longs PF 0.77 vs 0.43, OOS 1.17 vs 0.60), still below trades with no HIST warning. Information only.
 - **iCloud copy of the continuity docs (28 Nov):** now made by launchd job `com.davidmackinnon.continuity-icloud-mirror`
   (`scripts/continuity-icloud-mirror.sh`, every 15 min, log `~/Library/Logs/continuity-icloud-mirror.log`). The git
   post-commit hook is disabled: the Claude app is not allowed to write into iCloud Drive, so hook copies failed whenever
